@@ -1,9 +1,14 @@
-![Logo](https://whitesource-resources.s3.amazonaws.com/ws-sig-images/Whitesource_Logo_178x44.png)  
+![Logo](https://whitesource-resources.s3.amazonaws.com/ws-sig-images/Whitesource_Logo_178x44.png)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
-[![GitHub release](https://img.shields.io/github/release/whitesource-ps/wss-template.svg)](https://github.com/whitesource-ps/wss-template/releases/latest)  
-# WhiteSource Tool Name
-Tool description
+[![GitHub release](https://img.shields.io/github/release/whitesource-ps/wss-template.svg)](https://github.com/whitesource-ps/wss-template/releases/latest)
+![CI](https://github.com/whitesource-ps/ws_sdk/workflows/WS%20Python%20SDK%20Python%20CI/badge.svg)
+![ws-sdk](https://img.shields.io/badge/pypi-v1.0.0-blue)
+[![Python 3.6](https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Blue_Python_3.6%2B_Shield_Badge.svg/86px-Blue_Python_3.6%2B_Shield_Badge.svg.png)](https://www.python.org/downloads/release/python-360/)
+[![PyPI version](https://badge.fury.io/py/ws-sdk.svg)](https://badge.fury.io/py/ws-sdk)
+
+# WhiteSource Python SDK
+SDK written in Python to simplify access to WhiteSource resources
 
 ## Supported Operating Systems
 - **Linux (Bash):**	CentOS, Debian, Ubuntu, RedHat
@@ -12,15 +17,14 @@ Tool description
 ## Prerequisites
 Prerequisite list
 
-## Installation
-1. Download **wss-tool-name** to your computer
-2. Edit the file **filename** and add:  
-    `this text`  
+## Instructions
+1. Obtain connection details from WS Application (Home > Admin > Integration)
+2. Install wheel package
+
 
 ## Execution
-Execution instructions:  
-  - **Bash:**  
-  `:~/dirname$ [sudo] ./wss-tool-name.sh` (requires setting the file as executable using `chmod +x filename`)  
-  - **PowerShell:**  
-  `PS C:\dirname> wss-tool-name.ps1`  
-  
+```python
+from ws_sdk.web import WS
+ws = WS(api_url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
+all_alerts = ws.get_alerts()
+```
