@@ -639,7 +639,6 @@ class TestWS(TestCase):
     @patch('ws_sdk.web.WS.__call_api__')
     @patch('ws_sdk.web.WS.get_project')
     @patch('ws_sdk.web.WS.__set_token_in_body__')
-
     def test_delete_scope(self, mock_set_token_in_body, mock_get_project, mock_call_api, mock_get_scope_name_by_token):
         mock_set_token_in_body.return_value = (constants.PROJECT, {})
         mock_get_project.return_value = {'token': "TOKEN", 'productToken': "PROD_TOKEN"}
