@@ -1,6 +1,8 @@
 import logging
 import sys
 
+from ws_sdk.web import WS
+
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.DEBUG)
@@ -11,5 +13,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 __all__ = (
-    "WS"
+    "WS",
+    "ws_constants",
+    "ws_utilities"
 )

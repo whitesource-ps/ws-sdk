@@ -1,7 +1,7 @@
 import json
 import logging
 from typing import Union
-from ws_sdk import constants
+from ws_sdk import ws_constants
 from datetime import datetime
 from secrets import compare_digest
 from memoization import cached
@@ -40,12 +40,12 @@ class WS:
         self.timeout = timeout
         self.resp_format = resp_format
         self.url = url
-        self.api_url = url + constants.API_URL_SUFFIX
+        self.api_url = url + ws_constants.API_URL_SUFFIX
 
         if token_type != 'organization':
             logging.error("Currently only supporting organization")
 
-    @cached(ttl=constants.CACHE_TIME)
+    @cached(ttl=ws_constants.CACHE_TIME)
     def __set_token_in_body__(self,
                               token: str = None) -> (str, dict):
         kv_dict = {}
@@ -61,7 +61,7 @@ class WS:
 
         return token_type, kv_dict
 
-    @cached(ttl=constants.CACHE_TIME)
+    @cached(ttl=ws_constants.CACHE_TIME)
     def __create_body__(self,
                         api_call: str,
                         kv_dict: dict = None) -> dict:
@@ -76,7 +76,7 @@ class WS:
 
         return ret_dict
 
-    @cached(ttl=constants.CACHE_TIME)
+    @cached(ttl=ws_constants.CACHE_TIME)
     def __call_api__(self,
                      request_type: str,
                      kv_dict: dict = None) -> dict:
@@ -109,7 +109,7 @@ class WS:
 
         return ret
 
-    @cached(ttl=constants.CACHE_TIME)
+    @cached(ttl=ws_constants.CACHE_TIME)
     def __generic_get__(self,
                         get_type: str,
                         token_type: str = None,
@@ -181,7 +181,7 @@ class WS:
             kv_dict["format"] = "xlsx"
             ret = self.__generic_get__(get_type='AlertsReport', token_type=token_type, kv_dict=kv_dict)
         elif project_tag:
-            if token_type != constants.ORGANIZATION:
+            if token_type != ws_constants.ORGANIZATION:
                 logging.error("Getting project alerts tag is only supported with organization token")
             elif len(tag) == 1:
                 logging.debug("Running Alerts by project tag")
@@ -320,7 +320,7 @@ class WS:
 
     def get_products(self,
                      name: str = None) -> list:
-        ret = self.__generic_get__(get_type='ProductVitals')['productVitals'] if self.token_type == constants.ORGANIZATION \
+        ret = self.__generic_get__(get_type='ProductVitals')['productVitals'] if self.token_type == ws_constants.ORGANIZATION \
             else logging.error("get all products only allowed on organization")
 
         return ret
@@ -338,11 +338,11 @@ class WS:
         all_projects = []
 
         for scope in all_scopes:
-            if scope.get('productToken') == product_token and scope['type'] == constants.PROJECT:
+            if scope.get('productToken') == product_token and scope['type'] == ws_constants.PROJECT:
                 all_projects.append(scope)
             elif product_token:
                 continue
-            elif scope['type'] == constants.PROJECT:
+            elif scope['type'] == ws_constants.PROJECT:
                 all_projects.append(scope)
 
         return all_projects
@@ -371,13 +371,13 @@ class WS:
         ret = None
 
         if container:
-            if token_type == constants.ORGANIZATION:
+            if token_type == ws_constants.ORGANIZATION:
                 logging.debug(f"Running Container {report_name}")
                 ret = self.__generic_get__(get_type='ContainerVulnerabilityReportRequest', token_type=token_type, kv_dict=kv_dict)
             else:
                 logging.error(f"Container {report_name} is unsupported on {token_type}")
         elif cluster:
-            if token_type == constants.PRODUCT:
+            if token_type == ws_constants.PRODUCT:
                 logging.debug(f"Running Cluster {report_name}")
                 ret = self.__generic_get__(get_type='ClusterVulnerabilityReportRequest', token_type="", kv_dict=kv_dict)
             else:
@@ -492,7 +492,7 @@ class WS:
     def get_assignments(self,
                         token: str = None):
         token_type, kv_dict = self.__set_token_in_body__(token)
-        if token_type == constants.PROJECT:
+        if token_type == ws_constants.PROJECT:
             logging.error("get assignment is unsupported on project")
         else:
             logging.debug(f"Running {token_type} Assignment")
@@ -511,7 +511,7 @@ class WS:
         token_type, kv_dict = self.__set_token_in_body__(token)
         if not report:
             logging.error(f"Report {report_name} is supported in pdf format. (set report=True)")
-        elif token_type == constants.PROJECT:
+        elif token_type == ws_constants.PROJECT:
             logging.error(f"{report_name} is unsupported on project")
         else:
             logging.debug(f"Running {report_name} on {token_type}")
@@ -526,7 +526,7 @@ class WS:
         :rtype bytes
         """
         token_type, kv_dict = self.__set_token_in_body__(token)
-        if token_type == constants.PROJECT:
+        if token_type == ws_constants.PROJECT:
             logging.error(f"{report_name} is unsupported on project level")
         else:
             logging.debug(f"Running {report_name} on {token_type}")
@@ -544,7 +544,7 @@ class WS:
         token_type, kv_dict = self.__set_token_in_body__(token)
         if not report:
             logging.error(f"{report_name} is supported in xlsx format. (set report=True)")
-        elif token_type == constants.ORGANIZATION:
+        elif token_type == ws_constants.ORGANIZATION:
             logging.error(f"{report_name} is unsupported on organization level")
         else:
             logging.debug(f"Running {report_name} on {token_type}")
@@ -577,7 +577,7 @@ class WS:
         """
         report_name = "Attributes Report"
         token_type, kv_dict = self.__set_token_in_body__(token)
-        if token_type == constants.PROJECT:
+        if token_type == ws_constants.PROJECT:
             logging.error(f"{report_name} is unsupported on project")
         else:
             logging.debug(f"Running {token_type} {report_name}")
@@ -597,7 +597,7 @@ class WS:
                         include_versions: str = True) -> Union[dict, bytes]:
         report_name = "Attribution Report"
         token_type, kv_dict = self.__set_token_in_body__(token)
-        if token_type == constants.ORGANIZATION:
+        if token_type == ws_constants.ORGANIZATION:
             logging.error(f"{report_name} is unsupported on organization")
         elif reporting_aggregation_mode not in ['BY_COMPONENT', 'BY_PROJECT']:
             logging.error(f"{report_name} incorrect reporting_aggregation_mode value. Supported: BY_COMPONENT or BY_PROJECT")
@@ -633,7 +633,7 @@ class WS:
         """
         report_name = 'Effective Licenses Report'
         token_type, kv_dict = self.__set_token_in_body__(token)
-        if token_type == constants.PROJECT:
+        if token_type == ws_constants.PROJECT:
             logging.error(f"{report_name} is unsupported on project")
         else:
             logging.debug(f"Running {token_type} {report_name}")
@@ -676,7 +676,7 @@ class WS:
         ret = None
         if not report:
             logging.error(f"{report_name} is only supported as xlsx (set report=True")
-        elif plugin and token_type == constants.ORGANIZATION:
+        elif plugin and token_type == ws_constants.ORGANIZATION:
             ret = self.__generic_get__(get_type='PluginRequestHistoryReport', token_type=token_type, kv_dict=kv_dict)
         elif plugin:
             logging.error(f"Plugin {report_name} unsupported for {token_type}")
@@ -703,7 +703,7 @@ class WS:
                                token: str):
         all_scopes = self.get_scopes()
         for scope in all_scopes:
-            if scope['type'] == constants.PROJECT and compare_digest(scope['token'], token):
+            if scope['type'] == ws_constants.PROJECT and compare_digest(scope['token'], token):
                 return scope
 
     def get_project(self,
@@ -718,7 +718,7 @@ class WS:
                   token: str = None) -> list:
         report_name = 'Users'
         token_type, kv_dict = self.__set_token_in_body__(token)
-        if token_type == constants.ORGANIZATION:
+        if token_type == ws_constants.ORGANIZATION:
             return self.__generic_get__(get_type='AllUsers', token_type="")
         else:
             logging.error(f"{report_name} is unsupported on {token_type}")
@@ -731,10 +731,11 @@ class WS:
         :rtype dict
         """
         token_type, kv_dict = self.__set_token_in_body__(token)
-        if token_type == constants.PROJECT:
+        if token_type == ws_constants.PROJECT:
             project = self.get_project(token)
             kv_dict['productToken'] = project['productToken']
 
         logging.info(f"Deleting {token_type}: {self.get_scope_name_by_token(token)} Token: {token}")
 
         return self.__call_api__(f"delete{token_type.capitalize()}", kv_dict)
+
