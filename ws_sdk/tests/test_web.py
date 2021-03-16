@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 class TestWS(TestCase):
     def setUp(self):
-        self.ws = WS(api_url="WS_API_URL", user_key="USER_KEY", token="ORG_TOKEN", token_type=constants.ORGANIZATION)
+        self.ws = WS(url="WS_API_URL", user_key="USER_KEY", token="ORG_TOKEN", token_type=constants.ORGANIZATION)
 
     @patch('ws_sdk.web.WS.get_scope_type_by_token')
     def test___set_token_in_body__(self, mock_get_scope_type_by_token):
@@ -639,7 +639,6 @@ class TestWS(TestCase):
     @patch('ws_sdk.web.WS.__call_api__')
     @patch('ws_sdk.web.WS.get_project')
     @patch('ws_sdk.web.WS.__set_token_in_body__')
-
     def test_delete_scope(self, mock_set_token_in_body, mock_get_project, mock_call_api, mock_get_scope_name_by_token):
         mock_set_token_in_body.return_value = (constants.PROJECT, {})
         mock_get_project.return_value = {'token': "TOKEN", 'productToken': "PROD_TOKEN"}

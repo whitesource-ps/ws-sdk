@@ -21,7 +21,7 @@ class WS:
     ALERT_TYPES = ['SECURITY_VULNERABILITY', 'NEW_MAJOR_VERSION', 'NEW_MINOR_VERSION', 'MULTIPLE_LIBRARY_VERSIONS', 'REJECTED_BY_POLICY_RESOURCE']
 
     def __init__(self,
-                 api_url: str,
+                 url: str,
                  user_key: str,
                  token: str,
                  token_type: str = 'organization',
@@ -34,12 +34,13 @@ class WS:
         :token: Token of scope
         :token_type: Scope Type (organization, product, project)
         """
-        self.api_url = api_url
         self.user_key = user_key
         self.token = token
         self.token_type = token_type
         self.timeout = timeout
         self.resp_format = resp_format
+        self.url = url
+        self.api_url = url + constants.API_URL_SUFFIX
 
         if token_type != 'organization':
             logging.error("Currently only supporting organization")
@@ -218,13 +219,14 @@ class WS:
         :rtype: list or bytes
         """
         token_type, kv_dict = self.__set_token_in_body__(token)
+        report_name = 'Inventory'
         ret = None
         if token_type == 'project' and report is False:
             logging.debug(f"Running {token_type} Inventory")
             kv_dict["includeInHouseData"] = include_in_house_data
             ret = self.__generic_get__('Inventory', token_type=token_type, kv_dict=kv_dict)
         elif token_type != 'project' and report is False:
-            logging.error(f"get inventory is unsupported on {token_type}")
+            logging.error(f"{report_name} is unsupported on {token_type}")
         elif report:
             logging.debug("Running Inventory Report")
             kv_dict["format"] = "xlsx"
@@ -274,8 +276,10 @@ class WS:
         return all_products + all_projects
 
     def get_organization_details(self) -> dict:
-        return self.__generic_get__(get_type='OrganizationDetails') if (self.token_type == 'organization') \
-            else logging.error("get organization details only allowed on organization")
+        if self.token_type == 'organization':
+            return self.__generic_get__(get_type='Details')
+        else:
+            logging.error("get organization details only allowed on organization")
 
     def get_organization_name(self) -> str:
         return self.get_organization_details()['orgName']
@@ -386,6 +390,7 @@ class WS:
         vuls = self.get_vulnerability(token=token)
         logging.debug(f"Found {len(vuls)} Vulnerabilities")
         libs_vul = {}
+
         for vul in vuls:
             lib = vul['library']
             key_uuid = lib['keyUuid']
@@ -399,6 +404,7 @@ class WS:
             libs_vul[key_uuid]['vulnerabilities'].add(vul['name'])
             curr_severity = vul['severity']
             libs_vul[key_uuid]['severity'] = get_highest_severity(curr_severity, libs_vul[key_uuid]['severity'])
+            libs_vul[key_uuid]['lib_url'] = f"{self.url}/Wss/WSS.html#!libraryDetails;uuid={key_uuid};orgToken={self.token}"
         logging.debug(f"Found {len(libs_vul)} libraries with vulnerabilities")
 
         return list(libs_vul.values())
@@ -694,6 +700,15 @@ class WS:
                 return project
         logging.error(f"Project with token: {token} was not found")
 
+    def get_users(self,
+                  token: str = None) -> list:
+        report_name = 'Users'
+        token_type, kv_dict = self.__set_token_in_body__(token)
+        if token_type == constants.ORGANIZATION:
+            return self.__generic_get__(get_type='AllUsers', token_type="")
+        else:
+            logging.error(f"{report_name} is unsupported on {token_type}")
+
     def delete_scope(self,
                      token: str) -> dict:
         """
@@ -709,4 +724,3 @@ class WS:
         logging.info(f"Deleting {token_type}: {self.get_scope_name_by_token(token)} Token: {token}")
 
         return self.__call_api__(f"delete{token_type.capitalize()}", kv_dict)
-
