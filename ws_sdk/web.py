@@ -318,20 +318,23 @@ class WS:
 
         return ret
 
-    def get_products(self) -> list:
+    def get_products(self,
+                     name: str = None) -> list:
         ret = self.__generic_get__(get_type='ProductVitals')['productVitals'] if self.token_type == constants.ORGANIZATION \
             else logging.error("get all products only allowed on organization")
 
         return ret
 
     def get_projects(self,
-                     product_token=None) -> list:
+                     product_token=None,
+                     name: str = None) -> list:
         """
+        :param name: filter returned scopes by name
         :param product_token: if stated retrieves projects of specific product. If left blank retrieves all the projects in the org
         :return: list
         :rtype list
         """
-        all_scopes = self.get_scopes()
+        all_scopes = self.get_scopes(name=name)
         all_projects = []
 
         for scope in all_scopes:
