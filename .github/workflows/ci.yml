@@ -37,4 +37,4 @@ jobs:
         name: Upload package to GHP
         with:
           name: WS Python SDK
-          path: ws_sdk/dist/*.whl
+          path: dist/*.whl
