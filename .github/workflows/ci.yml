@@ -27,11 +27,9 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Unittesting
         run: |
-          # cd ws_sdk
           python -m unittest ws_sdk/tests/test_web.py
       - name: Create Wheel Package
         run: |
-          cd ws_sdk
           python setup.py bdist_wheel
       - name: Install WS SDK Wheel pacage
         run: ls -1 ws_sdk/dist/*.whl | xargs pip install
