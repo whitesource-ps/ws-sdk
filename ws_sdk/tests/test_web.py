@@ -93,9 +93,9 @@ class TestWS(TestCase):
         self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.__generic_get__')
-    def test_get_all_scopes(self, mock_generic_get):
+    def test_get_scopes(self, mock_generic_get):
         mock_generic_get.return_value = {'productVitals': []}
-        res = self.ws.get_all_scopes()
+        res = self.ws.get_scopes()
 
         self.assertIsInstance(res, list)
 
@@ -216,16 +216,16 @@ class TestWS(TestCase):
         self.assertIs(res, None)
 
     @patch('ws_sdk.web.WS.__generic_get__')
-    def test_get_all_products(self, mock_generic_get):
+    def test_get_products(self, mock_generic_get):
         mock_generic_get.return_value = {'productVitals': {}}
-        res = self.ws.get_all_products()
+        res = self.ws.get_products()
 
         self.assertIsInstance(res, dict)
 
-    @patch('ws_sdk.web.WS.get_all_scopes')
-    def test_get_all_projects(self, mock_get_all_scopes):
-        mock_get_all_scopes.return_value = []
-        res = self.ws.get_all_projects()
+    @patch('ws_sdk.web.WS.get_scopes')
+    def test_ge_all_projects(self, mock_get_scopes):
+        mock_get_scopes.return_value = []
+        res = self.ws.get_projects()
 
         self.assertIsInstance(res, list)
 
@@ -283,16 +283,16 @@ class TestWS(TestCase):
 
         self.assertIs(res, None)
 
-    @patch('ws_sdk.web.WS.get_all_scopes')
-    def test_get_scopes_from_name(self, mock_get_all_scopes):
-        mock_get_all_scopes.return_value = [{'name': "NAME", 'token': "TOKEN"}]
+    @patch('ws_sdk.web.WS.get_scopes')
+    def test_get_scopes_from_name(self, mock_get_scopes):
+        mock_get_scopes.return_value = [{'name': "NAME", 'token': "TOKEN"}]
         res = self.ws.get_scopes_from_name("NAME")
 
         self.assertIsInstance(res, list)
 
-    @patch('ws_sdk.web.WS.get_all_scopes')
-    def test_get_scopes_from_name_not_found(self, mock_get_all_scopes):
-        mock_get_all_scopes.return_value = []
+    @patch('ws_sdk.web.WS.get_scopes')
+    def test_get_scopes_from_name_not_found(self, mock_get_scopes):
+        mock_get_scopes.return_value = []
         res = self.ws.get_scopes_from_name("NAME")
 
         self.assertIsInstance(res, list)
@@ -318,9 +318,9 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, list) and self.assertIsInstance(res[0], {'name': "NAME", 'token': "TOKEN"})
 
-    @patch('ws_sdk.web.WS.get_all_scopes')
-    def test_get_scopes_by_token(self, mock_get_all_scopes):
-        mock_get_all_scopes.return_value = [{'token': "TOKEN"}]
+    @patch('ws_sdk.web.WS.get_scopes')
+    def test_get_scopes_by_token(self, mock_get_scopes):
+        mock_get_scopes.return_value = [{'token': "TOKEN"}]
         res = self.ws.get_scope_by_token(token="TOKEN")
 
         self.assertIn('token', res) and self.assertEqual(res['token'], "TOKEN")
@@ -621,16 +621,16 @@ class TestWS(TestCase):
 
         self.assertIs(res, None)
 
-    @patch('ws_sdk.web.WS.get_all_projects')
-    def test_get_project(self, mock_get_all_projects):
-        mock_get_all_projects.return_value = [{'token': "TOKEN"}]
+    @patch('ws_sdk.web.WS.get_projects')
+    def test_get_project(self, mock_get_projects):
+        mock_get_projects.return_value = [{'token': "TOKEN"}]
         res = self.ws.get_project(token="TOKEN")
 
         self.assertEqual(res['token'], "TOKEN")
 
-    @patch('ws_sdk.web.WS.get_all_scopes')
-    def test_get_product_of_project(self, mock_get_all_scopes):
-        mock_get_all_scopes.return_value = [{'token': "TOKEN", 'type': constants.PROJECT}]
+    @patch('ws_sdk.web.WS.get_scopes')
+    def test_get_product_of_project(self, mock_get_scopes):
+        mock_get_scopes.return_value = [{'token': "TOKEN", 'type': constants.PROJECT}]
         res = self.ws.get_product_of_project(token="TOKEN")
 
         self.assertEqual(res['token'], "TOKEN")

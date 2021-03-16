@@ -248,14 +248,20 @@ class WS:
 
     def get_scope_by_token(self,
                            token: str) -> dict:
-        tokens = self.get_all_scopes()
+        tokens = self.get_scopes()
         for tok in tokens:
             if compare_digest(tok['token'], token):
                 logging.debug(f"Found token: {token}")
                 return tok
         logging.debug(f"Token {token} was not found")
 
-    def get_all_scopes(self) -> list:
+    def get_scopes(self,
+                   name: str = None) -> list:
+        """
+        :param name: filter returned scopes by name
+        :return: list of scope dictionaries
+        :rtype list
+        """
         if self.token_type == "organization":
             all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
             all_projects = []
@@ -273,7 +279,12 @@ class WS:
         else:
             logging.error(f"get all scopes is unsupported on {self.token_type}")
 
-        return all_products + all_projects
+        scopes = all_products + all_projects
+        # Filter scopes by name
+        if name:
+            scopes = [scope for scope in scopes if scope['name'] == name]
+
+        return scopes
 
     def get_organization_details(self) -> dict:
         if self.token_type == 'organization':
@@ -289,7 +300,7 @@ class WS:
         :param scope_name:
         :return:
         """
-        scopes = self.get_all_scopes()
+        scopes = self.get_scopes()
         ret = []
         for scope in scopes:
             if scope_name == scope['name']:
@@ -307,20 +318,20 @@ class WS:
 
         return ret
 
-    def get_all_products(self) -> list:
+    def get_products(self) -> list:
         ret = self.__generic_get__(get_type='ProductVitals')['productVitals'] if self.token_type == constants.ORGANIZATION \
             else logging.error("get all products only allowed on organization")
 
         return ret
 
-    def get_all_projects(self,
-                         product_token=None) -> list:
+    def get_projects(self,
+                     product_token=None) -> list:
         """
         :param product_token: if stated retrieves projects of specific product. If left blank retrieves all the projects in the org
         :return: list
         :rtype list
         """
-        all_scopes = self.get_all_scopes()
+        all_scopes = self.get_scopes()
         all_projects = []
 
         for scope in all_scopes:
@@ -687,14 +698,14 @@ class WS:
 
     def get_product_of_project(self,
                                token: str):
-        all_scopes = self.get_all_scopes()
+        all_scopes = self.get_scopes()
         for scope in all_scopes:
             if scope['type'] == constants.PROJECT and compare_digest(scope['token'], token):
                 return scope
 
     def get_project(self,
                     token: str) -> dict:
-        all_projects = self.get_all_projects()
+        all_projects = self.get_projects()
         for project in all_projects:
             if compare_digest(project['token'], token):
                 return project
