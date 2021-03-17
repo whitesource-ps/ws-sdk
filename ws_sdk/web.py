@@ -6,6 +6,7 @@ from typing import Union
 
 import requests
 from memoization import cached
+from pandas.core.resample import g
 
 from ws_sdk.ws_constants import *
 
@@ -767,7 +768,7 @@ class WS:
                       global_search: bool) -> list:
         """
 
-        :param name:
+        :param name: Exact search string to search
         :param global_search: whether to search global database.
         :return:
         """
@@ -778,3 +779,26 @@ class WS:
             logging.error("Local search is unsupported yet")                # TODO FINISH THIS
 
         return libraries['libraries'] if libraries.get('libraries') is not None else libraries
+
+    def get_library_detailed(self,
+                             library_name: str,
+                             library_type: str,
+                             library_version: str,
+                             architecture: str = None,
+                             library_group: str = None,
+                             language_version: str = None,
+                             include_request_token: bool = False,
+                             key_id: str = None) -> list:
+        # token_type, kv_dict = self.__set_token_in_body__(None)
+
+        search_values = {"library_name": "libraryName",
+                         "library_type": "libraryType",
+                         "library_version": "libraryVersion",
+                         "architecture": "architecture",
+                         "library_group": "libraryGroup",
+                         "language_version": "languageVersion",
+                         "include_request_token": "includeRequestToken",
+                         "keyId": "key_id"}
+
+        # kv_dict[] =
+        lib = self.__generic_get__(get_type="LibraryInfo", token_type="")

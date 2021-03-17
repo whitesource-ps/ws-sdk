@@ -28,3 +28,5 @@ GROUPS = "groups"
 USERS = "users"
 ENTITY_TYPES = {GROUPS: "groupRoles",
                 USERS: "userRoles"}
+LIBRARY_TYPES = ["go", "maven", "pypi", "docker" ".net", "actionscript", "alpine", "debian", "docker_layer", "hex",
+                 "haskell", "bower", "npm", "ocaml", "php", "R", "RPM", "Ruby", "Rust", "cocoaPods"]
