@@ -7,7 +7,7 @@ from typing import Union
 import requests
 from memoization import cached
 
-from ws_constants import *
+from ws_sdk.ws_constants import *
 
 
 class WS:
@@ -16,7 +16,7 @@ class WS:
                  user_key: str,
                  token: str,
                  token_type: str = 'organization',
-                 timeout: int = 60,
+                 timeout: int = 3600,
                  resp_format: str = "json"
                  ):
         """SDK for WhiteSource
@@ -481,13 +481,45 @@ class WS:
         return self.get_in_house_libraries(report=report, token=token)
 
     def get_assignments(self,
-                        token: str = None):
+                        token: str = None,
+                        role_type: str = None,
+                        entity_type: str = None) -> list:
+        """
+        :param token: scope token to retrieve assignments
+        :param role_type: accepted roles: DEFAULT_APPROVER, PRODUCT_INTEGRATOR, ADMIN
+        :param entity_type: whether to filter user or group assignments.
+        :return: flat list of of entities (users and groups) with their role, type and token
+        :rtype list
+        """
+        report_name = "Assignment"
         token_type, kv_dict = self.__set_token_in_body__(token)
         if token_type == PROJECT:
-            logging.error("get assignment is unsupported on project")
+            logging.error(f"{report_name} is unsupported on project")
         else:
             logging.debug(f"Running {token_type} Assignment")
-            return self.__generic_get__(get_type='Assignments', token_type=token_type, kv_dict=kv_dict)
+            assignments = self.__generic_get__(get_type='Assignments', token_type=token_type, kv_dict=kv_dict)
+            ret_assignments = []
+            for ent in ENTITY_TYPES.items():
+                role_types = assignments.get(ent[1])
+                if role_types:
+                    for r_t in role_types.items():
+                        for e in r_t[1]:
+                            e['scope_token'] = token
+                            e['role_type'] = r_t[0]
+                            e['ent_type'] = ent[0][:-1]
+                            ret_assignments.append(e)
+                else:
+                    logging.debug(f"No roles were found under: {ent[1]}")
+
+            if entity_type in ENTITY_TYPES.keys():
+                logging.debug(f"Filtering assignments by entity type: {entity_type}")
+                ret_assignments = [asc for asc in ret_assignments if asc['ent_type'] == entity_type[:-1]]
+
+            if role_type in ROLE_TYPES:
+                logging.debug(f"Filtering assignments by role type: {role_type}")
+                ret_assignments = [asc for asc in ret_assignments if asc['role_type'] == role_type]
+
+            return ret_assignments
 
     def get_risk(self,
                  token: str = None,
@@ -730,3 +762,19 @@ class WS:
 
         return self.__call_api__(f"delete{token_type.capitalize()}", kv_dict)
 
+    def get_libraries(self,
+                      name: str,
+                      global_search: bool) -> list:
+        """
+
+        :param name:
+        :param global_search: whether to search global database.
+        :return:
+        """
+        if global_search:
+            libraries = self.__call_api__(request_type="librarySearch", kv_dict={"searchValue": name})
+        else:
+            libraries = []
+            logging.error("Local search is unsupported yet")                # TODO FINISH THIS
+
+        return libraries['libraries'] if libraries.get('libraries') is not None else libraries

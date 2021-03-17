@@ -392,14 +392,16 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, list)
 
+    @patch('ws_sdk.ws_constants.ENTITY_TYPES')
     @patch('ws_sdk.web.WS.__set_token_in_body__')
     @patch('ws_sdk.web.WS.__generic_get__')
-    def test_get_assignments(self, mock_generic_get, mock_set_token_in_body):
+    def test_get_assignments(self, mock_generic_get, mock_set_token_in_body, mock_entity_types):
         mock_generic_get.return_value = {}
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
+        mock_entity_types.return_value = {}
         res = self.ws.get_assignments()
 
-        self.assertIsInstance(res, dict)
+        self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.__set_token_in_body__')
     def test_get_assignments_project(self, mock_set_token_in_body):
