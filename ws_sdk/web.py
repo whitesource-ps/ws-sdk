@@ -6,7 +6,6 @@ from typing import Union
 
 import requests
 from memoization import cached
-from pandas.core.resample import g
 
 from ws_sdk.ws_constants import *
 
@@ -145,7 +144,7 @@ class WS:
         """
         token_type, kv_dict = self.__set_token_in_body__(token)
 
-        if alert_type in ALERT_TYPES:
+        if alert_type in AlertTypes.ALERT_TYPES:
             kv_dict["alertType"] = alert_type
         elif alert_type:
             logging.error(f"Alert: {alert_type} does not exist")
@@ -516,7 +515,7 @@ class WS:
                 logging.debug(f"Filtering assignments by entity type: {entity_type}")
                 ret_assignments = [asc for asc in ret_assignments if asc['ent_type'] == entity_type[:-1]]
 
-            if role_type in ROLE_TYPES:
+            if role_type in RoleTypes.ROLE_TYPES:
                 logging.debug(f"Filtering assignments by role type: {role_type}")
                 ret_assignments = [asc for asc in ret_assignments if asc['role_type'] == role_type]
 
@@ -758,47 +757,70 @@ class WS:
         if token_type == PROJECT:
             project = self.get_project(token)
             kv_dict['productToken'] = project['productToken']
-
         logging.info(f"Deleting {token_type}: {self.get_scope_name_by_token(token)} Token: {token}")
 
         return self.__call_api__(f"delete{token_type.capitalize()}", kv_dict)
 
     def get_libraries(self,
-                      name: str,
-                      global_search: bool) -> list:
+                      search_value: str,
+                      version: str = None,
+                      search_only_name: bool = False,
+                      global_search: bool = True) -> list:
         """
-
-        :param name: Exact search string to search
+        :param search_only_name: Specify to return results that match the exact name
+        :param version: Optional version of the searched library
+        :param search_value: Search string to search
         :param global_search: whether to search global database.
         :return:
         """
         if global_search:
-            libraries = self.__call_api__(request_type="librarySearch", kv_dict={"searchValue": name})
+            logging.debug(f"Performing Global Search with value: \'{search_value}\'")
+            ret = self.__call_api__(request_type="librarySearch", kv_dict={"searchValue": search_value})
+            libs = ret.get('libraries')
+            if version:                                                     # Filtering by version # TODO Good idea to extend with <>~
+                logging.debug(f"Filtering search value: \'{search_value}\' by version: {version}")
+                libs = [lib for lib in libs if lib.get('version') == version]
+            if search_only_name:
+                logging.debug(f"Filtering search results of search value \'{search_value}\' by exact name")
+                libs = [lib for lib in libs if lib.get('name') == search_value]
+            logging.info(f"Global search found {len(libs)} results for search value: \'{search_value}\'")
         else:
-            libraries = []
-            logging.error("Local search is unsupported yet")                # TODO FINISH THIS
+            logging.error("Local search is unsupported yet")                # TODO FINISH THIS. MAYBE SEARCH IN INVENTORY
 
-        return libraries['libraries'] if libraries.get('libraries') is not None else libraries
+        return libs
 
     def get_library_detailed(self,
-                             library_name: str,
-                             library_type: str,
-                             library_version: str,
+                             name: str,
+                             lib_type: str,
+                             version: str,
                              architecture: str = None,
-                             library_group: str = None,
+                             group: str = None,
                              language_version: str = None,
                              include_request_token: bool = False,
-                             key_id: str = None) -> list:
-        # token_type, kv_dict = self.__set_token_in_body__(None)
-
-        search_values = {"library_name": "libraryName",
-                         "library_type": "libraryType",
-                         "library_version": "libraryVersion",
+                             key_id: str = None,
+                             languages: list = None) -> list:
+        search_values = {"name": "libraryName",
+                         "lib_type": "libraryType",
+                         "version": "libraryVersion",
                          "architecture": "architecture",
-                         "library_group": "libraryGroup",
+                         "group": "libraryGroup",
                          "language_version": "languageVersion",
                          "include_request_token": "includeRequestToken",
-                         "keyId": "key_id"}
+                         "key_id": "keyId"}
 
-        # kv_dict[] =
-        lib = self.__generic_get__(get_type="LibraryInfo", token_type="")
+        if lib_type == "Source Library" and languages:
+            logging.debug(f"Replacing \"Source Library\" Type with {languages[0]}")
+            lib_type = languages[0]
+
+        if lib_type in LibTypes.type_to_lib_t.keys():
+            logging.debug(f"Replacing {lib_type} Type with {LibTypes.type_to_lib_t[lib_type]}")
+            lib_type = LibTypes.type_to_lib_t[lib_type]
+
+        kv_dict = {}
+        local_vars = locals()
+        for val in search_values.items():
+            if local_vars[val[0]] is not None:
+                kv_dict[val[1]] = local_vars[val[0]]
+
+        ret = self.__generic_get__(get_type="LibraryInfo", token_type="", kv_dict=kv_dict).get('librariesInformation')
+        return ret
