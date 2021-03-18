@@ -4,3 +4,5 @@
 /build/
 /dist/
 /__main__.py
+/examples/projects_cleanup/params_dev.config
+/redeploy.bat
