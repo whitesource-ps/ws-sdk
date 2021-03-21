@@ -431,6 +431,7 @@ class TestWS(TestCase):
         mock_generic_get.return_value = bytes()
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
         res = self.ws.get_due_diligence()
+        
         self.assertIsInstance(res, bytes)
 
     @patch('ws_sdk.web.WS.__set_token_in_body__')
@@ -439,6 +440,7 @@ class TestWS(TestCase):
         mock_generic_get.return_value = bytes()
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
         res = self.ws.get_attributes()
+        
         self.assertIsInstance(res, bytes)
 
     @patch('ws_sdk.web.WS.__set_token_in_body__')

@@ -1,6 +1,4 @@
 ![Logo](https://whitesource-resources.s3.amazonaws.com/ws-sig-images/Whitesource_Logo_178x44.png)
-y pR3ss2$o
-
 [![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GitHub release](https://img.shields.io/github/release/whitesource-ps/wss-template.svg)](https://github.com/whitesource-ps/wss-template/releases/latest)
 ![CI](https://github.com/whitesource-ps/ws_sdk/workflows/WS%20Python%20SDK%20Python%20CI/badge.svg)
@@ -22,6 +20,7 @@ SDK written in Python to simplify access to WhiteSource resources
 ## How to use 
 1. Obtain connection details from WS Application (Home > Admin > Integration)
 1. Download and Install wheel package with pip install: `pip install ws_sdk*.whl` 
+
 
 ## Execution
 ```python
