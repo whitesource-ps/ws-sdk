@@ -38,3 +38,9 @@ jobs:
         with:
           name: WS Python SDK
           path: dist/*.whl
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "dist/*.whl"
+          tag: "alpha"
+          allowUpdates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
