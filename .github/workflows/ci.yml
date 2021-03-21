@@ -40,7 +40,7 @@ jobs:
           path: dist/*.whl
       - uses: ncipollo/release-action@v1
         with:
-          artifact: "dist/*.whl"
+          artifacts: "dist/*.whl"
           tag: "internal"
           prerelease: true
           allowUpdates: true
