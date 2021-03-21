@@ -147,7 +147,6 @@ class WS:
         :rtype: list or bytes
         """
         token_type, kv_dict = self.__set_token_in_body__(token)
-
         if alert_type in AlertTypes.ALERT_TYPES:
             kv_dict["alertType"] = alert_type
         elif alert_type:
@@ -828,3 +827,4 @@ class WS:
 
         ret = self.__generic_get__(get_type="LibraryInfo", token_type="", kv_dict=kv_dict).get('librariesInformation')
         return ret
+                                  
