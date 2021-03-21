@@ -8,7 +8,7 @@ import re
 from ws_sdk.web import WS
 from multiprocessing import Pool, Manager
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout, format='%(levelname)s %(asctime)s %(process)d: %(message)s', datefmt='%y-%m-%d %H:%M:%S')
+logging.basicConfig(level=logging.DEBUG, filename=f'{os.path.dirname(__file__)}/cleanup.log', format='%(levelname)s %(asctime)s %(process)d: %(message)s', datefmt='%y-%m-%d %H:%M:%S')
 logging.getLogger('ws_sdk').setLevel(logging.DEBUG)
 logging.getLogger('urllib3').setLevel(logging.INFO)
 logging.getLogger('chardet').setLevel(logging.INFO)
@@ -39,6 +39,7 @@ def get_reports_to_archive():
     projects = []
     project_report_desc_list = []
     for prod in products:                                 # Creating list of all reports of all projects to be produced
+        i = 0
         all_projects = c_org.get_projects(prod['token'])
         logging.info(f"Handling product: {prod['name']} number of projects: {len(all_projects)}")
         for project in all_projects:
@@ -47,7 +48,8 @@ def get_reports_to_archive():
                 logging.debug(f"Project {project['name']} Token: {project['token']} Last update: {project['lastUpdatedDate']} will be archived")
                 project['project_archive_dir'] = os.path.join(os.path.join(archive_dir, project['productName']), project['name'])
                 projects.append(project)
-        logging.info(f"Found {len(projects)} projects to archive on product: {prod['name']}")
+                i += 1
+        logging.info(f"Found {i} projects to archive on product: {prod['name']}")
 
         for project in projects:
             if not os.path.exists(project['project_archive_dir']):
@@ -57,6 +59,8 @@ def get_reports_to_archive():
                 project_report['report_type'] = report_type
                 project_report['report_full_name'] = os.path.join(project_report['project_archive_dir'], report_types[report_type])
                 project_report_desc_list.append(project_report)
+
+    logging.info(f"Found total {len(projects)} projects to archive ({len(project_report_desc_list)} reports will be produced)")
 
     return projects, project_report_desc_list
 
@@ -118,7 +122,7 @@ def worker_delete_project(conn, project, w_dry_run):
         logging.info(f"[DRY_RUN] Deleting project: {project['name']} Token: {project['token']}")
     else:
         logging.info(f"Deleting project: {project['name']} Token: {project['token']}")
-        conn.delete(project['token'])
+        conn.delete_scope(project['token'])
 
 
 def parse_config(config_file):
@@ -133,6 +137,7 @@ def parse_config(config_file):
     reports = config['DEFAULT']['Reports'].replace(' ', '').split(",")
     for report in reports:                                          # Generate SDK methods from the conf report list
         report_types[re.sub('_report.+', '', report)] = report
+    logging.info(f"{len(reports)} report types are defined")
 
 
 if __name__ == '__main__':
@@ -148,7 +153,7 @@ if __name__ == '__main__':
         logging.info("Running in DRY_RUN mode. Project will not be deleted and reports will not be generated!!!")
     projects_to_archive, reports_to_archive = get_reports_to_archive()
     failed_project_tokens = []
-    if config['DEFAULT']['SkipReportGeneration']:
+    if config['DEFAULT'].getboolean('SkipReportGeneration'):
         logging.info("Skipping Report Generation")
     else:
         failed_project_tokens = generate_reports_manager(reports_to_archive)
