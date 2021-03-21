@@ -8,3 +8,4 @@
 /redeploy.bat
 /examples/projects_cleanup/params_doordash.config
 /examples/projects_cleanup/cleanup.log
+/examples/projects_cleanup/params_staging.config

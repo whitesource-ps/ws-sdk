@@ -8,8 +8,8 @@ import re
 from ws_sdk.web import WS
 from multiprocessing import Pool, Manager
 
-logging.basicConfig(level=logging.DEBUG, filename=f'{os.path.dirname(__file__)}/cleanup.log', format='%(levelname)s %(asctime)s %(process)d: %(message)s', datefmt='%y-%m-%d %H:%M:%S')
-logging.getLogger('ws_sdk').setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, filename='cleanup.log', format='%(levelname)s %(asctime)s %(process)d: %(message)s', datefmt='%y-%m-%d %H:%M:%S')
+logging.getLogger('ws_sdk').setLevel(logging.INFO)
 logging.getLogger('urllib3').setLevel(logging.INFO)
 logging.getLogger('chardet').setLevel(logging.INFO)
 
@@ -36,22 +36,22 @@ def get_reports_to_archive():
     archive_date = datetime.utcnow() - days_to_keep
     logging.info(f"Keeping {days_to_keep.days} days. Archiving projects older than {archive_date}")
 
-    projects = []
+    all_projects = []
     project_report_desc_list = []
     for prod in products:                                 # Creating list of all reports of all projects to be produced
-        i = 0
-        all_projects = c_org.get_projects(prod['token'])
-        logging.info(f"Handling product: {prod['name']} number of projects: {len(all_projects)}")
-        for project in all_projects:
+        curr_prod_proj_to_archive = []
+        curr_prod_projects = c_org.get_projects(prod['token'])
+        logging.info(f"Handling product: {prod['name']} number of projects: {len(curr_prod_projects)}")
+        for project in curr_prod_projects:
             project_time = datetime.strptime(project['lastUpdatedDate'], "%Y-%m-%d %H:%M:%S +%f")
             if project_time < archive_date:
                 logging.debug(f"Project {project['name']} Token: {project['token']} Last update: {project['lastUpdatedDate']} will be archived")
                 project['project_archive_dir'] = os.path.join(os.path.join(archive_dir, project['productName']), project['name'])
-                projects.append(project)
-                i += 1
-        logging.info(f"Found {i} projects to archive on product: {prod['name']}")
+                curr_prod_proj_to_archive.append(project)
 
-        for project in projects:
+        logging.info(f"Found {len(curr_prod_proj_to_archive)} projects to archive on product: {prod['name']}")
+
+        for project in curr_prod_proj_to_archive:
             if not os.path.exists(project['project_archive_dir']):
                 os.makedirs(project['project_archive_dir'])
             for report_type in report_types.keys():
@@ -60,14 +60,14 @@ def get_reports_to_archive():
                 project_report['report_full_name'] = os.path.join(project_report['project_archive_dir'], report_types[report_type])
                 project_report_desc_list.append(project_report)
 
-    logging.info(f"Found total {len(projects)} projects to archive ({len(project_report_desc_list)} reports will be produced)")
+        all_projects = all_projects + curr_prod_proj_to_archive
+    logging.info(f"Found total {len(all_projects)} projects to archive ({len(project_report_desc_list)} reports will be produced)")
 
-    return projects, project_report_desc_list
+    return all_projects, project_report_desc_list
 
 
 def generate_reports_manager(reports_desc_list):
     global project_parallelism_level
-    logging.info(f"Generating {len(report_types)} report with {project_parallelism_level} processes")
     manager = Manager()
     failed_proj_tokens_q = manager.Queue()
     with Pool(processes=project_parallelism_level) as pool:
@@ -137,7 +137,7 @@ def parse_config(config_file):
     reports = config['DEFAULT']['Reports'].replace(' ', '').split(",")
     for report in reports:                                          # Generate SDK methods from the conf report list
         report_types[re.sub('_report.+', '', report)] = report
-    logging.info(f"{len(reports)} report types are defined")
+    logging.info(f"Generating {len(report_types)} report types with {project_parallelism_level} processes")
 
 
 if __name__ == '__main__':
@@ -159,4 +159,4 @@ if __name__ == '__main__':
         failed_project_tokens = generate_reports_manager(reports_to_archive)
     delete_projects(projects_to_archive, failed_project_tokens)
 
-    logging.info(f"Script finished. Run time: {datetime.now() - start_time}")
+    logging.info(f"Project Cleanup finished. Run time: {datetime.now() - start_time}")
