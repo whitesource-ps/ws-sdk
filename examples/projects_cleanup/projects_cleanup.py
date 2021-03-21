@@ -6,9 +6,10 @@ from configparser import ConfigParser
 from datetime import datetime, timedelta
 import re
 from ws_sdk.web import WS
-from multiprocessing import Pool, Manager
+from multiprocessing import Manager
+from multiprocessing.pool import ThreadPool
 
-logging.basicConfig(level=logging.DEBUG, filename='cleanup.log', format='%(levelname)s %(asctime)s %(process)d: %(message)s', datefmt='%y-%m-%d %H:%M:%S')
+logging.basicConfig(level=logging.DEBUG, filename='cleanup.log', format='%(levelname)s %(asctime)s %(thread)d: %(message)s', datefmt='%y-%m-%d %H:%M:%S')
 logging.getLogger('ws_sdk').setLevel(logging.INFO)
 logging.getLogger('urllib3').setLevel(logging.INFO)
 logging.getLogger('chardet').setLevel(logging.INFO)
@@ -51,7 +52,7 @@ def get_reports_to_archive():
 
         logging.info(f"Found {len(curr_prod_proj_to_archive)} projects to archive on product: {prod['name']}")
 
-        for project in curr_prod_proj_to_archive:
+        for project in curr_prod_proj_to_archive:           # Creating list of report to-be-produced meta data
             if not os.path.exists(project['project_archive_dir']):
                 os.makedirs(project['project_archive_dir'])
             for report_type in report_types.keys():
@@ -70,7 +71,7 @@ def generate_reports_manager(reports_desc_list):
     global project_parallelism_level
     manager = Manager()
     failed_proj_tokens_q = manager.Queue()
-    with Pool(processes=project_parallelism_level) as pool:
+    with ThreadPool(processes=project_parallelism_level) as pool:
         pool.starmap(worker_generate_report, [(report_desc, c_org, failed_proj_tokens_q) for report_desc in reports_desc_list])
 
     failed_projects = set()
@@ -112,8 +113,8 @@ def delete_projects(proj_to_archive, failed_project_toks):
 
     if projects_to_delete:
         global dry_run, c_org
-        with Pool(processes=project_parallelism_level) as pool:
-            pool.starmap(worker_delete_project, [(c_org, project, dry_run) for project in projects_to_delete])
+        with ThreadPool(processes=project_parallelism_level) as thread_pool:
+            thread_pool.starmap(worker_delete_project, [(c_org, project, dry_run) for project in projects_to_delete])
         logging.info(f"{len(proj_to_archive)} projects deleted")
 
 
@@ -137,7 +138,7 @@ def parse_config(config_file):
     reports = config['DEFAULT']['Reports'].replace(' ', '').split(",")
     for report in reports:                                          # Generate SDK methods from the conf report list
         report_types[re.sub('_report.+', '', report)] = report
-    logging.info(f"Generating {len(report_types)} report types with {project_parallelism_level} processes")
+    logging.info(f"Generating {len(report_types)} report types with {project_parallelism_level} threads")
 
 
 if __name__ == '__main__':
@@ -148,7 +149,10 @@ if __name__ == '__main__':
         conf_file = 'params.config'
     logging.info(f"Using configuration file: {conf_file}")
     parse_config(conf_file)
-    c_org = WS(url=config['DEFAULT']['WsUrl'], user_key=config['DEFAULT']['UserKey'], token=config['DEFAULT']['OrgToken'])
+    c_org = WS(url=config['DEFAULT']['WsUrl'],
+               user_key=config['DEFAULT']['UserKey'],
+               token=config['DEFAULT']['OrgToken'],
+               timeout=300)
     if dry_run:
         logging.info("Running in DRY_RUN mode. Project will not be deleted and reports will not be generated!!!")
     projects_to_archive, reports_to_archive = get_reports_to_archive()
