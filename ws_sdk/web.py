@@ -30,8 +30,12 @@ class WS:
         self.token_type = token_type
         self.timeout = timeout
         self.resp_format = resp_format
-        self.url = url
-        self.api_url = url + API_URL_SUFFIX
+
+        if url in ['saas', 'saas-eu', 'app', 'app-eu']:
+            self.url = f"https://{url}.whitesourcesoftware.com"
+        else:
+            self.url = url
+        self.api_url = self.url + API_URL_SUFFIX
 
         if token_type != 'organization':
             logging.error("Currently only supporting organization")
