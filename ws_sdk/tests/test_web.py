@@ -8,6 +8,7 @@ from unittest import TestCase
 from mock import patch
 
 import ws_sdk.ws_constants as constants
+from ws_sdk.web import WS
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
