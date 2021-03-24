@@ -9,3 +9,5 @@
 /examples/projects_cleanup/params_doordash.config
 /examples/projects_cleanup/cleanup.log
 /examples/projects_cleanup/params_staging.config
+/src/ws-sdk-0-1-0-py3-none-any/
+/src/ws-sdk-0-1-0-py3-none-any-whl/
