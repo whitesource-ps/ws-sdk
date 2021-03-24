@@ -1,5 +1,6 @@
 # General
 CACHE_TIME = 600
+CONN_TIMEOUT = 3600
 API_URL_SUFFIX = '/api/v1.3'
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 HEADERS = {'content-type': 'application/json'}

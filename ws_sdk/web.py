@@ -16,7 +16,7 @@ class WS:
                  user_key: str,
                  token: str,
                  token_type: str = 'organization',
-                 timeout: int = 3600,
+                 timeout: int = CONN_TIMEOUT,
                  resp_format: str = "json"
                  ):
         """SDK for WhiteSource
@@ -760,7 +760,7 @@ class WS:
         if token_type == PROJECT:
             project = self.get_project(token)
             kv_dict['productToken'] = project['productToken']
-        logging.info(f"Deleting {token_type}: {self.get_scope_name_by_token(token)} Token: {token}")
+        logging.debug(f"Deleting {token_type}: {self.get_scope_name_by_token(token)} Token: {token}")
 
         return self.__call_api__(f"delete{token_type.capitalize()}", kv_dict)
 
