@@ -45,7 +45,7 @@ jobs:
           allowUpdates: true
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish to Test PyPI
-        if: ${{ github.ref == 'refs/heads/v1.1.1'}}
+        if: ${{ github.ref == 'refs/tags/v1.1.1'}}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           skip_existing: true
