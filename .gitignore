@@ -5,7 +5,6 @@
 /dist/
 /__main__.py
 /examples/projects_cleanup/params_dev.config
-/redeploy.bat
 /examples/projects_cleanup/params_doordash.config
 /examples/projects_cleanup/cleanup.log
 /examples/projects_cleanup/params_staging.config
