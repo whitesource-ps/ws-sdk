@@ -23,7 +23,7 @@ echo "Found Python3 version:" "$VERSION"
 echo "Converting text to UNIX"
 dos2unix -q ./*
 
-echo "Installing as user package: ws_sdk-0.0.1-py3-none-any.whl"
-$PIP install --user dist/ws_sdk-0.0.1-py3-none-any.whl
+echo "Installing as user requirements:"
+$PIP install -r requirements.txt
 
 echo "To execute:" "${PYTHON}" "projects_cleanup.py params.config"

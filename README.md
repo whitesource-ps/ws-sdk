@@ -2,7 +2,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
 ![CI](https://github.com/whitesource-ps/ws_sdk/workflows/WS%20Python%20SDK%20Python%20CI/badge.svg)
 [![Python 3.6](https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Blue_Python_3.6%2B_Shield_Badge.svg/86px-Blue_Python_3.6%2B_Shield_Badge.svg.png)](https://www.python.org/downloads/release/python-360/)
-[![PyPI version fury.io](https://badge.fury.io/py/ansicolortags.svg)](https://pypi.python.org/pypi/ws-sdk/)
+![PyPI](https://img.shields.io/pypi/v/ws-sdk?style=plastic)
 
 
 # WhiteSource Python SDK
@@ -26,4 +26,6 @@ SDK written in Python to simplify access to WhiteSource resources
 from ws_sdk.web import WS
 ws = WS(api_url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
 all_alerts = ws.get_alerts()
+
+scope = ws.get_scope_by_token(token="TOKEN_ID")
 ```
