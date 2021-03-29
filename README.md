@@ -4,7 +4,6 @@
 [![Python 3.6](https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Blue_Python_3.6%2B_Shield_Badge.svg/86px-Blue_Python_3.6%2B_Shield_Badge.svg.png)](https://www.python.org/downloads/release/python-360/)
 ![PyPI](https://img.shields.io/pypi/v/ws-sdk?style=plastic)
 
-
 # WhiteSource Python SDK
 SDK written in Python to simplify access to WhiteSource resources
 
@@ -13,13 +12,13 @@ SDK written in Python to simplify access to WhiteSource resources
 - **Windows (PowerShell):**	10, 2012, 2016
 
 ## How to build package
-1. Download the code: `git clone `
+1. Download the code: `git clone https://github.com/whitesource-ps/ws-sdk.git`
 1. Build wheel package `python setup.py bdist_wheel`
 
 ## How to use 
 1. Obtain connection details from WS Application (Home > Admin > Integration)
-1. Download and Install wheel package with pip install: `pip install ws_sdk*.whl` 
-
+1. 1. Install package from Pypi: `pip install ws-sdk`
+   1. Download wheel from GitHub and install : `pip install ws-sdk*.whl` 
 
 ## Execution
 ```python
