@@ -778,8 +778,7 @@ class WS:
         """
         if global_search:
             logging.debug(f"Performing Global Search with value: \'{search_value}\'")
-            ret = self.__call_api__(request_type="librarySearch", kv_dict={"searchValue": search_value})
-            libs = ret.get('libraries')
+            libs = self.__call_api__(request_type="librarySearch", kv_dict={"searchValue": search_value}).get('libraries')
             if version:                                                     # Filtering by version # TODO Good idea to extend with <>~
                 logging.debug(f"Filtering search value: \'{search_value}\' by version: {version}")
                 libs = [lib for lib in libs if lib.get('version') == version]
@@ -788,6 +787,7 @@ class WS:
                 libs = [lib for lib in libs if lib.get('name') == search_value]
             logging.info(f"Global search found {len(libs)} results for search value: \'{search_value}\'")
         else:
+            libs = None
             logging.error("Local search is unsupported yet")                # TODO FINISH THIS. MAYBE SEARCH IN INVENTORY
 
         return libs
@@ -820,11 +820,10 @@ class WS:
             lib_type = LibTypes.type_to_lib_t[lib_type]
 
         kv_dict = {}
-        local_vars = locals()
+        local_vars = locals()                                    # Iterating method variables to set search values
         for val in search_values.items():
             if local_vars[val[0]] is not None:
                 kv_dict[val[1]] = local_vars[val[0]]
-
         ret = self.__generic_get__(get_type="LibraryInfo", token_type="", kv_dict=kv_dict).get('librariesInformation')
+
         return ret
-                                  

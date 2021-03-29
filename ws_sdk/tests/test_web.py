@@ -223,7 +223,7 @@ class TestWS(TestCase):
         self.assertIsInstance(res, dict)
 
     @patch('ws_sdk.web.WS.get_scopes')
-    def test_ge_all_projects(self, mock_get_scopes):
+    def test_get_all_projects(self, mock_get_scopes):
         mock_get_scopes.return_value = []
         res = self.ws.get_projects()
 
@@ -575,6 +575,22 @@ class TestWS(TestCase):
 
     @patch('ws_sdk.web.WS.__set_token_in_body__')
     @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_attribution(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = bytes()
+        mock_set_token_in_body.return_value = (constants.PRODUCT, {})
+        res = self.ws.get_attribution(reporting_aggregation_mode="BY_COMPONENT", token="TOKEN")
+
+        self.assertIsInstance(res, bytes)
+
+    @patch('ws_sdk.web.WS.__set_token_in_body__')
+    def test_get_attribution_on_org(self, mock_set_token_in_body):
+        mock_set_token_in_body.return_value = (self.ws.token_type, {})
+
+        res = self.ws.get_attribution(reporting_aggregation_mode="BY_COMPONENT", token="TOKEN")
+        self.assertIs(res, None)
+
+    @patch('ws_sdk.web.WS.__set_token_in_body__')
+    @patch('ws_sdk.web.WS.__generic_get__')
     def test_get_effective_licenses(self, mock_generic_get, mock_set_token_in_body):
         mock_generic_get.return_value = bytes()
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
@@ -597,6 +613,11 @@ class TestWS(TestCase):
         res = self.ws.get_bugs()
 
         self.assertIsInstance(res, bytes)
+
+    def test_get_bugs_not_report(self):
+        res = self.ws.get_bugs(report=False)
+
+        self.assertIs(res, None)
 
     @patch('ws_sdk.web.WS.__set_token_in_body__')
     @patch('ws_sdk.web.WS.__generic_get__')
@@ -625,12 +646,24 @@ class TestWS(TestCase):
 
         self.assertIs(res, None)
 
+    def test_get_request_history_not_report(self):
+        res = self.ws.get_request_history(report=False)
+
+        self.assertIs(res, None)
+
     @patch('ws_sdk.web.WS.get_projects')
     def test_get_project(self, mock_get_projects):
         mock_get_projects.return_value = [{'token': "TOKEN"}]
         res = self.ws.get_project(token="TOKEN")
 
         self.assertEqual(res['token'], "TOKEN")
+
+    @patch('ws_sdk.web.WS.get_projects')
+    def test_get_project_not_found(self, mock_get_projects):
+        mock_get_projects.return_value = [{'token': "TOKEN"}]
+        res = self.ws.get_project(token="NOT_FOUND")
+
+        self.assertIs(res, None)
 
     @patch('ws_sdk.web.WS.get_scopes')
     def test_get_product_of_project(self, mock_get_scopes):
@@ -651,6 +684,41 @@ class TestWS(TestCase):
         res = self.ws.delete_scope(token="TOKEN")
 
         self.assertIsInstance(res, dict)
+
+    @patch('ws_sdk.web.WS.__set_token_in_body__')
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_users(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = []
+        mock_set_token_in_body.return_value = (self.ws.token_type, {})
+        res = self.ws.get_users()
+
+        self.assertIsInstance(res, list)
+
+    @patch('ws_sdk.web.WS.__set_token_in_body__')
+    def test_get_users_as_project(self, mock_set_token_in_body):
+        mock_set_token_in_body.return_value = (constants.PROJECT, {})
+        res = self.ws.get_users()
+
+        self.assertIs(res, None)
+
+    @patch('ws_sdk.web.WS.__call_api__')
+    def test_get_libraries(self, mock_call_api):
+        mock_call_api.return_value = {'libraries': []}
+        res = self.ws.get_libraries(search_value="LIB_NAME", version="VERSION", search_only_name=True)
+
+        self.assertIsInstance(res, list)
+
+    def test_get_libraries_not_global(self):
+        res = self.ws.get_libraries(search_value="LIB_NAME", global_search=False)
+
+        self.assertIs(res, None)
+
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_library_detailed(self, mock_generic_get):
+        mock_generic_get.return_value = {"librariesInformation": []}
+        res = self.ws.get_library_detailed(name="NAME", lib_type="Source Library", version="VERSION", languages=["java"])
+
+        self.assertIsInstance(res, list)
 
 
 if __name__ == '__main__':
