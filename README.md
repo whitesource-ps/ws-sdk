@@ -18,6 +18,7 @@ SDK written in Python to simplify access to WhiteSource resources
 ## How to use 
 1. Obtain connection details from WS Application (Home > Admin > Integration)
 1. 1. Install package from Pypi: `pip install ws-sdk`
+   OR
    1. Download wheel from GitHub and install : `pip install ws-sdk*.whl` 
 
 ## Execution
