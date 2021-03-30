@@ -1,4 +1,4 @@
-name: WS Python SDK Build and Publish - Tesating
+name: WS Python SDK Build and Publish - Testing
 on: [push]
 
 jobs:
