@@ -1,22 +1,15 @@
 import logging
 import os
-
+import re
 import sys
 from configparser import ConfigParser
 from datetime import datetime, timedelta
-import re
-from ws_sdk.web import WS
 from multiprocessing import Manager
 from multiprocessing.pool import ThreadPool
 
-logging.basicConfig(level=logging.DEBUG, filename='cleanup.log', format='%(levelname)s %(asctime)s %(thread)d: %(message)s', datefmt='%y-%m-%d %H:%M:%S')
-logging.getLogger('ws_sdk').setLevel(logging.INFO)
-logging.getLogger('urllib3').setLevel(logging.INFO)
-logging.getLogger('chardet').setLevel(logging.INFO)
+from ws_sdk.web import WS
 
-# WS_API_URL = os.getenv('WS_API_URL')
-# WS_USER = os.getenv('WS_USER')
-# WS_ORG = os.getenv('WS_ORG')
+logging.basicConfig(level=logging.INFO, filename='cleanup.log', format='%(levelname)s %(asctime)s %(thread)d: %(message)s', datefmt='%y-%m-%d %H:%M:%S')
 
 c_org = None
 config = None
@@ -113,7 +106,7 @@ def delete_projects(proj_to_archive, failed_project_toks):
 
     if projects_to_delete:
         global dry_run, c_org
-        with ThreadPool(processes=project_parallelism_level) as thread_pool:
+        with ThreadPool(processes=1) as thread_pool:
             thread_pool.starmap(worker_delete_project, [(c_org, project, dry_run) for project in projects_to_delete])
         logging.info(f"{len(proj_to_archive)} projects deleted")
 
