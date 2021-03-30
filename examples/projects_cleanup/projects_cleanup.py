@@ -6,7 +6,6 @@ from configparser import ConfigParser
 from datetime import datetime, timedelta
 from multiprocessing import Manager
 from multiprocessing.pool import ThreadPool
-
 from ws_sdk.web import WS
 
 logging.basicConfig(level=logging.INFO, filename='cleanup.log', format='%(levelname)s %(asctime)s %(thread)d: %(message)s', datefmt='%y-%m-%d %H:%M:%S')
