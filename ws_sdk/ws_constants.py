@@ -1,0 +1,98 @@
+# General
+CACHE_TIME = 600
+CONN_TIMEOUT = 3600
+API_URL_SUFFIX = '/api/v1.3'
+DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+HEADERS = {'content-type': 'application/json'}
+
+
+# Alert Types
+class AlertTypes:
+    REJECTED_BY_POLICY_RESOURCE = 'REJECTED_BY_POLICY_RESOURCE'
+    MULTIPLE_LIBRARY_VERSIONS = 'MULTIPLE_LIBRARY_VERSIONS'
+    NEW_MINOR_VERSION = 'NEW_MINOR_VERSION'
+    NEW_MAJOR_VERSION = 'NEW_MAJOR_VERSION'
+    SECURITY_VULNERABILITY = 'SECURITY_VULNERABILITY'
+
+    ALERT_TYPES = [SECURITY_VULNERABILITY, NEW_MAJOR_VERSION, NEW_MINOR_VERSION, MULTIPLE_LIBRARY_VERSIONS,
+                   REJECTED_BY_POLICY_RESOURCE]
+
+
+# Scope Types
+PROJECT = 'project'
+PRODUCT = 'product'
+ORGANIZATION = 'organization'
+
+TOKEN_TYPES = {ORGANIZATION: "orgToken",
+               PRODUCT: "productToken",
+               PROJECT: "projectToken"
+               }
+
+
+# Role Types
+class RoleTypes:
+    DEFAULT_APPROVER = "DEFAULT_APPROVER"
+    PRODUCT_INTEGRATOR = "PRODUCT_INTEGRATOR"
+    ADMIN = "ADMIN"
+    ROLE_TYPES = [DEFAULT_APPROVER, PRODUCT_INTEGRATOR, ADMIN]
+
+
+# Assignments
+GROUPS = "groups"
+USERS = "users"
+ENTITY_TYPES = {GROUPS: "groupRoles",
+                USERS: "userRoles"}
+
+
+# Library Types for search
+class LibTypes:
+    LIB_T_JAVA = "maven"
+    LIB_T_PYTHON = "pypi"
+    LIB_T_GO = "go"
+    LIB_T_DOCKER ="docker"
+    LIB_T_DOTNET =".net"
+    LIB_T_ACTIONSCRIPT = "actionscript"
+    LIB_T_ALPINE = "alpine"
+    LIB_T_DEBIAN = "debian"
+    LIB_T_DOCKER_LAYER = "docker_layer"
+    LIB_T_ERLANG = "hex"
+    LIB_T_HASKELL = "haskell"
+    LIB_T_JS_BOWER = "bower"
+    LIB_T_JS_NPM = "npm"
+    LIB_T_OCAML = "ocaml"
+    LIB_T_PHP = "php"
+    LIB_T_R = "R"
+    LIB_T_RPM = "RPM"
+    LIB_T_RUBY = "Ruby"
+    LIB_T_RUST = "Rust"
+    LIB_T_OBJC = "cocoaPods"
+    LIB_T_NUGET = "Nuget"       # YES?
+
+    LIB_TYPES = [LIB_T_NUGET, LIB_T_OBJC, LIB_T_R, LIB_T_GO, LIB_T_RUST, LIB_T_RUBY, LIB_T_RPM, LIB_T_ACTIONSCRIPT,
+                 LIB_T_ALPINE, LIB_T_DEBIAN, LIB_T_DOCKER, LIB_T_DOTNET, LIB_T_DOCKER_LAYER, LIB_T_ERLANG, LIB_T_JAVA,
+                 LIB_T_HASKELL, LIB_T_PYTHON, LIB_T_JS_BOWER , LIB_T_JS_NPM, LIB_T_OCAML, LIB_T_PHP]
+
+    type_to_lib_t = {"Java": LIB_T_JAVA,
+                    "Python": LIB_T_PYTHON,
+                    "Source Library": LIB_T_GO,
+                    "UNKNOWN": LIB_T_DOCKER,
+                    ".NET": LIB_T_DOTNET,
+                    "UNKNOWN": LIB_T_ACTIONSCRIPT,
+                    "Alpine": LIB_T_ALPINE,
+                    "Debian": LIB_T_DEBIAN,
+                    "UNKNOWN": LIB_T_DOCKER_LAYER,
+                    "Source Library": LIB_T_ERLANG,
+                    "UNKNOWN": LIB_T_HASKELL,
+                    "UNKNOWN": LIB_T_JS_BOWER,
+                    "javascript/Node.js": LIB_T_JS_NPM,
+                    "UNKNOWN": LIB_T_OCAML,
+                    "Source Library": LIB_T_PHP,
+                    "R": LIB_T_R,
+                    "RPM": LIB_T_RPM,
+                    "Ruby": LIB_T_RUBY,
+                    "Source Library": LIB_T_RUST,
+                    "CocoaPods": LIB_T_OBJC,
+                    "Nuget": LIB_T_NUGET} # YES?
+
+# LIBRARY_TYPES = ["go", "maven", "pypi", "docker" ".net", "actionscript", "alpine", "debian", "docker_layer", "hex",
+#                 "haskell", "bower", "npm", "ocaml", "php", "R", "RPM", "Ruby", "Rust", "cocoaPods"]

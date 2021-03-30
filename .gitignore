@@ -3,3 +3,10 @@
 /.idea/
 /build/
 /dist/
+/__main__.py
+/examples/projects_cleanup/conf/
+/examples/projects_cleanup/cleanup.log
+/src/ws-sdk-0-1-0-py3-none-any/
+/src/ws-sdk-0-1-0-py3-none-any-whl/
+/src/
+/ws_sdk/__pycache__/

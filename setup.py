@@ -9,7 +9,7 @@ setuptools.setup(
     author="WhiteSource Professional Services",
     author_email="ps@whitesourcesoftware.com",
     description="WS Python SDK",
-    url='https://github.com/whitesource-ps/ws_sdk',
+    url='https://github.com/whitesource-ps/ws-sdk',
     license='LICENSE.txt',
     packages=setuptools.find_packages(),
     python_requires='>=3.6',
@@ -18,7 +18,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],
 )
