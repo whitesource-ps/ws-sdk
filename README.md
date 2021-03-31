@@ -1,4 +1,5 @@
 ![Logo](https://whitesource-resources.s3.amazonaws.com/ws-sig-images/Whitesource_Logo_178x44.png)
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
 [![CI](https://github.com/whitesource-ps/ws-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/whitesource-ps/ws-sdk/actions/workflows/ci.yml)
 [![WS Nexus Integration Build and Publish](https://github.com/whitesource-ps/ws-nexus/actions/workflows/ci.yml/badge.svg)](https://github.com/whitesource-ps/ws-nexus/actions/workflows/ci.yml)

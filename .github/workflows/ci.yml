@@ -1,4 +1,4 @@
-name: WS Python SDK Build and Publish
+name: Build and Publish
 on: [push]
 
 jobs:
