@@ -11,15 +11,14 @@ SDK written in Python to simplify access to WhiteSource resources
 - **Linux (Bash):**	CentOS, Debian, Ubuntu, RedHat
 - **Windows (PowerShell):**	10, 2012, 2016
 
-## How to build package
+## How to build and install package from source
 1. Download the code: `git clone https://github.com/whitesource-ps/ws-sdk.git`
 1. Build wheel package `python setup.py bdist_wheel`
+1. Download wheel from GitHub and install : `pip install ws-sdk*.whl` 
 
-## How to use 
+## How to install package
 1. Obtain connection details from WS Application (Home > Admin > Integration)
-1. 1. Install package from Pypi: `pip install ws-sdk`
-   OR
-   1. Download wheel from GitHub and install : `pip install ws-sdk*.whl` 
+1. Install package from Pypi: `pip install ws-sdk`
 
 ## Execution
 ```python
