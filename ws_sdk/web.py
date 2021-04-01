@@ -71,7 +71,7 @@ class WS:
 
         return ret_dict
 
-    @cached(ttl=CACHE_TIME)
+    @cached(ttl=CACHE_TIME)         # TODO ADD CONNECTIVITY  TEST
     def __call_api__(self,
                      request_type: str,
                      kv_dict: dict = None) -> dict:
@@ -433,7 +433,7 @@ class WS:
                      exclude_project_occurrences: bool = False) -> list:
         report_name = 'licenses Report'
         token_type, kv_dict = self.__set_token_in_body__(token)
-        kv_dict = {'excludeProjectOccurrences': exclude_project_occurrences}
+        kv_dict['excludeProjectOccurrences'] = exclude_project_occurrences
         logging.debug(f"Running {token_type} {report_name}")
 
         return self.__generic_get__(get_type='Licenses', token_type=token_type, kv_dict=kv_dict)['libraries']
