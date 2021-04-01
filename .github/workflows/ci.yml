@@ -9,12 +9,7 @@ jobs:
         python-version: [3.6, 3.7, 3.8]
     steps:
       - uses: actions/checkout@v2
-      - name: Run Yelp's detect-secrets
-        uses: RobertFischer/detect-secrets-action@v2.0.0
-      - name: Commit back .secrets.baseline (if it was missing)
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: "build(detect-secrets): Commit the newly-generated .secrets.baseline file"
+      - uses: max/secret-scan@master
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
