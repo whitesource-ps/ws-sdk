@@ -1,5 +1,5 @@
 /ws_sdk.egg-info/
-/ws_sdk.iml
+*.iml
 /.idea/
 /build/
 /dist/
