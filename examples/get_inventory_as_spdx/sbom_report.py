@@ -64,7 +64,7 @@ def create_package(token: str) -> package.Package:
                               spdx_id="SPDXRef-1",
                               download_location=SPDXNone())                         # UNKNOWN FROM WS
     pkg.check_sum = Algorithm(identifier="SHA1", value="")                          # UNKNOWN FROM WS
-    pkg.cr_text = "COPYRIGHT TEXT"                                                  # UNKNOWN FROM WS
+    pkg.cr_text = NoAssert()                                                        # UNKNOWN FROM WS
     pkg.conc_lics = NoAssert()                                                      # UNKNOWN FROM WS
     pkg.license_declared = NoAssert()                                               # UNKNOWN FROM WS
 
