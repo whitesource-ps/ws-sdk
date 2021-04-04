@@ -50,7 +50,7 @@ def create_document(token: str) -> Document:
     document.creation_info.set_created_now()
     org = creationinfo.Organization(ws_conn.get_organization_name(), "OPT_EMAIL")   # UNKNOWN FROM WS
     tool = creationinfo.Tool("White Source SBOM Report Generator")
-    person = creationinfo.Person(getpass.getuser(), "OPT_EMAIL")                           # UNKNOWN FROM WS MAYBE FROM OS
+    person = creationinfo.Person(getpass.getuser(), "OPT_EMAIL")                    # UNKNOWN FROM WS MAYBE FROM OS
     document.creation_info.add_creator(org)
     document.creation_info.add_creator(tool)
     document.creation_info.add_creator(person)
