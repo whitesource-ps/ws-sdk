@@ -745,7 +745,7 @@ class WS:
         report_name = 'Users'
         token_type, kv_dict = self.__set_token_in_body__(token)
         if token_type == ORGANIZATION:
-            return self.__generic_get__(get_type='AllUsers', token_type="")
+            return self.__generic_get__(get_type='AllUsers', token_type="")['users']
         else:
             logging.error(f"{report_name} is unsupported on {token_type}")
 
