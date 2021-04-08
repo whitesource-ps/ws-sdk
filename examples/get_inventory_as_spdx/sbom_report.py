@@ -4,6 +4,7 @@ import sys
 import getpass
 import argparse
 from ws_sdk.web import WS
+from ws_sdk import ws_utilities
 from spdx.document import Document, License
 from spdx.writers import json as spdx_json
 from spdx import file, package, version, config, creationinfo
@@ -32,12 +33,12 @@ def create_sbom_doc():
     logging.debug(f"Starting to work on SBOM Document of {scope['type']} {scope['name']} (token: {args.scope_token})")
     doc = create_document(args.scope_token)
     doc.package = create_package(args.scope_token)
-    doc.package.files, licenses_from_files = create_files(args.scope_token)
+    doc.package.files, licenses_from_files, copyrights_from_files = create_files(args.scope_token)
 
     # After file section creation
     doc.package.verif_code = doc.package.calc_verif_code()
     doc.package.licenses_from_files = licenses_from_files
-
+    doc.package.cr_text =  ', '.join(copyrights_from_files)
     write_file(doc, args.type)
 
 
@@ -83,9 +84,9 @@ def create_package(token: str) -> package.Package:
 def create_files(scope_token: str):
     files = []
     all_licenses_from_files = set()
-    all_copyright_refs = set()
-    inventory = ws_conn.get_inventory(token=scope_token)       # TODO UNUSED
-    dd = ws_conn.get_due_diligence(token=scope_token)          # TODO UNUSED
+    all_copyright_from_files = set()
+    dd_list = ws_conn.get_due_diligence(token=scope_token)
+    dd_dict = ws_utilities.convert_dict_list_to_dict(lst=dd_list, key_desc=('library', 'name'))
     libs = ws_conn.get_licenses(token=scope_token)
     all_licenses_f2i = {**LICENSE_MAP, **EXCEPTION_MAP}
     all_licenses_i2f = {i:f for f,i in all_licenses_f2i.items()}                       # Inversing dictionary
@@ -98,9 +99,11 @@ def create_files(scope_token: str):
         spdx_file.comment = lib['description']
         spdx_file.type = set_file_type(lib['type'], lib['filename'])
 
+        file_license_copyright = set()
         for lic in lib['licenses']:
+            # Handling license
             try:
-                license_full_name = all_licenses_i2f[lic['spdxName']]        # DICT IS ODD NEED TO BREAK INTO
+                license_full_name = all_licenses_i2f[lic['spdxName']]
                 logging.debug(f"Found license: {license_full_name}")
             except KeyError:
                 logging.error(f"License with identifier: {lic['spdxName']} was not found")
@@ -110,21 +113,31 @@ def create_files(scope_token: str):
             all_licenses_from_files.add(spdx_license)
             spdx_file.licenses_in_file.append(spdx_license)
 
+            # Handling Copyright license
+            try:
+                license_copyright = f"{lic['spdxName']} - {dd_dict[(lib['filename'], lic['name'])]['copyright']}"
+                all_copyright_from_files.add(license_copyright)
+                file_license_copyright.add(license_copyright)
+                logging.debug(f"Found copyright: {license_copyright}")
+            except KeyError:
+                license_copyright = None
+                logging.error(f"Copyright of : ({lib['filename']}, {lic['name']}) was not found")
+
+        spdx_file.copyright =  ', '.join(file_license_copyright) if file_license_copyright else SPDXNone()
         spdx_file.conc_lics = SPDXNone()
-        spdx_file.copyright = SPDXNone()
 
         files.append(spdx_file)
 
-    return files, all_licenses_from_files
+    return files, all_licenses_from_files, all_copyright_from_files
 
 
 def set_file_type(file_type: str, filename: str):       # TODO ADDITIONAL TESTINGS
     if file_type == "Source Files":
         ret = file.FileType.SOURCE
-    elif filename.endswith((".jar", ".zip", ".tar", ".gz", ".tgz")):         # TODO COMPLE LIST
+    elif filename.endswith((".jar", ".zip", ".tar", ".gz", ".tgz")):         # TODO COMPILE LIST
         logging.debug(f"Type of file: {filename} is binary")
         ret = file.FileType.ARCHIVE
-    elif False:                                                               # SEE IF WE CAN DISCOVER BINARIES
+    elif False:                                                               # TODO SEE IF WE CAN DISCOVER BINARIES
         logging.debug(f"Type of file: {filename} is binary")
         ret = file.FileType.BINARY
     else:
@@ -154,21 +167,6 @@ def parse_args():
     parser.add_argument('-t', '--type', help="Output type (tv, json, rdf, yaml)", dest='type', default='json')
 
     return parser.parse_args()
-
-def assign_spdx_lic_to_report(token: str):
-    libs = ws_conn.get_licenses(token=token)
-    for lib in libs:
-        logging.debug(f"Working on library: {lib['name']}")
-        for lic in lib['licenses']:
-            # lookup_val = fix_license_id(lic['spdxName'])
-            logging.debug(f"Searching for: {lic['spdxName']}")
-            # logging.debug(f"Searching for: {lookup_val} (Original value: {lic['spdxName']})")
-            try:
-                lic['spdx_license_list'] = config.load_license_list()[lic['spdxName']]  # load_license_list probly return tuple from licenses.json
-            except KeyError:
-                logging.error(f"Could not find SPDX result for value: {lic['spdxName']}")
-
-    return libs
 
 
 if __name__ == '__main__':
