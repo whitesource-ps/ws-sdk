@@ -21,7 +21,7 @@ def convert_dict_list_to_dict(lst: list,
                 try:
                     ret.append(dct[x])
                 except KeyError:
-                    logging.error(f"Key: {key} was not found")
+                    logging.error(f"Key: {key_desc} was not found")
                     return None
             logging.debug(f"Key is tuple: {ret}")
             return tuple(ret)
