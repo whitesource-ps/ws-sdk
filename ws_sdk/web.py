@@ -31,7 +31,7 @@ class WS:
         self.timeout = timeout
         self.resp_format = resp_format
 
-        if url in ['saas', 'saas-eu', 'app', 'app-eu']:
+        if url in ['saas', 'saas-eu', 'app', 'app-eu', 'staging']:
             self.url = f"https://{url}.whitesourcesoftware.com"
         else:
             self.url = url
