@@ -92,9 +92,11 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, list)
 
+    @patch('ws_sdk.web.WS.get_organization_details')
     @patch('ws_sdk.web.WS.__generic_get__')
-    def test_get_scopes(self, mock_generic_get):
+    def test_get_scopes(self, mock_generic_get, mock_get_organization_details):
         mock_generic_get.return_value = {'productVitals': []}
+        mock_get_organization_details.return_value = {}
         res = self.ws.get_scopes()
 
         self.assertIsInstance(res, list)
@@ -231,7 +233,7 @@ class TestWS(TestCase):
 
     @patch('ws_sdk.web.WS.__generic_get__')
     def test_get_organization_details(self, mock_call_api):
-        mock_call_api.return_value = {}
+        mock_call_api.return_value = {"orgName": "ORG_NAME", "orgToken": "ORG_TOKEN"}
         res = self.ws.get_organization_details()
 
         self.assertIsInstance(res, dict)

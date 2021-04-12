@@ -274,6 +274,7 @@ class WS:
             logging.error(f"get all scopes is unsupported on {self.token_type}")
 
         scopes = all_products + all_projects
+        scopes.append(self.get_organization_details())
         # Filter scopes by name
         if name:
             scopes = [scope for scope in scopes if scope['name'] == name]
@@ -281,10 +282,16 @@ class WS:
         return scopes
 
     def get_organization_details(self) -> dict:
+        org_details = None
         if self.token_type == 'organization':
-            return self.__generic_get__(get_type='Details')
+            org_details = self.__generic_get__(get_type='Details')
+            org_details['name'] = org_details['orgName']
+            org_details['token'] = org_details['orgToken']
+            org_details['type'] = self.token_type
         else:
             logging.error("get organization details only allowed on organization")
+
+        return org_details
 
     def get_organization_name(self) -> str:
         return self.get_organization_details()['orgName']
