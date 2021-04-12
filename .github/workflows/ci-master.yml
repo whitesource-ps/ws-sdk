@@ -1,5 +1,7 @@
 name: WS Python SDK Build and Publish
 on: [push]
+  branches:
+  - master
 
 jobs:
   build-and-publish:
