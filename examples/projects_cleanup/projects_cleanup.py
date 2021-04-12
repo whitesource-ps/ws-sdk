@@ -13,6 +13,7 @@ logging.basicConfig(level=logging.INFO, filename='cleanup.log', format='%(leveln
 c_org = None
 config = None
 dry_run = False
+upload_to_s3 = False
 report_types = {}
 archive_dir = None
 project_parallelism_level = 5
@@ -81,14 +82,28 @@ def worker_generate_report(report_desc, connector, w_f_proj_tokens_q):
     method_name = f"get_{report_desc['report_type']}"
     try:
         method_to_call = getattr(WS, method_name)
-        global dry_run
+        global dry_run, upload_to_s3
         if dry_run:
             logging.info(f"[DRY_RUN] Generating report: {report_desc['project_archive_dir']}")
         else:
             logging.debug(f"Generating report: {report_desc['project_archive_dir']}")
             report = method_to_call(connector, token=report_desc['token'], report=True)
-            f = open(report_desc['report_full_name'], 'bw')
-            f.write(report)
+            if upload_to_s3:       # TODO: https://realpython.com/python-boto3-aws-s3/
+                # upload_file(object_name=report)
+                import boto3
+                s3 = boto3.resource('s3')
+                bucket_name = 'my_bucket_name'
+                file_path_in_s3 = 'my/key/including/filename.txt'
+                # object = s3.Object(bucket_name, file_path_in_s3)
+                # object.put(Body=report)
+
+                s3.Bucket(bucket_name).upload_file('/local/file/here.txt', 'folder/sub/path/to/s3key')
+
+                # from botocore.exceptions import ClientError
+                # s3_resource = boto3.resource('s3')
+            else:
+                f = open(report_desc['report_full_name'], 'bw')
+                f.write(report)
     except AttributeError:
         logging.error(f"report: {method_name} was not found")
     except Exception:
@@ -119,18 +134,44 @@ def worker_delete_project(conn, project, w_dry_run):
 
 
 def parse_config(config_file):
-    global config, dry_run, report_types, archive_dir, project_parallelism_level
+    global config, dry_run, upload_to_s3, report_types, archive_dir, project_parallelism_level
     config = ConfigParser()
     config.optionxform = str
     config.read(config_file)
 
     project_parallelism_level = config['DEFAULT'].getint('ProjectParallelismLevel')
     dry_run = config['DEFAULT'].getboolean('DryRun')
+    upload_to_s3 = config['DEFAULT'].getboolean('UploadToS3')
     archive_dir = config['DEFAULT']['ReportsDir']
     reports = config['DEFAULT']['Reports'].replace(' ', '').split(",")
     for report in reports:                                          # Generate SDK methods from the conf report list
         report_types[re.sub('_report.+', '', report)] = report
     logging.info(f"Generating {len(report_types)} report types with {project_parallelism_level} threads")
+
+
+def upload_file(file_name, bucket, object_name=None):
+    import boto3
+    from botocore.exceptions import ClientError
+    """Upload a file to an S3 bucket
+
+    :param file_name: File to upload
+    :param bucket: Bucket to upload to
+    :param object_name: S3 object name. If not specified then file_name is used
+    :return: True if file was uploaded, else False
+    """
+
+    # If S3 object_name was not specified, use file_name
+    if object_name is None:
+        object_name = file_name
+
+    # Upload the file
+    s3_client = boto3.client('s3')
+    try:
+        response = s3_client.upload_file(file_name, bucket, object_name)
+    except ClientError as e:
+        logging.error(e)
+        return False
+    return True
 
 
 if __name__ == '__main__':
