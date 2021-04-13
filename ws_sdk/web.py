@@ -285,8 +285,8 @@ class WS:
         org_details = None
         if self.token_type == 'organization':
             org_details = self.__generic_get__(get_type='Details')
-            org_details['name'] = org_details['orgName']
-            org_details['token'] = org_details['orgToken']
+            org_details['name'] = org_details.get('orgName')
+            org_details['token'] = org_details.get('orgToken')
             org_details['type'] = self.token_type
         else:
             logging.error("get organization details only allowed on organization")
