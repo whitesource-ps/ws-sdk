@@ -1,4 +1,4 @@
-name: WS Python SDK Build and Publish
+name: WS Python SDK Build and Publish - Non Master
 on:
   push:
     branches:
