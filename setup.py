@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
 
 setuptools.setup(
     name="ws_sdk",
-    version="0.1.0-1",
+    version="0.1.1",
     author="WhiteSource Professional Services",
     author_email="ps@whitesourcesoftware.com",
     description="WS Python SDK",
