@@ -71,7 +71,7 @@ class WS:
 
         return ret_dict
 
-    @cached(ttl=CACHE_TIME)
+    @cached(ttl=CACHE_TIME)         # TODO ADD CONNECTIVITY  TEST
     def __call_api__(self,
                      request_type: str,
                      kv_dict: dict = None) -> dict:
@@ -274,6 +274,7 @@ class WS:
             logging.error(f"get all scopes is unsupported on {self.token_type}")
 
         scopes = all_products + all_projects
+        scopes.append(self.get_organization_details())
         # Filter scopes by name
         if name:
             scopes = [scope for scope in scopes if scope['name'] == name]
@@ -281,10 +282,16 @@ class WS:
         return scopes
 
     def get_organization_details(self) -> dict:
+        org_details = None
         if self.token_type == 'organization':
-            return self.__generic_get__(get_type='Details')
+            org_details = self.__generic_get__(get_type='Details')
+            org_details['name'] = org_details.get('orgName')
+            org_details['token'] = org_details.get('orgToken')
+            org_details['type'] = self.token_type
         else:
             logging.error("get organization details only allowed on organization")
+
+        return org_details
 
     def get_organization_name(self) -> str:
         return self.get_organization_details()['orgName']
@@ -433,7 +440,7 @@ class WS:
                      exclude_project_occurrences: bool = False) -> list:
         report_name = 'licenses Report'
         token_type, kv_dict = self.__set_token_in_body__(token)
-        kv_dict = {'excludeProjectOccurrences': exclude_project_occurrences}
+        kv_dict['excludeProjectOccurrences'] = exclude_project_occurrences
         logging.debug(f"Running {token_type} {report_name}")
 
         return self.__generic_get__(get_type='Licenses', token_type=token_type, kv_dict=kv_dict)['libraries']
@@ -745,7 +752,7 @@ class WS:
         report_name = 'Users'
         token_type, kv_dict = self.__set_token_in_body__(token)
         if token_type == ORGANIZATION:
-            return self.__generic_get__(get_type='AllUsers', token_type="")
+            return self.__generic_get__(get_type='AllUsers', token_type="")['users']
         else:
             logging.error(f"{report_name} is unsupported on {token_type}")
 
