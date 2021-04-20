@@ -4,7 +4,7 @@ from datetime import datetime
 from secrets import compare_digest
 from typing import Union
 import functools
-import ws_utilities
+from . import ws_utilities
 import requests
 from memoization import cached
 
