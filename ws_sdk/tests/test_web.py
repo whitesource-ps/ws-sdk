@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 class TestWS(TestCase):
     def setUp(self):
-        self.ws = WS(url="WS_API_URL", user_key="USER_KEY", token="ORG_TOKEN", token_type=constants.ORGANIZATION)
+        self.ws = WS(url="app", user_key="USER_KEY", token="ORG_TOKEN", token_type=constants.ORGANIZATION)
 
     @patch('ws_sdk.web.WS.get_scope_type_by_token')
     def test___set_token_in_body__(self, mock_get_scope_type_by_token):
@@ -206,6 +206,7 @@ class TestWS(TestCase):
     @patch('ws_sdk.web.WS.__set_token_in_body__')
     def test_get_alerts_by_project_tag_product_token(self, mock_set_token_in_body):
         mock_set_token_in_body.return_value = (constants.PRODUCT, {})
+        self.ws.token_type == constants.PRODUCT
         res = self.ws.get_alerts(project_tag=True, tag={"key": "value"}, token=constants.PRODUCT)
 
         self.assertIs(res, None)
@@ -217,15 +218,15 @@ class TestWS(TestCase):
 
         self.assertIs(res, None)
 
-    @patch('ws_sdk.web.WS.__generic_get__')
-    def test_get_products(self, mock_generic_get):
-        mock_generic_get.return_value = {'productVitals': {}}
+    @patch('ws_sdk.web.WS.get_scopes')
+    def test_get_products(self, mock_get_scopes):
+        mock_get_scopes.return_value = []
         res = self.ws.get_products()
 
-        self.assertIsInstance(res, dict)
+        self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.get_scopes')
-    def test_get_all_projects(self, mock_get_scopes):
+    def test_get_projects(self, mock_get_scopes):
         mock_get_scopes.return_value = []
         res = self.ws.get_projects()
 
@@ -239,9 +240,17 @@ class TestWS(TestCase):
         self.assertIsInstance(res, dict)
 
     @patch('ws_sdk.web.WS.get_organization_details')
-    def test_get_organization_name(self, mock_get_organization_details):
+    def test_get_name_as_org(self, mock_get_organization_details):
         mock_get_organization_details.return_value = {'orgName': "ORG_NAME"}
-        res = self.ws.get_organization_name()
+        res = self.ws.get_name()
+
+        self.assertIsInstance(res, str)
+
+    @patch('ws_sdk.web.WS.get_tags')
+    def test_get_name_as_prod(self, mock_get_tags):
+        self.ws.token_type = constants.PRODUCT
+        mock_get_tags.return_value = [{"name": "PROD_NAME"}]
+        res = self.ws.get_name()
 
         self.assertIsInstance(res, str)
 
@@ -279,11 +288,13 @@ class TestWS(TestCase):
         self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.__set_token_in_body__')
-    def test_get_inventory(self, mock_set_token_in_body):
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_inventory(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = {'libraries': []}
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
         res = self.ws.get_inventory()
 
-        self.assertIs(res, None)
+        self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.get_scopes')
     def test_get_scopes_from_name(self, mock_get_scopes):
@@ -406,11 +417,13 @@ class TestWS(TestCase):
         self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.__set_token_in_body__')
-    def test_get_assignments_project(self, mock_set_token_in_body):
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_assignments_project(self, mock_generic_get , mock_set_token_in_body):
+        mock_generic_get.return_value = {}
         mock_set_token_in_body.return_value = (constants.PROJECT, {})
         res = self.ws.get_assignments()
 
-        self.assertIs(res, None)
+        self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.__set_token_in_body__')
     @patch('ws_sdk.web.WS.__generic_get__')
@@ -521,14 +534,16 @@ class TestWS(TestCase):
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
         res = self.ws.get_library_location()
 
-        self.assertIsInstance(res, bytes)
+        self.assertIs(res, None)
 
     @patch('ws_sdk.web.WS.__set_token_in_body__')
-    def test_get_library_location_project(self, mock_set_token_in_body):
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_library_location_on_project(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = {'libraryLocations': []}
         mock_set_token_in_body.return_value = (constants.PROJECT, {})
         res = self.ws.get_library_location()
 
-        self.assertIs(res, None)
+        self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.__set_token_in_body__')
     @patch('ws_sdk.web.WS.__generic_get__')
@@ -697,8 +712,9 @@ class TestWS(TestCase):
         self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.__set_token_in_body__')
-    def test_get_users_as_project(self, mock_set_token_in_body):
-        mock_set_token_in_body.return_value = (constants.PROJECT, {})
+    def test_get_users_as_product(self, mock_set_token_in_body):
+        self.ws.token_type = constants.PRODUCT
+        mock_set_token_in_body.return_value = (constants.PRODUCT, {})
         res = self.ws.get_users()
 
         self.assertIs(res, None)
