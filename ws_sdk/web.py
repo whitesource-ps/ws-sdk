@@ -276,6 +276,14 @@ class WS:
         :return: list of scope dictionaries
         :rtype list
         """
+        def __enrich_projects__(projects: list, product: dict):
+            for project in projects:
+                project['type'] = PROJECT
+                project['productToken'] = product.get('token')
+                project['productName'] = product.get('name')
+
+            return projects
+
         if self.token_type == ORGANIZATION:
             all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
             all_projects = []
@@ -283,24 +291,18 @@ class WS:
                 product['type'] = PRODUCT
                 try:
                     projects = self.__generic_get__(get_type="ProjectVitals", kv_dict={'productToken': product['token']}, token_type='product')['projectVitals']
-                    for project in projects:
-                        project['type'] = PROJECT
-                        project['productToken'] = product['token']
-                        project['productName'] = product['name']
-                        all_projects.append(project)
+                    all_projects.extend(__enrich_projects__(projects, product))
                 except KeyError:
                     logging.debug(f"Product: {product['name']} Token {product['token']} without project. Skipping")
             scopes = all_products + all_projects
             scopes.append(self.get_organization_details())
         elif self.token_type == PRODUCT:
-            scopes = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
-            for scope in scopes:
-                scope['productToken'] = self.token
-                scope['type'] = PROJECT
-
-            scopes.append({'type': PRODUCT,
-                           'token': self.token})
-
+            product = {'type': PRODUCT,
+                       'token': self.token,
+                       'name': self.get_name()}
+            projects = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
+            scopes = __enrich_projects__(projects, product)
+            scopes.append(product)
         if name:                                                                    # Filter scopes by name
             scopes = [scope for scope in scopes if scope['name'] == name]
 
@@ -361,11 +363,6 @@ class WS:
                 all_products.append(scope)
 
         return all_products
-
-        ret = self.__generic_get__(get_type='ProductVitals')['productVitals'] if self.token_type == ORGANIZATION \
-            else logging.error("get all products only allowed on organization")
-
-        return ret
 
     def get_projects(self,
                      product_token=None,

@@ -7,6 +7,7 @@ from unittest import TestCase
 
 from mock import patch
 
+import ws_constants
 import ws_sdk.ws_constants as constants
 from ws_sdk.web import WS
 
@@ -97,6 +98,16 @@ class TestWS(TestCase):
     def test_get_scopes(self, mock_generic_get, mock_get_organization_details):
         mock_generic_get.return_value = {'productVitals': []}
         mock_get_organization_details.return_value = {}
+        res = self.ws.get_scopes()
+
+        self.assertIsInstance(res, list)
+
+    @patch('ws_sdk.web.WS.get_name')
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_scopes_as_product(self, mock_generic_get, mock_get_name):
+        mock_generic_get.return_value = {'projectVitals': [{}]}
+        mock_get_name.return_value = "PROD_NAME"
+        self.ws.token_type = ws_constants.PRODUCT
         res = self.ws.get_scopes()
 
         self.assertIsInstance(res, list)
@@ -220,14 +231,14 @@ class TestWS(TestCase):
 
     @patch('ws_sdk.web.WS.get_scopes')
     def test_get_products(self, mock_get_scopes):
-        mock_get_scopes.return_value = []
+        mock_get_scopes.return_value = [{'type': ws_constants.PROJECT}]
         res = self.ws.get_products()
 
         self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.get_scopes')
     def test_get_projects(self, mock_get_scopes):
-        mock_get_scopes.return_value = []
+        mock_get_scopes.return_value = [{'type': ws_constants.PROJECT}]
         res = self.ws.get_projects()
 
         self.assertIsInstance(res, list)
@@ -283,7 +294,7 @@ class TestWS(TestCase):
     def test_get_inventory_project(self, mock_generic_get, mock_set_token_in_body):
         mock_generic_get.return_value = {'libraries': []}
         mock_set_token_in_body.return_value = (constants.PROJECT, {})
-        res = self.ws.get_inventory(token="PROJECT")
+        res = self.ws.get_inventory(token="PROJECT", include_in_house_data=False)
 
         self.assertIsInstance(res, list)
 
@@ -412,7 +423,7 @@ class TestWS(TestCase):
         mock_generic_get.return_value = {}
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
         mock_entity_types.return_value = {}
-        res = self.ws.get_assignments()
+        res = self.ws.get_assignments(entity_type=ws_constants.USERS, role_type=ws_constants.RoleTypes.PRODUCT_INTEGRATOR)
 
         self.assertIsInstance(res, list)
 
@@ -738,6 +749,23 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, list)
 
+    @patch('ws_sdk.web.WS.__set_token_in_body__')
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_tags_as_org(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = {'productTags': []}
+        mock_set_token_in_body.return_value = (self.ws.token_type, {})
+        res = self.ws.get_tags()
+
+        self.assertIsInstance(res, list)
+
+    @patch('ws_sdk.web.WS.__set_token_in_body__')
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_tags_as_prod(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = {'productTags': []}
+        mock_set_token_in_body.return_value = (ws_constants.PRODUCT, {})
+        res = self.ws.get_tags()
+
+        self.assertIsInstance(res, list)
 
 if __name__ == '__main__':
     unittest.main()
