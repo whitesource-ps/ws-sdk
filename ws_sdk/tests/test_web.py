@@ -5,7 +5,7 @@ import unittest
 from datetime import datetime
 from unittest import TestCase
 
-from mock import patch
+from mock import patch, Mock, MagicMock
 
 from ws_sdk import ws_constants
 from ws_sdk.web import WS
@@ -736,10 +736,12 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, list)
 
-    def test_get_libraries_not_global(self):
+    @patch('ws_sdk.web.WS.get_inventory')
+    def test_get_libraries_not_global(self, mock_get_inventory):
+        mock_get_inventory.return_value = []
         res = self.ws.get_libraries(search_value="LIB_NAME", global_search=False)
 
-        self.assertIs(res, None)
+        self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.__generic_get__')
     def test_get_library_detailed(self, mock_generic_get):
@@ -751,8 +753,8 @@ class TestWS(TestCase):
     @patch('ws_sdk.web.WS.__set_token_in_body__')
     @patch('ws_sdk.web.WS.__generic_get__')
     def test_get_tags_as_org(self, mock_generic_get, mock_set_token_in_body):
-        mock_generic_get.return_value = {'productTags': []}
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
+        mock_generic_get.side_effect = [{'productTags': []}, {'projectTags': []}]
         res = self.ws.get_tags()
 
         self.assertIsInstance(res, list)
@@ -760,7 +762,7 @@ class TestWS(TestCase):
     @patch('ws_sdk.web.WS.__set_token_in_body__')
     @patch('ws_sdk.web.WS.__generic_get__')
     def test_get_tags_as_prod(self, mock_generic_get, mock_set_token_in_body):
-        mock_generic_get.return_value = {'productTags': []}
+        mock_generic_get.return_value = {'projectTags': []}
         mock_set_token_in_body.return_value = (ws_constants.PRODUCT, {})
         res = self.ws.get_tags()
 
