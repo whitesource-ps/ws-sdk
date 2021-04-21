@@ -4,6 +4,8 @@ from datetime import datetime
 from secrets import compare_digest
 from typing import Union
 import functools
+
+from constants import PROJECT
 from . import ws_utilities
 import requests
 from memoization import cached
@@ -240,10 +242,11 @@ class WS:
 
         if token_type == PROJECT and not include_in_house_data:
             kv_dict["includeInHouseData"] = include_in_house_data
+            logging.debug(f"Running {token_type} {report_name}")
             ret = self.__generic_get__('Inventory', token_type=token_type, kv_dict=kv_dict)
         else:
             kv_dict["format"] = "xlsx" if report else "json"
-
+            logging.debug(f"Running {token_type} {report_name} Report")
             ret = self.__generic_get__(get_type="InventoryReport", token_type=token_type, kv_dict=kv_dict)
 
         return ret['libraries'] if isinstance(ret, dict) else ret
@@ -541,29 +544,32 @@ class WS:
         """
         report_name = "Assignment"
         token_type, kv_dict = self.__set_token_in_body__(token)
-
-        logging.debug(f"Running {token_type} Assignment")
-        assignments = self.__generic_get__(get_type='Assignments', token_type=token_type, kv_dict=kv_dict)
         ret_assignments = []
-        for ent in ENTITY_TYPES.items():
-            role_types = assignments.get(ent[1])
-            if role_types:
-                for r_t in role_types.items():
-                    for e in r_t[1]:
-                        e['scope_token'] = token
-                        e['role_type'] = r_t[0]
-                        e['ent_type'] = ent[0][:-1]
-                        ret_assignments.append(e)
-            else:
-                logging.debug(f"No roles were found under: {ent[1]}")
+        if token_type == PROJECT:
+            logging.error(f"{report_name} is unsupported on project")
+        else:
+            logging.debug(f"Running {token_type} Assignment")
+            assignments = self.__generic_get__(get_type='Assignments', token_type=token_type, kv_dict=kv_dict)
+            ret_assignments = []
+            for ent in ENTITY_TYPES.items():
+                role_types = assignments.get(ent[1])
+                if role_types:
+                    for r_t in role_types.items():
+                        for e in r_t[1]:
+                            e['scope_token'] = token
+                            e['role_type'] = r_t[0]
+                            e['ent_type'] = ent[0][:-1]
+                            ret_assignments.append(e)
+                else:
+                    logging.debug(f"No roles were found under: {ent[1]}")
 
-        if entity_type in ENTITY_TYPES.keys():
-            logging.debug(f"Filtering assignments by entity type: {entity_type}")
-            ret_assignments = [asc for asc in ret_assignments if asc['ent_type'] == entity_type[:-1]]
+            if entity_type in ENTITY_TYPES.keys():
+                logging.debug(f"Filtering assignments by entity type: {entity_type}")
+                ret_assignments = [asc for asc in ret_assignments if asc['ent_type'] == entity_type[:-1]]
 
-        if role_type in RoleTypes.ROLE_TYPES:
-            logging.debug(f"Filtering assignments by role type: {role_type}")
-            ret_assignments = [asc for asc in ret_assignments if asc['role_type'] == role_type]
+            if role_type in RoleTypes.ROLE_TYPES:
+                logging.debug(f"Filtering assignments by role type: {role_type}")
+                ret_assignments = [asc for asc in ret_assignments if asc['role_type'] == role_type]
 
         return ret_assignments
 
@@ -597,12 +603,12 @@ class WS:
         """
         token_type, kv_dict = self.__set_token_in_body__(token)
         if report and token_type == PROJECT:
-            logging.error(f"{report_name} is unsupported on project level")
+            logging.error(f"{report_name} report is unsupported on {token_type}")
         elif report:
             logging.debug(f"Running {report_name} report on {token_type}")
             ret =  self.__generic_get__(get_type='LibraryLocationReport', token_type=token_type, kv_dict=kv_dict)
         elif not report and token_type == ORGANIZATION:
-            logging.error(f"{report_name} is unsupported on on {token_type}")
+            logging.error(f"{report_name} is unsupported on {token_type}")
             ret = None
         else:
             logging.debug(f"Running {report_name} on {token_type}")
@@ -793,10 +799,9 @@ class WS:
         logging.error(f"Project with token: {token} was not found")
 
     @check_permission(permissions=[ORGANIZATION])
-    def get_users(self,
-                  token: str = None) -> list:
+    def get_users(self) -> list:
         report_name = 'Users'
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.__set_token_in_body__()
 
         return self.__generic_get__(get_type='AllUsers', token_type="")['users']
 
@@ -805,12 +810,21 @@ class WS:
         report_name = "Tags"
         token_type, kv_dict = self.__set_token_in_body__(token)
 
-        if token_type == ORGANIZATION:
-            ret = self.__generic_get__(get_type="ProductTags", token_type=self.token_type, kv_dict=kv_dict)['productTags']
-        elif token_type == PROJECT:
-            ret = self.__generic_get__(get_type="ProjectTags", token_type=self.token_type, kv_dict=kv_dict)['projectTags']
-        elif token_type == PRODUCT:
+        if token and token_type == PROJECT:                                                                                # getProjectTags
+            ret = self.__generic_get__(get_type="ProjectTags", token_type="", kv_dict=kv_dict)['projectTags']
+        elif token and token_type == PRODUCT:                                                                                        # getProductTags
             ret = self.__generic_get__(get_type="ProductTags", token_type="", kv_dict=kv_dict)['productTags']
+        # Cases where no Token is specified
+        elif not token and token_type == ORGANIZATION:
+            product_tags = self.__generic_get__(get_type="ProductTags", token_type=self.token_type, kv_dict=kv_dict)['productTags'] # getOrganizationProductTags
+            for prod in product_tags:
+                prod['type'] = PRODUCT
+            project_tags = self.__generic_get__(get_type="ProjectTags", token_type=self.token_type, kv_dict=kv_dict)['projectTags']  # getOrganizationProductTags
+            for prod in product_tags:
+                prod['type'] = PROJECT
+            ret = product_tags + project_tags
+        elif not token and token_type == PRODUCT:
+            ret = self.__generic_get__(get_type="ProjectTags", token_type=self.token_type, kv_dict=kv_dict)['projectTags'] # getProductProjectTags
         logging.debug(f"Getting {report_name} on {token_type} token: {token}")
 
         return ret
@@ -853,8 +867,7 @@ class WS:
                 libs = [lib for lib in libs if lib.get('name') == search_value]
             logging.info(f"Global search found {len(libs)} results for search value: \'{search_value}\'")
         else:
-            libs = None
-            logging.error("Local search is unsupported yet")                # TODO FINISH THIS. MAYBE SEARCH IN INVENTORY
+            libs = self.get_inventory()
 
         return libs
 
