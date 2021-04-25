@@ -905,3 +905,30 @@ class WS:
         ret = self.__generic_get__(get_type="LibraryInfo", token_type="", kv_dict=kv_dict).get('librariesInformation')
 
         return ret
+
+    def set_alerts_status(self,
+                          alert_uuids: Union[list, str],
+                          status: str = None,
+                          comments: str = None) -> dict:
+        """
+        :param alert_uuids: specify an alert's uuid or list of them
+        :param status: status can be "Ignored" or "Active""
+        :param comments: specify comment
+        :return: dict whether succeeded
+        :rtype dict
+        """
+        token_type, kv_dict = self.__set_token_in_body__()
+        if not alert_uuids:
+            logging.error(f"alert_uu_ids must be provided")
+        elif status not in ALERT_STATUSES:
+            logging.error(f'{status} status is not allowed. Must be "Ignored" or "Active"')
+        else:
+            if isinstance(alert_uuids, str):
+                alert_uuids = [alert_uuids]
+            kv_dict['alertUuids'] = alert_uuids
+            kv_dict['status'] = status
+            kv_dict['comments'] = comments
+
+            return self.__call_api__(request_type='setAlertsStatus', kv_dict=kv_dict)
+
+
