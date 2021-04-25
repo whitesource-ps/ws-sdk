@@ -9,6 +9,7 @@ from mock import patch, Mock, MagicMock
 
 from ws_sdk import ws_constants
 from ws_sdk.web import WS
+from ws_sdk import ws_errors
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
@@ -29,12 +30,11 @@ class TestWS(TestCase):
 
     @patch('ws_sdk.web.WS.get_scope_type_by_token')
     def test___set_token_in_body__token_not_exist(self, mock_get_scope_type_by_token):
-        mock_get_scope_type_by_token.return_value = None
-        res = self.ws.__set_token_in_body__(token="TOKEN")
+        token="TOKEN"
+        mock_get_scope_type_by_token.side_effect = ws_errors.MissingTokenError(token)
 
-        self.assertIsInstance(res, tuple) \
-            and self.assertIs(res[0], None) \
-            and self.assertIsInstance(res[1], dict)
+        with self.assertRaises(ws_errors.MissingTokenError):
+            self.ws.__set_token_in_body__(token=token)
 
     def test___create_body__(self):
         res = self.ws.__create_body__("api_call")

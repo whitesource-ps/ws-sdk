@@ -73,11 +73,8 @@ class WS:
             token_type = self.token_type
         else:
             token_type = self.get_scope_type_by_token(token)
-            if token_type:
-                kv_dict[TOKEN_TYPES[token_type]] = token
-                logging.debug(f"Token: {token} is a {token_type}")
-            else:
-                logging.error(f"Token {token} does not exist")
+            kv_dict[TOKEN_TYPES[token_type]] = token
+            logging.debug(f"Token: {token} is a {token_type}")
 
         return token_type, kv_dict
 
@@ -269,7 +266,7 @@ class WS:
             if compare_digest(tok['token'], token):
                 logging.debug(f"Found token: {token}")
                 return tok
-        logging.debug(f"Token {token} was not found")
+        raise ws_errors.MissingTokenError(token)
 
     def get_scopes(self,
                    name: str = None) -> list:
