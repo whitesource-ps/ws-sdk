@@ -4,7 +4,7 @@ CONN_TIMEOUT = 3600
 API_URL_SUFFIX = '/api/v1.3'
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 HEADERS = {'content-type': 'application/json'}
-
+ALERT_STATUSES = ["Active", "Ignored"]
 
 # Alert Types
 class AlertTypes:

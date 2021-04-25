@@ -768,5 +768,15 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, list)
 
+    @patch('ws_sdk.web.WS.__set_token_in_body__')
+    @patch('ws_sdk.web.WS.__call_api__')
+    def test_set_alerts_status(self, mock_call_api, mock_set_token_in_body):
+        mock_call_api.return_value = {}
+        mock_set_token_in_body.return_value = (ws_constants.ORGANIZATION, {})
+        res = self.ws.set_alerts_status(alert_uuids="UUID", status="Ignored")
+
+        self.assertIsInstance(res, dict)
+
+
 if __name__ == '__main__':
     unittest.main()
