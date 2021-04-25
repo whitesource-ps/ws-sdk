@@ -5,7 +5,7 @@ from secrets import compare_digest
 from typing import Union
 import functools
 
-from . import ws_utilities
+from . import ws_utilities, ws_errors
 import requests
 from memoization import cached
 
