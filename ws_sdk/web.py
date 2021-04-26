@@ -22,6 +22,7 @@ def check_permission(permissions: list):                       # Decorator to en
                         token_type = args[0].token_type
                     except IndexError:
                         logging.exception("Unable to discover token type")
+                        raise ws_errors.TokenTypeError
                 return token_type
 
             if __get_token_type__() in permissions:
@@ -37,7 +38,7 @@ class WS:
                  url: str,
                  user_key: str,
                  token: str,
-                 token_type: str = 'organization',
+                 token_type: str = ORGANIZATION,
                  timeout: int = CONN_TIMEOUT,
                  resp_format: str = "json"
                  ):
@@ -249,27 +250,20 @@ class WS:
 
     def get_scope_type_by_token(self,
                                 token: str) -> str:
-        tok = self.get_scope_by_token(token)
-        if tok is not None:
-            return tok['type']
+        return self.get_scope_by_token(token)['type']
 
     def get_scope_name_by_token(self,
                                 token: str) -> str:
-        tok = self.get_scope_by_token(token)
-        if tok is not None:
-            return tok['name']
+        return self.get_scope_by_token(token)['name']
 
     def get_scope_by_token(self,
                            token: str) -> dict:
-        tokens = self.get_scopes()
-        for tok in tokens:
-            if compare_digest(tok['token'], token):
-                logging.debug(f"Found token: {token}")
-                return tok
-        raise ws_errors.MissingTokenError(token)
+        return self.get_scopes(token=token)[0]
 
     def get_scopes(self,
-                   name: str = None) -> list:
+                   name: str = None,
+                   token: str = None,
+                   scope_type:str = None) -> list:
         """
         :param name: filter returned scopes by name
         :return: list of scope dictionaries
@@ -283,18 +277,31 @@ class WS:
 
             return projects
 
-        if self.token_type == ORGANIZATION:
-            all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
+        def __get_projects_from_product__(products: list):
             all_projects = []
-            for product in all_products:
-                product['type'] = PRODUCT
+            for product in products:
                 try:
                     projects = self.__generic_get__(get_type="ProjectVitals", kv_dict={'productToken': product['token']}, token_type='product')['projectVitals']
                     all_projects.extend(__enrich_projects__(projects, product))
                 except KeyError:
-                    logging.debug(f"Product: {product['name']} Token {product['token']} without project. Skipping")
-            scopes = all_products + all_projects
-            scopes.append(self.get_organization_details())
+                    logging.debug(f"Product: {product['name']} Token {product['token']} without projects. Skipping")
+            return all_projects
+
+        scopes = []
+        if self.token_type == ORGANIZATION:
+            all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
+            for product in all_products:
+                if 'type' not in product:
+                    product['type'] = PRODUCT
+
+            if scope_type not in [ORGANIZATION, PRODUCT]:
+                all_projects = __get_projects_from_product__(all_products)
+                scopes.extend(all_projects)
+            if scope_type not in [ORGANIZATION, PROJECT]:
+                scopes.extend(all_products)
+            if scope_type in [ORGANIZATION, None]:
+                scopes.append(self.get_organization_details())
+
         elif self.token_type == PRODUCT:
             product = {'type': PRODUCT,
                        'token': self.token,
@@ -302,8 +309,14 @@ class WS:
             projects = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
             scopes = __enrich_projects__(projects, product)
             scopes.append(product)
-        if name:                                                                    # Filter scopes by name
+
+        # Filter scopes
+        if token:
+            scopes = [scope for scope in scopes if scope['token'] == token]
+        if name:
             scopes = [scope for scope in scopes if scope['name'] == name]
+        if scope_type is not None:                                              # 2nd filter because scopes may contain full scope due to caching
+            scopes = [scope for scope in scopes if scope['type'] == scope_type]
 
         return scopes
 
@@ -313,7 +326,7 @@ class WS:
         org_details = self.__generic_get__(get_type='Details')
         org_details['name'] = org_details.get('orgName')
         org_details['token'] = org_details.get('orgToken')
-        org_details['type'] = self.token_type
+        org_details['type'] = ORGANIZATION
 
         return org_details
 
@@ -328,19 +341,12 @@ class WS:
         else:
             return self.get_tags()[0]['name']
 
-    def get_scopes_from_name(self, scope_name) -> list:
+    def get_scopes_from_name(self, name) -> list:
         """
         :param scope_name:
         :return:
         """
-        scopes = self.get_scopes()
-        ret = []
-        for scope in scopes:
-            if scope_name == scope['name']:
-                ret.append(scope)
-        logging.debug(f"Found {len(ret)} scopes with name {scope_name}") if ret else logging.error(f"Scope with a name: {scope_name} was not found")
-
-        return ret
+        return self.get_scopes(name=name)
 
     def get_tokens_from_name(self,
                              scope_name: str) -> list:
@@ -354,14 +360,8 @@ class WS:
     @check_permission(permissions=[ORGANIZATION])
     def get_products(self,
                      name: str = None) -> list:
-        all_scopes = self.get_scopes(name=name)
-        all_products = []
+        return self.get_scopes(name=name, scope_type=PRODUCT)
 
-        for scope in all_scopes:
-            if scope['type'] == PROJECT:
-                all_products.append(scope)
-
-        return all_products
 
     def get_projects(self,
                      product_token=None,
@@ -372,18 +372,7 @@ class WS:
         :return: list
         :rtype list
         """
-        all_scopes = self.get_scopes(name=name)
-        all_projects = []
-
-        for scope in all_scopes:
-            if scope.get('productToken') == product_token and scope['type'] == PROJECT:
-                all_projects.append(scope)
-            elif product_token:
-                continue
-            elif scope['type'] == PROJECT:
-                all_projects.append(scope)
-
-        return all_projects
+        return self.get_scopes(name=name, scope_type=PROJECT)
 
     def get_vulnerability(self,
                           status: str = None,  # "Active", "Ignored", "Resolved"
@@ -780,11 +769,10 @@ class WS:
         return self.__generic_get__(get_type='LicenseHistogram', token_type=token_type, kv_dict=kv_dict)['licenseHistogram']
 
     def get_product_of_project(self,
-                               token: str):
-        all_scopes = self.get_scopes()
-        for scope in all_scopes:
-            if scope['type'] == PROJECT and compare_digest(scope['token'], token):
-                return scope
+                               token: str) -> dict:
+        project_scope = self.get_scope_by_token(token=token)
+        if project_scope['type'] == PROJECT:
+            return self.get_scope_by_token(token=project_scope['productToken'])
 
     def get_project(self,
                     token: str) -> dict:
