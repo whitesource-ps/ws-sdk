@@ -1,13 +1,16 @@
 import logging
+
+
 def is_token(token: str) -> bool:
     return True if len(token) == 64 and token.isalnum() else False
+
 
 def convert_dict_list_to_dict(lst: list,
                               key_desc: str or tuple) -> dict:
     """
     Function to convert list of dictionaries into dictionary of dictionaries according to specified key
     :param lst: List of dictionaries
-    :param key_desc: the key or keys (as tuple) description of the returned dictionary
+    :param key_desc: the key or keys (as tuple) description of the returned dictionary (a key can be str or dict)
     :return: dict with key according to key description and the dictionary value
     """
     def create_key(key_desc: str or tuple,
@@ -19,7 +22,15 @@ def convert_dict_list_to_dict(lst: list,
             ret = []
             for x in key_desc:
                 try:
-                    ret.append(dct[x])
+                    if isinstance(x, str) and dct[x]:
+                        ret.append(dct[x])
+                        logging.debug(f"Key type is a string: {dct[x]}")
+                    elif isinstance(x, dict):
+                        for key, value in x.items():
+                            logging.debug(f"Key type is a dict: {key}")
+                            internal_dict = dct.get(key, None)
+                            if internal_dict:
+                                ret.append(internal_dict.get(value, None))
                 except KeyError:
                     logging.error(f"Key: {key_desc} was not found")
                     return None
@@ -35,6 +46,7 @@ def convert_dict_list_to_dict(lst: list,
         ret[curr_key] = i
 
     return ret
+
 
 def get_all_req_schemas(ws_conn) -> dict:
     supported_requests = ws_conn.__generic_get__(get_type="SupportedRequests", token_type="")['supportedRequests']
