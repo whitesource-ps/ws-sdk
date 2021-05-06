@@ -3,7 +3,6 @@ import logging
 from datetime import datetime
 from secrets import compare_digest
 from typing import Union
-import functools
 
 from . import ws_utilities, ws_errors
 import requests
@@ -14,7 +13,7 @@ from ws_sdk.ws_constants import *
 
 def check_permission(permissions: list):                       # Decorator to enforce WS scope token types
     def decorator(function):
-        def wrapper(*args,**kwargs):
+        def wrapper(*args, **kwargs):
             def __get_token_type__():                           # Internal method to get token_type from args or kwargs
                 token_type = kwargs.get('token_type')
                 if token_type is None:
@@ -29,6 +28,18 @@ def check_permission(permissions: list):                       # Decorator to en
                 return function.__call__(*args, **kwargs)
             else:
                 logging.error(f"Token Type: {args[0].token_type} is unsupported to execute: {function.__name__}")
+        return wrapper
+    return decorator
+
+
+def report_metadata(**kwargs_metadata):
+    def decorator(function):
+        def wrapper(*args, **kwargs):
+            if ReportsData.REPORT_BIN_TYPE in args and kwargs_metadata.get(ReportsData.REPORT_BIN_TYPE):
+                logging.debug(f"Accessing report metadata: {ReportsData.REPORT_BIN_TYPE}")
+                return kwargs_metadata[ReportsData.REPORT_BIN_TYPE]
+            else:
+                return function.__call__(*args, **kwargs)
         return wrapper
     return decorator
 
@@ -144,6 +155,7 @@ class WS:
         return self.__call_api__(f"get{token_type.capitalize()}{get_type}", kv_dict)
 
     # Covers O/P/P + byType + report
+    @report_metadata(report_bin_type="xlsx")
     def get_alerts(self,
                    token: str = None,
                    alert_type: str = None,
@@ -212,16 +224,19 @@ class WS:
 
         return ret.get('alerts') if isinstance(ret, dict) else ret
 
+    @report_metadata(report_bin_type="xlsx")
     def get_ignored_alerts(self,
                            token: str = None,
                            report: bool = False) -> Union[list, bytes]:
         return self.get_alerts(token=token, report=report, ignored=True)
 
+    @report_metadata(report_bin_type="xlsx")
     def get_resolved_alerts(self,
                             token: str = None,
                             report: bool = False) -> Union[list, bytes]:
         return self.get_alerts(token=token, report=report, resolved=True)
 
+    @report_metadata(report_bin_type="xlsx")
     def get_inventory(self,
                       token: str = None,
                       include_in_house_data: bool = True,
@@ -263,32 +278,43 @@ class WS:
     def get_scopes(self,
                    name: str = None,
                    token: str = None,
-                   scope_type:str = None) -> list:
+                   scope_type: str = None,
+                   product_token: str = None) -> list:
         """
         :param name: filter returned scopes by name
+        :param token:
+        :param scope_type:
+        :param product_token:
         :return: list of scope dictionaries
         :rtype list
         """
-        def __enrich_projects__(projects: list, product: dict):
-            for project in projects:
+        def __enrich_projects__(proj_list: list, prod_list: dict):
+            for project in proj_list:
                 project['type'] = PROJECT
-                project['productToken'] = product.get('token')
-                project['productName'] = product.get('name')
+                project['productToken'] = prod_list.get('token')
+                project['productName'] = prod_list.get('name')
 
-            return projects
+            return proj_list
 
         def __get_projects_from_product__(products: list):
-            all_projects = []
-            for product in products:
+            all_projs = []
+            for p in products:
                 try:
-                    projects = self.__generic_get__(get_type="ProjectVitals", kv_dict={'productToken': product['token']}, token_type='product')['projectVitals']
-                    all_projects.extend(__enrich_projects__(projects, product))
+                    projects = self.__generic_get__(get_type="ProjectVitals", kv_dict={'productToken': p['token']}, token_type='product')['projectVitals']
+                    all_projs.extend(__enrich_projects__(projects, p))
                 except KeyError:
-                    logging.debug(f"Product: {product['name']} Token {product['token']} without projects. Skipping")
-            return all_projects
+                    logging.debug(f"Product: {p['name']} Token {p['token']} without projects. Skipping")
+            return all_projs
 
         scopes = []
-        if self.token_type == ORGANIZATION:
+        if self.token_type == PRODUCT:
+            product = {'type': PRODUCT,
+                       'token': self.token,
+                       'name': self.get_name()}
+            projects = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
+            scopes = __enrich_projects__(projects, product)
+            scopes.append(product)
+        elif self.token_type == ORGANIZATION:
             all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
             for product in all_products:
                 if 'type' not in product:
@@ -301,23 +327,17 @@ class WS:
                 scopes.extend(all_products)
             if scope_type in [ORGANIZATION, None]:
                 scopes.append(self.get_organization_details())
-
-        elif self.token_type == PRODUCT:
-            product = {'type': PRODUCT,
-                       'token': self.token,
-                       'name': self.get_name()}
-            projects = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
-            scopes = __enrich_projects__(projects, product)
-            scopes.append(product)
-
         # Filter scopes
         if token:
             scopes = [scope for scope in scopes if scope['token'] == token]
+            if not scopes:
+                raise ws_errors.MissingTokenError(token)
         if name:
             scopes = [scope for scope in scopes if scope['name'] == name]
         if scope_type is not None:                                              # 2nd filter because scopes may contain full scope due to caching
             scopes = [scope for scope in scopes if scope['type'] == scope_type]
-
+        if product_token:
+            scopes = [scope for scope in scopes if scope.get('productToken') == product_token]
         return scopes
 
     @check_permission(permissions=[ORGANIZATION])
@@ -343,7 +363,7 @@ class WS:
 
     def get_scopes_from_name(self, name) -> list:
         """
-        :param scope_name:
+        :param name:
         :return:
         """
         return self.get_scopes(name=name)
@@ -362,18 +382,18 @@ class WS:
                      name: str = None) -> list:
         return self.get_scopes(name=name, scope_type=PRODUCT)
 
-
     def get_projects(self,
-                     product_token=None,
-                     name: str = None) -> list:
+                     name: str = None,
+                     product_token: str = None) -> list:
         """
         :param name: filter returned scopes by name
         :param product_token: if stated retrieves projects of specific product. If left blank retrieves all the projects in the org
         :return: list
         :rtype list
         """
-        return self.get_scopes(name=name, scope_type=PROJECT)
+        return self.get_scopes(name=name, scope_type=PROJECT, product_token=product_token)
 
+    @report_metadata(report_bin_type="xlsx")
     def get_vulnerability(self,
                           status: str = None,  # "Active", "Ignored", "Resolved"
                           container: bool = False,
@@ -415,6 +435,7 @@ class WS:
 
         return ret['vulnerabilities'] if isinstance(ret, dict) else ret
 
+    @report_metadata(report_bin_type="xlsx")
     def get_container_vulnerability(self,
                                     report: bool = False,
                                     token: str = None) -> bytes:
@@ -471,6 +492,7 @@ class WS:
 
         return self.__generic_get__(get_type='Licenses', token_type=token_type, kv_dict=kv_dict)['libraries']
 
+    @report_metadata(report_bin_type="xlsx")
     def get_source_files(self,
                          token: str = None,
                          report: bool = False) -> Union[list, bytes]:
@@ -486,11 +508,13 @@ class WS:
 
         return ret['sourceFiles'] if isinstance(ret, dict) else ret
 
+    @report_metadata(report_bin_type="xlsx")
     def get_source_file_inventory(self,
                                   report: bool = True,
                                   token: str = None) -> bytes:
         return self.get_source_files(token=token, report=report)
 
+    @report_metadata(report_bin_type="xlsx")
     def get_in_house_libraries(self,
                                report: bool = False,
                                token: str = None) -> Union[list, bytes]:
@@ -511,6 +535,7 @@ class WS:
 
         return ret['sourceFiles'] if isinstance(ret, dict) else ret
 
+    @report_metadata(report_bin_type="xlsx")
     def get_in_house(self,
                      report: bool = True,
                      token: str = None) -> bytes:
@@ -558,6 +583,7 @@ class WS:
 
         return ret_assignments
 
+    @report_metadata(report_bin_type="pdf")
     def get_risk(self,
                  token: str = None,
                  report: bool = True) -> bytes:
@@ -577,6 +603,7 @@ class WS:
             logging.debug(f"Running {report_name} on {token_type}")
             return self.__generic_get__(get_type='RiskReport', token_type=token_type, kv_dict=kv_dict)
 
+    @report_metadata(report_bin_type="xlsx")
     def get_library_location(self,
                              token: str = None,
                              report: bool = False) -> Union[list, bytes]:
@@ -601,6 +628,7 @@ class WS:
 
         return ret['libraryLocations'] if isinstance(ret, dict) else ret
 
+    @report_metadata(report_bin_type="xlsx")
     def get_license_compatibility(self,
                                   token: str = None,
                                   report: bool = False) -> bytes:
@@ -619,11 +647,12 @@ class WS:
             logging.debug(f"Running {report_name} on {token_type}")
             return self.__generic_get__(get_type='LicenseCompatibilityReport', token_type=token_type, kv_dict=kv_dict)
 
+    @report_metadata(report_bin_type="xlsx")
     def get_due_diligence(self,
                           token: str = None,
                           report: bool = False) -> Union[list, bytes]:
         report_name = "Due Diligence Report"
-        """
+        f""" {report_name}
         :param token: The token that the request will be created on str
         :param token: The token that the request will be created on bool - Should 
         :return: list or bytes (xlsx)
@@ -637,6 +666,7 @@ class WS:
 
         return ret['licenses'] if isinstance(ret, dict) else ret
 
+    @report_metadata(report_bin_type="xlsx")
     def get_attributes(self,
                        token: str = None) -> bytes:
         """
@@ -652,6 +682,7 @@ class WS:
             logging.debug(f"Running {token_type} {report_name}")
             return self.__generic_get__(get_type='AttributesReport', token_type=token_type, kv_dict=kv_dict)
 
+    @report_metadata(report_bin_type=["html", 'txt'])
     def get_attribution(self,
                         reporting_aggregation_mode: str,
                         token: str,
@@ -693,6 +724,7 @@ class WS:
 
             return self.__generic_get__(get_type='AttributionReport', token_type=token_type, kv_dict=kv_dict)
 
+    @report_metadata(report_bin_type="xlsx")
     def get_effective_licenses(self,
                                token: str = None) -> bytes:
         """
@@ -708,6 +740,7 @@ class WS:
             logging.debug(f"Running {token_type} {report_name}")
             return self.__generic_get__(get_type='EffectiveLicensesReport', token_type=token_type, kv_dict=kv_dict)
 
+    @report_metadata(report_bin_type="xlsx")
     def get_bugs(self,
                  report: bool = True,
                  token: str = None) -> bytes:
@@ -729,6 +762,7 @@ class WS:
 
         return ret
 
+    @report_metadata(report_bin_type="xlsx")
     def get_request_history(self,
                             plugin: bool = False,
                             report: bool = True,
@@ -794,9 +828,9 @@ class WS:
         report_name = "Tags"
         token_type, kv_dict = self.__set_token_in_body__(token)
 
-        if token and token_type == PROJECT:                                                                                # getProjectTags
+        if token and token_type == PROJECT:                                                            # getProjectTags
             ret = self.__generic_get__(get_type="ProjectTags", token_type="", kv_dict=kv_dict)['projectTags']
-        elif token and token_type == PRODUCT:                                                                                        # getProductTags
+        elif token and token_type == PRODUCT:                                                          # getProductTags
             ret = self.__generic_get__(get_type="ProductTags", token_type="", kv_dict=kv_dict)['productTags']
         # Cases where no Token is specified
         elif not token and token_type == ORGANIZATION:
@@ -915,5 +949,3 @@ class WS:
             kv_dict['comments'] = comments
 
             return self.__call_api__(request_type='setAlertsStatus', kv_dict=kv_dict)
-
-

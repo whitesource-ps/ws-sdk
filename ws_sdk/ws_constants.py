@@ -6,6 +6,7 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 HEADERS = {'content-type': 'application/json'}
 ALERT_STATUSES = ["Active", "Ignored"]
 
+
 # Alert Types
 class AlertTypes:
     REJECTED_BY_POLICY_RESOURCE = 'REJECTED_BY_POLICY_RESOURCE'
@@ -96,3 +97,8 @@ class LibTypes:
 
 # LIBRARY_TYPES = ["go", "maven", "pypi", "docker" ".net", "actionscript", "alpine", "debian", "docker_layer", "hex",
 #                 "haskell", "bower", "npm", "ocaml", "php", "R", "RPM", "Ruby", "Rust", "cocoaPods"]
+
+
+class ReportsData:
+    REPORT_BIN_TYPE = "report_bin_type"
+    REPORT_META_DATA = [REPORT_BIN_TYPE]

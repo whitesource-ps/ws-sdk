@@ -56,3 +56,12 @@ def get_all_req_schemas(ws_conn) -> dict:
         req_schema_list[req] = req_schema
 
     return req_schema_list
+
+def get_report_types():
+    from ws_sdk import web
+    report_types = set()
+    class_dict = dict(web.WS.__dict__)
+    for f in class_dict.items():
+        if web.report_metadata.__name__ in str(f[1]):
+            report_types.add(f[0].replace('get_',''))
+    return report_types

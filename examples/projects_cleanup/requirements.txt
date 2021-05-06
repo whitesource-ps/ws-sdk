@@ -1,3 +1,0 @@
-configparser~=5.0.1
-DateTime~=4.3
-ws-sdk~=0.1.0
