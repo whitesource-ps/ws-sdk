@@ -482,9 +482,10 @@ class TestWS(TestCase):
     def test_get_licenses(self, mock_generic_get, mock_set_token_in_body):
         mock_generic_get.return_value = {'libraries': []}
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
-        res = self.ws.get_licenses()
+        res = self.ws.get_licenses(full_spdx=True)
 
         self.assertIsInstance(res, list)
+
 
     @patch('ws_sdk.web.WS.__set_token_in_body__')
     @patch('ws_sdk.web.WS.__generic_get__')
@@ -596,7 +597,7 @@ class TestWS(TestCase):
     def test_get_licenses_histogram(self, mock_generic_get, mock_set_token_in_body):
         mock_generic_get.return_value = {'licenseHistogram': {}}
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
-        res = self.ws.get_license_histogram()
+        res = self.ws.get_licenses(histogram=True)
 
         self.assertIsInstance(res, dict)
 

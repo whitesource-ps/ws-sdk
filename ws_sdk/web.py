@@ -71,9 +71,6 @@ class WS:
             self.url = url
         self.api_url = self.url + API_URL_SUFFIX
 
-        if not check_permission(permissions=[ORGANIZATION, PRODUCT]):
-            logging.error("WS SDK is supported on Organization and Product tokens")
-            raise PermissionError
         if not ws_utilities.is_token(self.user_key):
             logging.warning(f"Invalid User Key: {self.user_key}")
 
@@ -250,7 +247,6 @@ class WS:
         """
         token_type, kv_dict = self.__set_token_in_body__(token)
         report_name = 'Inventory'
-        ret = None
 
         if token_type == PROJECT and not include_in_house_data:
             kv_dict["includeInHouseData"] = include_in_house_data
@@ -484,13 +480,68 @@ class WS:
 
     def get_licenses(self,
                      token: str = None,
-                     exclude_project_occurrences: bool = False) -> list:
-        report_name = 'licenses Report'
-        token_type, kv_dict = self.__set_token_in_body__(token)
-        kv_dict['excludeProjectOccurrences'] = exclude_project_occurrences
-        logging.debug(f"Running {token_type} {report_name}")
+                     exclude_project_occurrences: bool = False,
+                     histogram: bool = False,
+                     full_spdx: bool = False) -> list:
+        """
+        Run Licenses Report
+        :param token: The token to generate report on
+        :param exclude_project_occurrences: whether to excluded occurrences
+        :param histogram: Return number of license occurrences.
+        :param full_spdx: Whether to enrich SPDX data with full license name and URL (requires spdx-tools package)
+        :return: list
+        """
+        def get_spdx() -> dict:
+            logging.debug("Enriching license data with SDPX information")
+            licenses_dict = None
+            try:
+                from spdx.config import _licenses
+                with open(_licenses, "r") as fp:
+                    spdx_licenses = json.loads(fp.read())
+                logging.debug(f"License List Version: {spdx_licenses['licenseListVersion']}")
+                licenses_dict = ws_utilities.convert_dict_list_to_dict(lst=spdx_licenses['licenses'], key_desc='licenseId')
+            except ImportError:
+                logging.error("Error loading module")
 
-        return self.__generic_get__(get_type='Licenses', token_type=token_type, kv_dict=kv_dict)['libraries']
+            return licenses_dict
+
+        def fix_license(lic: dict) -> None:
+            if not lic.get('spdxName'):
+                if lic.get('name') == "Public Domain":
+                    lic['spdxName'] = "CC-PDDC"
+                elif lic.get('name') == "AGPL":
+                    lic['spdxName'] = "AGPL-1.0"
+
+                if lic.get('spdxName'):
+                    logging.info(f"Fixed spdxName of {lic['name']} to {lic['spdxName']}")
+                else:
+                    logging.warning(f"Unable to fix spdxName of {lic['name']}")
+
+        def enrich_lib(library: dict, spdx: dict):
+            for lic in library.get('licenses'):
+                fix_license(lic)                                        # Manually fixing this license
+                try:
+                    lic['spdx_license_dict'] = spdx[lic['spdxName']]
+                    logging.debug(f"Found license: {lic['spdx_license_dict']['licenseId']}")
+                except KeyError:
+                    logging.warning(f"License with identifier: {lic['name']} was not found")
+
+        report_name = 'licenses'
+        token_type, kv_dict = self.__set_token_in_body__(token)
+        if histogram:
+            logging.debug(f"Running {token_type} {report_name} Histogram")
+            ret = self.__generic_get__(get_type='LicenseHistogram', token_type=token_type, kv_dict=kv_dict)['licenseHistogram']
+        else:
+            logging.debug(f"Running {token_type} {report_name}")
+            kv_dict['excludeProjectOccurrences'] = exclude_project_occurrences
+            ret = self.__generic_get__(get_type='Licenses', token_type=token_type, kv_dict=kv_dict)['libraries']
+
+            if full_spdx:
+                spdx_dict = get_spdx()
+                for lib in ret:
+                    enrich_lib(lib, spdx_dict)
+
+        return ret
 
     @report_metadata(report_bin_type="xlsx")
     def get_source_files(self,
@@ -788,19 +839,6 @@ class WS:
             ret = self.__generic_get__(get_type='RequestHistoryReport', token_type=token_type, kv_dict=kv_dict)
 
         return ret
-
-    def get_license_histogram(self,
-                              token: str = None) -> list:
-        """
-        :param token: The token that the request will be created on
-        :return: list
-        :rtype list
-        """
-        report_name = 'License Histogram'
-        token_type, kv_dict = self.__set_token_in_body__(token)
-        logging.debug(f"Running {report_name}")
-
-        return self.__generic_get__(get_type='LicenseHistogram', token_type=token_type, kv_dict=kv_dict)['licenseHistogram']
 
     def get_product_of_project(self,
                                token: str) -> dict:
