@@ -511,7 +511,8 @@ class WS:
                     lic['spdxName'] = "CC-PDDC"
                 elif lic.get('name') == "AGPL":
                     lic['spdxName'] = "AGPL-1.0"
-
+                elif lic.get('name') == "BSD Zero":
+                    lic['spdxName'] = "0BSD"
                 if lic.get('spdxName'):
                     logging.info(f"Fixed spdxName of {lic['name']} to {lic['spdxName']}")
                 else:
