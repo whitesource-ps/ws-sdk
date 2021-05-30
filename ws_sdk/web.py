@@ -237,11 +237,13 @@ class WS:
     def get_inventory(self,
                       token: str = None,
                       include_in_house_data: bool = True,
+                      with_dependencies: bool = False,
                       report: bool = False) -> Union[list, bytes]:
         """
+        :param with_dependencies: Include library dependency (Project Hierarchy)
         :param token: The token that the request will be created on
         :param include_in_house_data:
-        :param report:
+        :param report: Get data in binary form
         :return: list or xlsx if report is True
         :rtype: list or bytes
         """
@@ -252,6 +254,9 @@ class WS:
             kv_dict["includeInHouseData"] = include_in_house_data
             logging.debug(f"Running {token_type} {report_name}")
             ret = self.__generic_get__('Inventory', token_type=token_type, kv_dict=kv_dict)
+        elif token_type == PROJECT and with_dependencies:
+            logging.debug(f"Running {token_type} Hierarchy")
+            ret = self.__generic_get__(get_type="Hierarchy", token_type=token_type, kv_dict=kv_dict)
         else:
             kv_dict["format"] = "xlsx" if report else "json"
             logging.debug(f"Running {token_type} {report_name} Report")
@@ -278,9 +283,9 @@ class WS:
                    product_token: str = None) -> list:
         """
         :param name: filter returned scopes by name
-        :param token:
-        :param scope_type:
-        :param product_token:
+        :param token: filter by token
+        :param scope_type: filter by scope type
+        :param product_token: filter projects by product token
         :return: list of scope dictionaries
         :rtype list
         """
@@ -302,11 +307,14 @@ class WS:
                     logging.debug(f"Product: {p['name']} Token {p['token']} without projects. Skipping")
             return all_projs
 
+        def __create_self_scope__() -> dict:
+            return {'type': self.token_type,
+                    'token': self.token,
+                    'name': self.get_name()}
+
         scopes = []
         if self.token_type == PRODUCT:
-            product = {'type': PRODUCT,
-                       'token': self.token,
-                       'name': self.get_name()}
+            product = __create_self_scope__()
             projects = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
             scopes = __enrich_projects__(projects, product)
             scopes.append(product)
@@ -323,9 +331,11 @@ class WS:
                 scopes.extend(all_products)
             if scope_type in [ORGANIZATION, None]:
                 scopes.append(self.get_organization_details())
+        else:
+            scopes.append(__create_self_scope__())
         # Filter scopes
         if token:
-            scopes = [scope for scope in scopes if scope['token'] == token]
+            scopes = [scope for scope in scopes if compare_digest(scope['token'], token)]
             if not scopes:
                 raise ws_errors.MissingTokenError(token)
         if name:
@@ -334,6 +344,7 @@ class WS:
             scopes = [scope for scope in scopes if scope['type'] == scope_type]
         if product_token:
             scopes = [scope for scope in scopes if scope.get('productToken') == product_token]
+
         return scopes
 
     @check_permission(permissions=[ORGANIZATION])
@@ -513,6 +524,7 @@ class WS:
                     lic['spdxName'] = "AGPL-1.0"
                 elif lic.get('name') == "BSD Zero":
                     lic['spdxName'] = "0BSD"
+
                 if lic.get('spdxName'):
                     logging.info(f"Fixed spdxName of {lic['name']} to {lic['spdxName']}")
                 else:
@@ -867,7 +879,7 @@ class WS:
         report_name = "Tags"
         token_type, kv_dict = self.__set_token_in_body__(token)
 
-        if token and token_type == PROJECT:                                                            # getProjectTags
+        if token and token_type == PROJECT or self.token_type == PROJECT:                              # getProjectTags
             ret = self.__generic_get__(get_type="ProjectTags", token_type="", kv_dict=kv_dict)['projectTags']
         elif token and token_type == PRODUCT:                                                          # getProductTags
             ret = self.__generic_get__(get_type="ProductTags", token_type="", kv_dict=kv_dict)['productTags']
@@ -928,16 +940,16 @@ class WS:
 
         return libs
 
-    def get_library_detailed(self,
-                             name: str,
-                             lib_type: str,
-                             version: str,
-                             architecture: str = None,
-                             group: str = None,
-                             language_version: str = None,
-                             include_request_token: bool = False,
-                             key_id: str = None,
-                             languages: list = None) -> list:
+    def get_library_details(self,
+                            name: str,
+                            lib_type: str,
+                            version: str,
+                            architecture: str = None,
+                            group: str = None,
+                            language_version: str = None,
+                            include_request_token: bool = False,
+                            key_id: str = None,
+                            languages: list = None) -> list:
         search_values = {"name": "libraryName",
                          "lib_type": "libraryType",
                          "version": "libraryVersion",

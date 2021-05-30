@@ -5,7 +5,7 @@ import unittest
 from datetime import datetime
 from unittest import TestCase
 
-from mock import patch, Mock, MagicMock
+from mock import patch
 
 from ws_sdk import ws_constants
 from ws_sdk.web import WS
@@ -30,7 +30,7 @@ class TestWS(TestCase):
 
     @patch('ws_sdk.web.WS.get_scope_type_by_token')
     def test___set_token_in_body__token_not_exist(self, mock_get_scope_type_by_token):
-        token="TOKEN"
+        token = "TOKEN"
         mock_get_scope_type_by_token.side_effect = ws_errors.MissingTokenError(token)
 
         with self.assertRaises(ws_errors.MissingTokenError):
@@ -750,7 +750,7 @@ class TestWS(TestCase):
     @patch('ws_sdk.web.WS.__generic_get__')
     def test_get_library_detailed(self, mock_generic_get):
         mock_generic_get.return_value = {"librariesInformation": []}
-        res = self.ws.get_library_detailed(name="NAME", lib_type="Source Library", version="VERSION", languages=["java"])
+        res = self.ws.get_library_details(name="NAME", lib_type="Source Library", version="VERSION", languages=["java"])
 
         self.assertIsInstance(res, list)
 
