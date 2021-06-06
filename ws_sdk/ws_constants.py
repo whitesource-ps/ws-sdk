@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 # General
 CACHE_TIME = 600
 CONN_TIMEOUT = 3600
@@ -69,6 +71,12 @@ class LibTypes:
     LIB_T_OBJC = "cocoaPods"
     LIB_T_NUGET = "Nuget"       # YES?
 
+    #                 # Language, Package Manager, Common Suffixes
+    # L_TYPES = set(('java', ['maven', 'gradle', 'ant'], ['jar']),
+    #               ('javascript', ['npm', 'bower', 'nuget'], ['js']),
+    #               ('python', ['pip'], ['py']),
+    #               )
+
     LIB_TYPES = [LIB_T_NUGET, LIB_T_OBJC, LIB_T_R, LIB_T_GO, LIB_T_RUST, LIB_T_RUBY, LIB_T_RPM, LIB_T_ACTIONSCRIPT,
                  LIB_T_ALPINE, LIB_T_DEBIAN, LIB_T_DOCKER, LIB_T_DOTNET, LIB_T_DOCKER_LAYER, LIB_T_ERLANG, LIB_T_JAVA,
                  LIB_T_HASKELL, LIB_T_PYTHON, LIB_T_JS_BOWER , LIB_T_JS_NPM, LIB_T_OCAML, LIB_T_PHP]
@@ -93,12 +101,27 @@ class LibTypes:
                     "Ruby": LIB_T_RUBY,
                     "Source Library": LIB_T_RUST,
                     "CocoaPods": LIB_T_OBJC,
-                    "Nuget": LIB_T_NUGET} # YES?
-
-# LIBRARY_TYPES = ["go", "maven", "pypi", "docker" ".net", "actionscript", "alpine", "debian", "docker_layer", "hex",
-#                 "haskell", "bower", "npm", "ocaml", "php", "R", "RPM", "Ruby", "Rust", "cocoaPods"]
+                    "Nuget": LIB_T_NUGET}  # YES?
 
 
 class ReportsData:
     REPORT_BIN_TYPE = "report_bin_type"
     REPORT_META_DATA = [REPORT_BIN_TYPE]
+
+
+class LibMetaData:
+    class LibMetadata(NamedTuple):
+        language: str
+        package_manager: list
+        file_suffices: list
+
+    L_TYPES = [LibMetadata(language='java', package_manager=['maven', 'gradle', 'ant'], file_suffices=['jar']),
+               LibMetadata(language='python', package_manager=['pip'], file_suffices=['py']),
+               LibMetadata(language='javascript', package_manager=['npm', 'bower', 'nuget'], file_suffices=['js']),
+               LibMetadata(language='ruby', package_manager=['rubygems'], file_suffices=['rb']),
+               LibMetadata(language='.net', package_manager=['nuget'], file_suffices=['cs']),
+               LibMetadata(language='rust', package_manager=['cargo'], file_suffices=['rs', 'rlib']),
+               LibMetadata(language='go', package_manager=[], file_suffices=['go']),
+               LibMetadata(language='r', package_manager=[], file_suffices=['r']),
+               LibMetadata(language='objc', package_manager=['cocoapods'], file_suffices=['.h', '.m', '.mm', '.M']),
+               ]
