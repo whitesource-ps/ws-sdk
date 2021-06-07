@@ -1,5 +1,7 @@
 import logging
 
+from . import ws_constants
+
 
 def is_token(token: str) -> bool:
     return True if len(token) == 64 and token.isalnum() else False
@@ -57,6 +59,7 @@ def get_all_req_schemas(ws_conn) -> dict:
 
     return req_schema_list
 
+
 def get_report_types():
     from ws_sdk import web
     report_types = set()
@@ -64,4 +67,26 @@ def get_report_types():
     for f in class_dict.items():
         if web.report_metadata.__name__ in str(f[1]):
             report_types.add(f[0].replace('get_',''))
+
     return report_types
+
+
+def get_lib_metadata_by_name(language: str) -> ws_constants.LibMetaData.LibMetadata:
+    """
+    Method that Returns matadata on a language
+    :type language: language to return metadata on
+    :rtype: NamedTuple
+    """
+    lc_lang = language.lower()
+    for lang_metadata in ws_constants.LibMetaData.L_TYPES:
+        if lang_metadata.language == lc_lang:
+            return lang_metadata
+    logging.error("Language is unsupported")
+
+    return None
+
+
+def get_package_managers_by_language(language: str) -> list:
+    lang_md = get_lib_metadata_by_name(language=language)
+
+    return lang_md.package_manager if lang_md else None
