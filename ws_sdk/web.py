@@ -328,7 +328,7 @@ class WS:
                 if 'type' not in product:
                     product['type'] = PRODUCT
 
-            if not prod_token_exists:
+            if not prod_token_exists and product_token is not None:
                 raise ws_errors.MissingTokenError(product_token)
 
             if scope_type not in [ORGANIZATION, PRODUCT]:
