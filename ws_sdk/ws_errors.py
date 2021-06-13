@@ -9,6 +9,13 @@ class MissingTokenError(WsSdkError):
         super().__init__(self.message)
 
 
+class WrongTokenError(WsSdkError):
+    """Raised when token is wrong'"""
+    def __init__(self, token):
+        self.message = f"Token {token} is wrong"
+        super().__init__(self.message)
+
+
 class TokenTypeError(WsSdkError):
     def __init__(self, token):
         self.message = "Unable to discover Token Type"

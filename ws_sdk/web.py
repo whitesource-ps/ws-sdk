@@ -329,7 +329,7 @@ class WS:
                     product['type'] = PRODUCT
 
             if not prod_token_exists and product_token is not None:
-                raise ws_errors.MissingTokenError(product_token)
+                raise ws_errors.WrongTokenError(product_token)
 
             if scope_type not in [ORGANIZATION, PRODUCT]:
                 all_projects = __get_projects_from_product__(all_products)
