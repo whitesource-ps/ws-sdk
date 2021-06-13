@@ -5,14 +5,7 @@ class WsSdkError(Exception):
 class MissingTokenError(WsSdkError):
     """Raised when token is missing"""
     def __init__(self, token):
-        self.message = f"Token {token} does not exist"
-        super().__init__(self.message)
-
-
-class WrongTokenError(WsSdkError):
-    """Raised when token is wrong'"""
-    def __init__(self, token):
-        self.message = f"Token {token} is wrong"
+        self.message = f"Token {token} is wrong or does not exist"
         super().__init__(self.message)
 
 
