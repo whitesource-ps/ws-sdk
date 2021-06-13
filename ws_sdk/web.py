@@ -318,11 +318,18 @@ class WS:
             projects = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
             scopes = __enrich_projects__(projects, product)
             scopes.append(product)
+
         elif self.token_type == ORGANIZATION:
             all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
+            prod_token_exists = False
             for product in all_products:
+                if product['token'] == product_token:
+                    prod_token_exists = True
                 if 'type' not in product:
                     product['type'] = PRODUCT
+
+            if not prod_token_exists and product_token is not None:
+                raise ws_errors.MissingTokenError(product_token, self.token_type)
 
             if scope_type not in [ORGANIZATION, PRODUCT]:
                 all_projects = __get_projects_from_product__(all_products)
@@ -337,7 +344,7 @@ class WS:
         if token:
             scopes = [scope for scope in scopes if compare_digest(scope['token'], token)]
             if not scopes:
-                raise ws_errors.MissingTokenError(token)
+                raise ws_errors.MissingTokenError(token, self.token_type)
         if name:
             scopes = [scope for scope in scopes if scope['name'] == name]
         if scope_type is not None:                                              # 2nd filter because scopes may contain full scope due to caching
