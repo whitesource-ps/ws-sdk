@@ -31,7 +31,7 @@ class TestWS(TestCase):
     @patch('ws_sdk.web.WS.get_scope_type_by_token')
     def test___set_token_in_body__token_not_exist(self, mock_get_scope_type_by_token):
         token = "TOKEN"
-        mock_get_scope_type_by_token.side_effect = ws_errors.MissingTokenError(token)
+        mock_get_scope_type_by_token.side_effect = ws_errors.MissingTokenError(token, self.ws.token_type)
 
         with self.assertRaises(ws_errors.MissingTokenError):
             self.ws.__set_token_in_body__(token=token)
