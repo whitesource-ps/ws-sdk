@@ -311,7 +311,7 @@ class WS:
             return {'type': self.token_type,
                     'token': self.token,
                     'name': self.get_name()}
-
+        # toDo better handling while using product_token when scope type is org
         scopes = []
         if self.token_type == PRODUCT:
             product = __create_self_scope__()
