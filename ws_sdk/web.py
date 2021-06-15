@@ -888,7 +888,7 @@ class WS:
 
         if token and token_type == PROJECT or self.token_type == PROJECT:                              # getProjectTags
             ret = self.__generic_get__(get_type="ProjectTags", token_type="", kv_dict=kv_dict)['projectTags']
-        elif token and token_type == PRODUCT:                                                          # getProductTags
+        elif token and token_type == PRODUCT or self.token_type == PRODUCT: # getProductTags
             ret = self.__generic_get__(get_type="ProductTags", token_type="", kv_dict=kv_dict)['productTags']
         # Cases where no Token is specified
         elif not token and token_type == ORGANIZATION:
