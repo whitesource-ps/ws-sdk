@@ -1,6 +1,6 @@
 import logging
 
-from . import ws_constants
+from ws_sdk import ws_constants
 
 
 def is_token(token: str) -> bool:

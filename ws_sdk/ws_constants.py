@@ -6,7 +6,17 @@ CONN_TIMEOUT = 3600
 API_URL_SUFFIX = '/api/v1.3'
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 HEADERS = {'content-type': 'application/json'}
-ALERT_STATUSES = ["Active", "Ignored"]
+
+
+FILE_SYSTEM_INVALID_CHARS = [':', '*', '\\' '<', '>', '/', '"', '?', '*', '|']
+
+
+class AlertStatus:
+    AL_STATUS_IGNORED = "Ignored"
+    AL_STATUS_ACTIVE = "Active"
+    AL_STATUS_RESOLVED = "Active"
+    ALERT_STATUSES = [AL_STATUS_ACTIVE, AL_STATUS_IGNORED, AL_STATUS_RESOLVED]
+    ALERT_SET_STATUSES = [AL_STATUS_ACTIVE, AL_STATUS_IGNORED]
 
 
 # Alert Types

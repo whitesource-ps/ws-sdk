@@ -164,6 +164,7 @@ class WS:
                    resolved: bool = False,
                    report: bool = False) -> Union[list, bytes]:
         """
+        Retrieves open alerts of all types
         :param token: The token that the request will be created on
         :param alert_type: Allows filtering alerts by a single type from ALERT_TYPES
         :param from_date: Allows filtering of alerts by start date. Works together with to_date
@@ -394,6 +395,7 @@ class WS:
     @check_permission(permissions=[ORGANIZATION])
     def get_products(self,
                      name: str = None) -> list:
+
         return self.get_scopes(name=name, scope_type=PRODUCT)
 
     def get_projects(self,
@@ -416,6 +418,7 @@ class WS:
                           token: str = None) -> Union[list, bytes]:
         report_name = "Vulnerability Report"
         """
+        Retrieves scope vulnerabilities. Default is "Open" If status not not set.   
         :param status: str Alert status: "Active", "Ignored", "Resolved"
         :param container:
         :param cluster:
@@ -426,8 +429,8 @@ class WS:
         """
         token_type, kv_dict = self.__set_token_in_body__(token)
         if not report:
-            kv_dict["format"] = "json"
-        if status is not None:
+            kv_dict["format"] = self.resp_format
+        if status in AlertStatus.ALERT_STATUSES:
             kv_dict['status'] = status
         ret = None
 
@@ -480,6 +483,8 @@ class WS:
             curr_severity = vul['severity']
             libs_vul[key_uuid]['severity'] = __get_highest_severity__(curr_severity, libs_vul[key_uuid]['severity'])
             libs_vul[key_uuid]['lib_url'] = f"{self.url}/Wss/WSS.html#!libraryDetails;uuid={key_uuid};{TOKEN_TYPES[self.token_type]}={self.token}"
+            libs_vul[key_uuid]['project'] = vul['project']
+            libs_vul[key_uuid]['product'] = vul['product']
         logging.debug(f"Found {len(libs_vul)} libraries with vulnerabilities")
 
         return list(libs_vul.values())
@@ -509,7 +514,7 @@ class WS:
         :param full_spdx: Whether to enrich SPDX data with full license name and URL (requires spdx-tools package)
         :return: list
         """
-        def get_spdx() -> dict:
+        def __get_spdx__() -> dict:
             logging.debug("Enriching license data with SDPX information")
             licenses_dict = None
             try:
@@ -523,7 +528,7 @@ class WS:
 
             return licenses_dict
 
-        def fix_license(lic: dict) -> None:
+        def __fix_spdx_license__(lic: dict) -> None:
             if not lic.get('spdxName'):
                 if lic.get('name') == "Public Domain":
                     lic['spdxName'] = "CC-PDDC"
@@ -537,9 +542,9 @@ class WS:
                 else:
                     logging.warning(f"Unable to fix spdxName of {lic['name']}")
 
-        def enrich_lib(library: dict, spdx: dict):
+        def __enrich_lib__(library: dict, spdx: dict):
             for lic in library.get('licenses'):
-                fix_license(lic)                                        # Manually fixing this license
+                __fix_spdx_license__(lic)                                        # Manually fixing this license
                 try:
                     lic['spdx_license_dict'] = spdx[lic['spdxName']]
                     logging.debug(f"Found license: {lic['spdx_license_dict']['licenseId']}")
@@ -557,9 +562,9 @@ class WS:
             ret = self.__generic_get__(get_type='Licenses', token_type=token_type, kv_dict=kv_dict)['libraries']
 
             if full_spdx:
-                spdx_dict = get_spdx()
+                spdx_dict = __get_spdx__()
                 for lib in ret:
-                    enrich_lib(lib, spdx_dict)
+                    __enrich_lib__(lib, spdx_dict)
 
         return ret
 
@@ -689,13 +694,13 @@ class WS:
             logging.error(f"{report_name} report is unsupported on {token_type}")
         elif report:
             logging.debug(f"Running {report_name} report on {token_type}")
-            ret =  self.__generic_get__(get_type='LibraryLocationReport', token_type=token_type, kv_dict=kv_dict)
+            ret = self.__generic_get__(get_type='LibraryLocationReport', token_type=token_type, kv_dict=kv_dict)
         elif not report and token_type == ORGANIZATION:
             logging.error(f"{report_name} is unsupported on {token_type}")
             ret = None
         else:
             logging.debug(f"Running {report_name} on {token_type}")
-            ret =  self.__generic_get__(get_type='LibraryLocations', token_type=token_type, kv_dict=kv_dict)
+            ret = self.__generic_get__(get_type='LibraryLocations', token_type=token_type, kv_dict=kv_dict)
 
         return ret['libraryLocations'] if isinstance(ret, dict) else ret
 
@@ -766,6 +771,21 @@ class WS:
                         license_reference_text_placement: str = "LICENSE_SECTION",
                         custom_attribute: str = None,
                         include_versions: str = True) -> Union[dict, bytes]:
+        """
+        Method that creates Inventory like response with custom attrbiuted and notice text/reference data
+        :param reporting_aggregation_mode:
+        :param token:
+        :param report_header:
+        :param report_title:
+        :param report_footer:
+        :param reporting_scope:
+        :param missing_license_display_option:
+        :param export_format:
+        :param license_reference_text_placement:
+        :param custom_attribute:
+        :param include_versions:
+        :return:
+        """
         report_name = "Attribution Report"
         token_type, kv_dict = self.__set_token_in_body__(token)
         if token_type == ORGANIZATION:
@@ -888,7 +908,7 @@ class WS:
 
         if token and token_type == PROJECT or self.token_type == PROJECT:                              # getProjectTags
             ret = self.__generic_get__(get_type="ProjectTags", token_type="", kv_dict=kv_dict)['projectTags']
-        elif token and token_type == PRODUCT:                                                          # getProductTags
+        elif token and token_type == PRODUCT or self.token_type == PRODUCT:                            # getProductTags
             ret = self.__generic_get__(get_type="ProductTags", token_type="", kv_dict=kv_dict)['productTags']
         # Cases where no Token is specified
         elif not token and token_type == ORGANIZATION:
@@ -983,6 +1003,7 @@ class WS:
 
         return ret
 
+    @check_permission(permissions=[ORGANIZATION])
     def set_alerts_status(self,
                           alert_uuids: Union[list, str],
                           status: str = None,
@@ -996,9 +1017,9 @@ class WS:
         """
         token_type, kv_dict = self.__set_token_in_body__()
         if not alert_uuids:
-            logging.error(f"alert_uu_ids must be provided")
-        elif status not in ALERT_STATUSES:
-            logging.error(f'{status} status is not allowed. Must be "Ignored" or "Active"')
+            logging.error("At least 1 alert uuid must be provided")
+        elif status not in AlertStatus.ALERT_SET_STATUSES:
+            logging.error(f'{status} status is invalid. Must be "Ignored" or "Active"')
         else:
             if isinstance(alert_uuids, str):
                 alert_uuids = [alert_uuids]
@@ -1007,3 +1028,67 @@ class WS:
             kv_dict['comments'] = comments
 
             return self.__call_api__(request_type='setAlertsStatus', kv_dict=kv_dict)
+
+    def get_lib_notice(self,
+                       product_token: str = None,
+                       as_text: bool = False) -> Union[str, list]:
+        """
+        Method to return Notice text on all libs in a specified product
+        :param product_token:
+        :param as_text: If marked, will not try to convert text to LIST of DICTs
+        :return: string or list of dictionaries
+        """
+        def __convert_notice_text_to_json__(text_str: str) -> list:
+            """
+            Method to convert Notice from text to LIST. If the 'text' value is also JSON it will be converted to dict
+            :param text_str: The string to convert
+            :return: list of dictionaries
+            """
+            def __append_notice_text_as_json__(c_d):
+                try:
+                    c_d['json'] = json.loads(c_d.get('text', ""))
+                except json.JSONDecodeError:
+                    logging.debug(f"No JSON to decode: {c_d.get('text')}")
+                ret_list.append(c_d)
+
+            ret_list = []
+            lines = text_str.split('\r\n')
+            lines = [line for line in lines if line.strip()]
+
+            ret_text = text_str.replace('\r\n', "")
+
+            for i in range(1, len(lines)):      # Starting for 1 to skip product name
+                if lines[i].startswith('Library:'):
+                    if 'curr_dict' in locals():
+                        __append_notice_text_as_json__(curr_dict)
+                    curr_dict = {'name': lines[i].replace('Library: ', "")}
+                elif lines[i] == len(lines[i]) * lines[i][0]:
+                    logging.debug(f"Skipping notice line: {lines[i]}")
+                elif lines[i].startswith('Reference:'):
+                    curr_dict['reference'] = lines[i].replace('Reference:', "")
+                else:
+                    curr_dict['text'] = curr_dict.get('text', "") + lines[i]
+            __append_notice_text_as_json__(curr_dict)
+
+            return ret_list
+
+        token_type, kv_dict = self.__set_token_in_body__(token=product_token)
+
+        if token_type == PRODUCT:
+            ret = self.__generic_get__(get_type='NoticesTextFile', token_type="", kv_dict=kv_dict)
+        else:
+            raise ws_errors.TokenTypeError(product_token)
+
+        return ret if as_text else __convert_notice_text_to_json__(ret)
+
+    @check_permission(permissions=[ORGANIZATION])
+    def set_lib_notice(self,
+                       lib_uuid: str,
+                       text: Union[str, dict, list],
+                       reference: str = None):
+        token_type, kv_dict = self.__set_token_in_body__()
+        kv_dict['libraryUUID'] = lib_uuid
+        kv_dict['text'] = text if isinstance(text, str) else json.dumps(text)
+        kv_dict['reference'] = reference
+
+        return self.__call_api__(request_type='setLibraryNotice', kv_dict=kv_dict)
