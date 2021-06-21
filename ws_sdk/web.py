@@ -312,7 +312,7 @@ class WS:
             return {'type': self.token_type,
                     'token': self.token,
                     'name': self.get_name()}
-
+        # toDo better handling while using product_token when scope type is org
         scopes = []
         if self.token_type == PRODUCT:
             product = __create_self_scope__()
@@ -395,7 +395,6 @@ class WS:
     @check_permission(permissions=[ORGANIZATION])
     def get_products(self,
                      name: str = None) -> list:
-
         return self.get_scopes(name=name, scope_type=PRODUCT)
 
     def get_projects(self,
@@ -418,7 +417,6 @@ class WS:
                           token: str = None) -> Union[list, bytes]:
         report_name = "Vulnerability Report"
         """
-        Retrieves scope vulnerabilities. Default is "Open" If status not not set.   
         :param status: str Alert status: "Active", "Ignored", "Resolved"
         :param container:
         :param cluster:
@@ -908,7 +906,7 @@ class WS:
 
         if token and token_type == PROJECT or self.token_type == PROJECT:                              # getProjectTags
             ret = self.__generic_get__(get_type="ProjectTags", token_type="", kv_dict=kv_dict)['projectTags']
-        elif token and token_type == PRODUCT or self.token_type == PRODUCT:                            # getProductTags
+        elif token and token_type == PRODUCT:                                                          # getProductTags
             ret = self.__generic_get__(get_type="ProductTags", token_type="", kv_dict=kv_dict)['productTags']
         # Cases where no Token is specified
         elif not token and token_type == ORGANIZATION:
@@ -1003,7 +1001,6 @@ class WS:
 
         return ret
 
-    @check_permission(permissions=[ORGANIZATION])
     def set_alerts_status(self,
                           alert_uuids: Union[list, str],
                           status: str = None,
@@ -1017,9 +1014,9 @@ class WS:
         """
         token_type, kv_dict = self.__set_token_in_body__()
         if not alert_uuids:
-            logging.error("At least 1 alert uuid must be provided")
-        elif status not in AlertStatus.ALERT_SET_STATUSES:
-            logging.error(f'{status} status is invalid. Must be "Ignored" or "Active"')
+            logging.error(f"alert_uu_ids must be provided")
+        elif status not in ALERT_STATUSES:
+            logging.error(f'{status} status is not allowed. Must be "Ignored" or "Active"')
         else:
             if isinstance(alert_uuids, str):
                 alert_uuids = [alert_uuids]
@@ -1028,67 +1025,3 @@ class WS:
             kv_dict['comments'] = comments
 
             return self.__call_api__(request_type='setAlertsStatus', kv_dict=kv_dict)
-
-    def get_lib_notice(self,
-                       product_token: str = None,
-                       as_text: bool = False) -> Union[str, list]:
-        """
-        Method to return Notice text on all libs in a specified product
-        :param product_token:
-        :param as_text: If marked, will not try to convert text to LIST of DICTs
-        :return: string or list of dictionaries
-        """
-        def __convert_notice_text_to_json__(text_str: str) -> list:
-            """
-            Method to convert Notice from text to LIST. If the 'text' value is also JSON it will be converted to dict
-            :param text_str: The string to convert
-            :return: list of dictionaries
-            """
-            def __append_notice_text_as_json__(c_d):
-                try:
-                    c_d['json'] = json.loads(c_d.get('text', ""))
-                except json.JSONDecodeError:
-                    logging.debug(f"No JSON to decode: {c_d.get('text')}")
-                ret_list.append(c_d)
-
-            ret_list = []
-            lines = text_str.split('\r\n')
-            lines = [line for line in lines if line.strip()]
-
-            ret_text = text_str.replace('\r\n', "")
-
-            for i in range(1, len(lines)):      # Starting for 1 to skip product name
-                if lines[i].startswith('Library:'):
-                    if 'curr_dict' in locals():
-                        __append_notice_text_as_json__(curr_dict)
-                    curr_dict = {'name': lines[i].replace('Library: ', "")}
-                elif lines[i] == len(lines[i]) * lines[i][0]:
-                    logging.debug(f"Skipping notice line: {lines[i]}")
-                elif lines[i].startswith('Reference:'):
-                    curr_dict['reference'] = lines[i].replace('Reference:', "")
-                else:
-                    curr_dict['text'] = curr_dict.get('text', "") + lines[i]
-            __append_notice_text_as_json__(curr_dict)
-
-            return ret_list
-
-        token_type, kv_dict = self.__set_token_in_body__(token=product_token)
-
-        if token_type == PRODUCT:
-            ret = self.__generic_get__(get_type='NoticesTextFile', token_type="", kv_dict=kv_dict)
-        else:
-            raise ws_errors.TokenTypeError(product_token)
-
-        return ret if as_text else __convert_notice_text_to_json__(ret)
-
-    @check_permission(permissions=[ORGANIZATION])
-    def set_lib_notice(self,
-                       lib_uuid: str,
-                       text: Union[str, dict, list],
-                       reference: str = None):
-        token_type, kv_dict = self.__set_token_in_body__()
-        kv_dict['libraryUUID'] = lib_uuid
-        kv_dict['text'] = text if isinstance(text, str) else json.dumps(text)
-        kv_dict['reference'] = reference
-
-        return self.__call_api__(request_type='setLibraryNotice', kv_dict=kv_dict)
