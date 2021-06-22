@@ -1015,7 +1015,7 @@ class WS:
         token_type, kv_dict = self.__set_token_in_body__()
         if not alert_uuids:
             logging.error(f"alert_uu_ids must be provided")
-        elif status not in ALERT_STATUSES:
+        elif status not in AlertStatus.ALERT_SET_STATUSES:
             logging.error(f'{status} status is not allowed. Must be "Ignored" or "Active"')
         else:
             if isinstance(alert_uuids, str):

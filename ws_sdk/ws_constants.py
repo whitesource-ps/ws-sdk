@@ -8,7 +8,7 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 HEADERS = {'content-type': 'application/json'}
 
 
-FILE_SYSTEM_INVALID_CHARS = [':', '*', '\\' '<', '>', '/', '"', '?', '*', '|']
+INVALID_FS_CHARS = [':', '*', '\\' '<', '>', '/', '"', '?', '*', '|']
 
 
 class AlertStatus:
