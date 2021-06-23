@@ -1095,7 +1095,14 @@ class WS:
 
     def get_policies(self,
                      token: str = None,
-                     include_affected: bool = True):
+                     include_affected: bool = True) -> list:
+        """
+        Retrieves policies from scope
+        :param token: Optional to to get policies of another token
+        :param include_affected: Should inherited policies be presented (default: true)
+        :return: list of policies
+        :rtype: list
+        """
         report_name = "Policies"
         token_type, kv_dict = self.__set_token_in_body__(token)
         logging.debug(f"Running {token_type} {report_name}")
