@@ -54,6 +54,7 @@ def get_all_req_schemas(ws_conn) -> dict:
     supported_requests = ws_conn.__generic_get__(get_type="SupportedRequests", token_type="")['supportedRequests']
     req_schema_list = {}
     for req in supported_requests:
+        logging.info(f"Calling on {req}")
         req_schema = ws_conn.__generic_get__(get_type="RequestSchema", token_type="", kv_dict={"request": req})
         req_schema_list[req] = req_schema
 
@@ -96,5 +97,4 @@ def break_filename(filename: str) -> tuple:
     return {"suffix": re.search(r'.([a-zA-z0-9]+$)', filename).group(1),
             'name': re.search(r'(^[a-zA-Z0-9-]+)(?=-)', filename).group(1),
             'version': re.search(r'-((?!.*-).+)(?=\.)', filename).group(1)}
-
 

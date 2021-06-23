@@ -818,6 +818,15 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, list)
 
+    @patch('ws_sdk.web.WS.__set_token_in_body__')
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_policies(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = {'policies': [{'policyContext': 'DOMAIN'}]}
+        mock_set_token_in_body.return_value = (self.ws.token_type, {})
+        res = self.ws.get_policies()
+
+        self.assertIsInstance(res, list)
+
 
 if __name__ == '__main__':
     unittest.main()
