@@ -11,5 +11,5 @@ class MissingTokenError(WsSdkError):
 
 class TokenTypeError(WsSdkError):
     def __init__(self, token):
-        self.message = "Unable to discover Token Type"
+        self.message = f"Unable to discover Token Type of token {token}"
         super().__init__(self.message)
