@@ -35,11 +35,12 @@ class AlertTypes:
 PROJECT = 'project'
 PRODUCT = 'product'
 ORGANIZATION = 'organization'
+GLOBAL = 'globalOrganization'
 
-TOKEN_TYPES = {ORGANIZATION: "orgToken",
-               PRODUCT: "productToken",
-               PROJECT: "projectToken"
-               }
+TOKEN_TYPES_MAPPING = {GLOBAL: "globalOrgToken",
+                       ORGANIZATION: "orgToken",
+                       PRODUCT: "productToken",
+                       PROJECT: "projectToken"}
 
 
 # Role Types

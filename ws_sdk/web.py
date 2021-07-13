@@ -46,9 +46,9 @@ def report_metadata(**kwargs_metadata):
 
 class WS:
     def __init__(self,
-                 url: str,
                  user_key: str,
                  token: str,
+                 url: str = 'saas',
                  token_type: str = ORGANIZATION,
                  timeout: int = CONN_TIMEOUT,
                  resp_format: str = "json"
@@ -77,12 +77,19 @@ class WS:
     @cached(ttl=CACHE_TIME)
     def __set_token_in_body__(self,
                               token: str = None) -> (str, dict):
+        """
+
+        :param token:
+        :return: tuple of token_type as string and kv_dict - dictionary
+        :rtype: tuple
+        """
         kv_dict = {}
         if token is None:
             token_type = self.token_type
+            # kv_dict[TOKEN_TYPES_MAPPING[token_type]] = self.token
         else:
             token_type = self.get_scope_type_by_token(token)
-            kv_dict[TOKEN_TYPES[token_type]] = token
+            kv_dict[TOKEN_TYPES_MAPPING[token_type]] = token
             logging.debug(f"Token: {token} is a {token_type}")
 
         return token_type, kv_dict
@@ -94,7 +101,7 @@ class WS:
         ret_dict = {
             "requestType": api_call,
             "userKey": self.user_key,
-            TOKEN_TYPES[self.token_type]: self.token
+            TOKEN_TYPES_MAPPING[self.token_type]: self.token
         }
         if isinstance(kv_dict, dict):
             for ent in kv_dict:
@@ -102,10 +109,16 @@ class WS:
 
         return ret_dict
 
-    @cached(ttl=CACHE_TIME)
     def __call_api__(self,
                      request_type: str,
                      kv_dict: dict = None) -> dict:
+        def __handle_ws_server_errors__(error):
+            error_dict = json.loads(error)
+            if error_dict['errorCode'] == 2015:
+                raise ws_errors.WsServerInactiveOrg(token)
+            else:                                                                   # TODO EXTEND
+                raise ws_errors.WsServerGenericError(token, error)
+
         body = self.__create_body__(request_type, kv_dict)
         token = [s for s in body.keys() if 'Token' in s]
         try:
@@ -114,9 +127,12 @@ class WS:
             logging.exception(f"Received Error on {body[token[-1]]}")
             raise
 
-        if resp.status_code > 299 or "errorCode" in resp.text:
+        if resp.status_code > 299:
             logging.error(f"API {body['requestType']} call on {body[token[-1]]} failed: {resp.text}")
             raise requests.exceptions.RequestException
+        elif "errorCode" in resp.text:
+            logging.debug(f"API returned errorCode {body['requestType']} call on {body[token[-1]]} message: {resp.text}")
+            __handle_ws_server_errors__(resp.text)
         else:
             logging.debug(f"API {body['requestType']} call on {token[-1]} {body[token[-1]]} succeeded")
 
@@ -319,15 +335,16 @@ class WS:
             projects = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
             scopes = __enrich_projects__(projects, product)
             scopes.append(product)
-
         elif self.token_type == ORGANIZATION:
             all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
             prod_token_exists = False
+
             for product in all_products:
+                product['type'] = PRODUCT
+                product['org_token'] = self.token
+
                 if product['token'] == product_token:
                     prod_token_exists = True
-                if 'type' not in product:
-                    product['type'] = PRODUCT
 
             if not prod_token_exists and product_token is not None:
                 raise ws_errors.MissingTokenError(product_token, self.token_type)
@@ -339,6 +356,26 @@ class WS:
                 scopes.extend(all_products)
             if scope_type in [ORGANIZATION, None]:
                 scopes.append(self.get_organization_details())
+        elif self.token_type == GLOBAL:
+            organizations = self.__generic_get__(get_type="AllOrganizations", token_type="")['organizations']
+            for org in organizations:
+                org['global_token'] = self.token
+                org['type'] = ORGANIZATION
+
+            scopes = []
+            if scope_type in [PROJECT, PRODUCT]:
+                for org in organizations:
+                    temp_conn = WS(url=self.url,
+                                   user_key=self.user_key,
+                                   token=org['orgToken'],
+                                   token_type=ORGANIZATION)
+                    try:
+                        scopes.extend(temp_conn.get_scopes(scope_type=scope_type))
+                    except ws_errors.WsServerInactiveOrg as e:
+                        logging.warning(e.message)
+            else:
+                scopes.extend(organizations)
+                scopes.append(__create_self_scope__())
         else:
             scopes.append(__create_self_scope__())
         # Filter scopes
@@ -357,7 +394,6 @@ class WS:
 
     @check_permission(permissions=[ORGANIZATION])
     def get_organization_details(self) -> dict:
-        org_details = None
         org_details = self.__generic_get__(get_type='Details')
         org_details['name'] = org_details.get('orgName')
         org_details['token'] = org_details.get('orgToken')
@@ -373,6 +409,8 @@ class WS:
         """
         if self.token_type == ORGANIZATION:
             return self.get_organization_details()['orgName']
+        elif self.token_type == GLOBAL:
+            return "TBD"
         else:
             return self.get_tags()[0]['name']
 
@@ -391,6 +429,17 @@ class WS:
             ret.append(scope['token'])
 
         return ret
+
+    @check_permission(permissions=[GLOBAL])
+    def get_organizations(self,
+                          name: str = None) -> list:
+        """
+        Get all organizations under global organization
+        :param name:
+        :return: list of organization
+        :rtype: list
+        """
+        return self.get_scopes(name=name, scope_type=ORGANIZATION)
 
     @check_permission(permissions=[ORGANIZATION])
     def get_products(self,
@@ -482,7 +531,7 @@ class WS:
             libs_vul[key_uuid]['vulnerabilities'].add(vul['name'])
             curr_severity = vul['severity']
             libs_vul[key_uuid]['severity'] = __get_highest_severity__(curr_severity, libs_vul[key_uuid]['severity'])
-            libs_vul[key_uuid]['lib_url'] = f"{self.url}/Wss/WSS.html#!libraryDetails;uuid={key_uuid};{TOKEN_TYPES[self.token_type]}={self.token}"
+            libs_vul[key_uuid]['lib_url'] = f"{self.url}/Wss/WSS.html#!libraryDetails;uuid={key_uuid};{TOKEN_TYPES_MAPPING[self.token_type]}={self.token}"
             libs_vul[key_uuid]['project'] = vul['project']
             libs_vul[key_uuid]['product'] = vul['product']
         logging.debug(f"Found {len(libs_vul)} libraries with vulnerabilities")
@@ -617,11 +666,75 @@ class WS:
                      token: str = None) -> bytes:
         return self.get_in_house_libraries(report=report, token=token)
 
-    def get_assignments(self,
-                        token: str = None,
-                        role_type: str = None,
-                        entity_type: str = None) -> list:
+    @check_permission(permissions=[ORGANIZATION])
+    def get_users(self,
+                  name: str = None,
+                  email: str = None) -> list:
         """
+        Get organization users
+        :param name: filter list by user name
+        :return: list of users
+        """
+        logging.debug(f"Getting organization users")
+        ret = self.__generic_get__(get_type='AllUsers', token_type="")['users']
+
+        if name:
+            ret = [user for user in ret if user.get('name') == name]
+        if email:
+            ret = [user for user in ret if user.get('email') == email]
+
+        return ret
+
+    @check_permission(permissions=[ORGANIZATION])
+    def get_groups(self,
+                   name: str = None,
+                   user_name: str = None,
+                   user_email: str = None) -> list:
+        """
+        Get organization groups
+        :param name: Filter groups by group name
+        :param user_name: return groups that contains user name
+        :param user_email: return groups that contains user name
+        :return: list of groups
+        :rtype: list
+        """
+        def __filter_by_user_detail__(detail: str,
+                                      detail_value: str,
+                                      groups: list) -> list:
+            ret_groups = []
+            for group in groups:
+                for user in group['users']:
+                    if detail_value == user[detail]:
+                        ret_groups.append(group)
+
+            return ret_groups
+
+        """
+        Get organization Groups
+        :param name: filter list by group name
+        :param user_name: only returns groups that user assigned to them
+        :param user_email: only returns groups that user email assigned to them
+        :return: list of groups
+        :return: list of groups
+        :rtype: list
+        """
+        logging.debug("Getting Organization groups")
+        ret = self.__generic_get__(get_type="AllGroups", token_type="")['groups']
+        if name:
+            ret = [group for group in ret if group.get('name') == name]
+        if user_name:
+            ret = __filter_by_user_detail__(detail='name', detail_value=user_name, groups=ret)
+        if user_email:
+            ret = __filter_by_user_detail__(detail='email', detail_value=user_email, groups=ret)
+
+        return ret
+
+    def get_user_group_assignments(self,            # TODO MERGE WITH GET_USERS and GET_GROUPS
+                                   token: str = None,
+                                   role_type: str = None,
+                                   entity_type: str = None) -> list:
+        """
+        Get users and Groups assignments
         :param token: scope token to retrieve assignments
         :param role_type: accepted roles: DEFAULT_APPROVER, PRODUCT_INTEGRATOR, ADMIN
         :param entity_type: whether to filter user or group assignments.
@@ -894,13 +1007,6 @@ class WS:
                 return project
         logging.error(f"Project with token: {token} was not found")
 
-    @check_permission(permissions=[ORGANIZATION])
-    def get_users(self) -> list:
-        report_name = 'Users'
-        token_type, kv_dict = self.__set_token_in_body__()
-
-        return self.__generic_get__(get_type='AllUsers', token_type="")['users']
-
     def get_tags(self,
                  token: str = None) -> list:
         report_name = "Tags"
@@ -1116,3 +1222,65 @@ class WS:
             pol['scope_type'] = pol_ctx2scope[pol['policyContext']]
 
         return ret
+
+    @check_permission(permissions=[ORGANIZATION])
+    def create_user(self,
+                    name: str,
+                    email: str = None,
+                    inviter_email: str = None,
+                    is_service: bool = False) -> Union[str, None]:
+        """
+        Create user or service user
+        :param name: name of created user - if user exists, the method will fail
+        :param email: 
+        :param inviter_email: 
+        :param is_service:
+        :returns None if User, User Key if Service User
+        :rtype: str None
+        """
+        token_type, kv_dict = self.__set_token_in_body__()
+        ret = {}
+        if self.get_users(name=name):                       # createUser WILL THROW AN ERROR IF CALLED ON EXISTING USER
+            logging.error(f"User: {name} already exists")
+        elif is_service:
+            logging.debug(f"Creating Service User: {name}")
+            kv_dict['addedUser'] = {"name": name}
+            ret = self.__call_api__(request_type='createServiceUser', kv_dict=kv_dict)
+        elif email and inviter_email:
+            logging.debug(f"Creating User: {name}")
+            kv_dict['inviter'] = {"email": inviter_email}
+            kv_dict['addedUser'] = {"name": name, "email": email}
+            self.__call_api__(request_type='createUser', kv_dict=kv_dict)
+        else:
+            logging.error("Missing details to create User")
+
+        return ret.get('userToken')         #  TODO BUG IN CONFLUENCE DOCUMENTATION (userToken)
+
+    def create_group(self,
+                     name: str,
+                     description: str = None):
+        token_type, kv_dict = self.__set_token_in_body__()
+        kv_dict['group'] = {"name": name,
+                            "description": name if description is None else description,
+                            }
+        if self.get_groups(name=name):
+            logging.error(f"Group: {name} already exists")
+        else:
+            self.__call_api__(request_type='createGroup', kv_dict=kv_dict)
+
+    def assign_user_to_group(self,
+                             user_email: str,
+                             group_name: str):
+        if not self.get_groups(name=group_name):
+            logging.error(f"Group: {group_name} does not exist")
+        elif not self.get_users(email=user_email):
+            logging.error(f"User's Email: {user_email} does not exist")
+        elif self.get_groups(user_email=user_email):
+            logging.error(f"User's Email: {user_email} already in group: {group_name}")
+        else:
+            token_type, kv_dict = self.__set_token_in_body__()
+            kv_dict['assignedUsers'] = [[{'name': group_name},
+                                         [{"email": user_email}]
+                                         ]]
+
+            self.__call_api__(request_type='addUsersToGroups', kv_dict=kv_dict)

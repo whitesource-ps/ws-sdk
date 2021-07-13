@@ -422,8 +422,8 @@ class TestWS(TestCase):
         mock_generic_get.return_value = {}
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
         mock_entity_types.return_value = {}
-        res = self.ws.get_assignments(entity_type=USERS,
-                                      role_type=RoleTypes.PRODUCT_INTEGRATOR)
+        res = self.ws.get_user_group_assignments(entity_type=USERS,
+                                                 role_type=RoleTypes.PRODUCT_INTEGRATOR)
 
         self.assertIsInstance(res, list)
 
@@ -432,7 +432,7 @@ class TestWS(TestCase):
     def test_get_assignments_project(self, mock_generic_get, mock_set_token_in_body):
         mock_generic_get.return_value = {}
         mock_set_token_in_body.return_value = (PROJECT, {})
-        res = self.ws.get_assignments()
+        res = self.ws.get_user_group_assignments()
 
         self.assertIsInstance(res, list)
 
