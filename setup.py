@@ -1,8 +1,5 @@
 import setuptools
 
-with open('requirements.txt') as f:
-    requirements = f.read().splitlines()
-
 setuptools.setup(
     name="ws_sdk",
     version="0.5",
@@ -13,7 +10,14 @@ setuptools.setup(
     license='LICENSE.txt',
     packages=setuptools.find_packages(),
     python_requires='>=3.6',
-    install_requires=open('requirements.txt').read().splitlines(),
+    install_requires=[
+        "DateTime",
+        "requests",
+        "memoization"
+    ],
+    extras_require={
+        "spdx": ["spdx-tools"]
+    },
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     classifiers=[
