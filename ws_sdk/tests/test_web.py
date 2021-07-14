@@ -40,12 +40,12 @@ class TestWS(TestCase):
     def test___create_body__(self):
         res = self.ws.__create_body__("api_call")
 
-        self.assertIsInstance(res, dict)
+        self.assertIsInstance(res[1], dict) and self.assertEqual(res[0], "orgToken")
 
     def test___create_body___with_dict(self):
         res = self.ws.__create_body__("api_call", {"key": "Value"})
 
-        self.assertIsInstance(res, dict)
+        self.assertIsInstance(res[1], dict) and self.assertEqual(res[0], "orgToken")
 
     @patch('ws_sdk.web.requests.post')
     def test___call_api__(self, mock_post):
@@ -80,7 +80,7 @@ class TestWS(TestCase):
     @patch('ws_sdk.web.requests.post')
     @patch('ws_sdk.web.WS.__create_body__')
     def test___call_api___timeout_exception(self, mock_create_body, mock_post):
-        mock_create_body.return_value = {'Token': "TOKEN"}
+        mock_create_body.return_value = "TOK", {'Token': "TOKEN"}
         mock_post.side_effect = TimeoutError()
 
         with self.assertRaises(TimeoutError):
