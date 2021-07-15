@@ -126,13 +126,14 @@ class WS:
             2015 - Inactive org
             3010 - Missing fields: user
             4000 - Unexpected error
+            5001 - User is not allowed to perform this action
             :param error:
             """
             error_dict = json.loads(error)
             if error_dict['errorCode'] == 2015:
-                raise ws_errors.WsServerInactiveOrg(token)
-            else:                                                                   # TODO EXTEND
-                raise ws_errors.WsServerGenericError(token, error)
+                raise ws_errors.WsServerInactiveOrg(body[token])
+            else:
+                raise ws_errors.WsServerGenericError(body[token], error)
 
         token, body = self.__create_body__(request_type, kv_dict)
         try:
@@ -394,6 +395,7 @@ class WS:
             organizations = self.__generic_get__(get_type="AllOrganizations", token_type="")['organizations']
             for org in organizations:
                 org['global_token'] = self.token
+                org['token'] = org['orgToken']
                 org['type'] = ORGANIZATION
 
             scopes = []
@@ -1097,7 +1099,7 @@ class WS:
         if global_search:
             logging.debug(f"Performing Global Search with value: \'{search_value}\'")
             libs = self.__call_api__(request_type="librarySearch", kv_dict={"searchValue": search_value}).get('libraries')
-            if version:                                                     # Filtering by version # TODO Good idea to extend with <>~
+            if version:
                 logging.debug(f"Filtering search value: \'{search_value}\' by version: {version}")
                 libs = [lib for lib in libs if lib.get('version') == version]
             if search_only_name:
@@ -1264,7 +1266,7 @@ class WS:
                     name: str,
                     email: str = None,
                     inviter_email: str = None,
-                    is_service: bool = False) -> Union[str, None]:
+                    is_service: bool = False) -> dict:
         """
         Create user or service user
         :param name: name of created user - if user exists, the method will fail
@@ -1277,7 +1279,7 @@ class WS:
         token_type, kv_dict = self.__set_token_in_body__()
         ret = {}
         if self.get_users(name=name):                       # createUser WILL THROW AN ERROR IF CALLED ON EXISTING USER
-            logging.error(f"User: {name} already exists")
+            logging.warning(f"User: {name} already exists")
         elif is_service:
             logging.debug(f"Creating Service User: {name}")
             kv_dict['addedUser'] = {"name": name}
@@ -1286,18 +1288,19 @@ class WS:
             logging.debug(f"Creating User: {name}")
             kv_dict['inviter'] = {"email": inviter_email}
             kv_dict['addedUser'] = {"name": name, "email": email}
-            self.__call_api__(request_type='createUser', kv_dict=kv_dict)
+            ret = self.__call_api__(request_type='createUser', kv_dict=kv_dict)
         else:
             logging.error("Missing details to create User")
 
-        return ret.get('userToken')         #  TODO BUG IN CONFLUENCE DOCUMENTATION (userToken)
+        return ret                                              #  TODO BUG IN CONFLUENCE DOCUMENTATION (userToken)
 
     @check_permission(permissions=[ORGANIZATION, GLOBAL])
     def delete_user(self,
                     email: str,
-                    org_token: str = None):
+                    org_token: str = None) -> dict:
         """
-        Remove user from organization by email address, If run by global will remove
+        Remove user from organization by email address, If run by global and org_token is not None it will remove from
+        a specific token and if not will remove from all organizations under global
         :param email: User's email to remove
         :param org_token: Delete from a specific org when running as Global administrator
         """
@@ -1305,7 +1308,7 @@ class WS:
             orgs = self.get_organizations(token=org_token) if org_token else self.get_organizations()
             if orgs:
                 for org in orgs:
-                    temp_conn = copy(self)
+                    temp_conn = copy(self)                      # TODO MAKE THIS GENERIC
                     temp_conn.token = org['token']
                     temp_conn.token_type = ORGANIZATION
                     temp_conn.delete_user(email)
@@ -1315,32 +1318,35 @@ class WS:
             if not self.get_users(email=email):
                 logging.error(f"User's email: {email} does not exist in the organization")
             else:
-                self.__call_api__(request_type="removeUserFromOrganization", kv_dict={"user": {"email": email}})
+                return self.__call_api__(request_type="removeUserFromOrganization", kv_dict={"user": {"email": email}})
 
     @check_permission(permissions=[ORGANIZATION])
     def create_group(self,
                      name: str,
-                     description: str = None):
+                     description: str = None) -> dict:
         token_type, kv_dict = self.__set_token_in_body__()
         kv_dict['group'] = {"name": name,
                             "description": name if description is None else description,
                             }
+        ret = {}
         if self.get_groups(name=name):
-            logging.error(f"Group: {name} already exists")
+            logging.warning(f"Group: {name} already exists")
         else:
             logging.debug(f"Creating Group: {name}")
-            self.__call_api__(request_type='createGroup', kv_dict=kv_dict)
+            ret = self.__call_api__(request_type='createGroup', kv_dict=kv_dict)
+
+        return ret
 
     @check_permission(permissions=[ORGANIZATION])
     def assign_user_to_group(self,
                              user_email: str,
-                             group_name: str):
+                             group_name: str) -> dict:
         if not self.get_groups(name=group_name):
-            logging.error(f"Group: {group_name} does not exist")
+            logging.error(f"Unable to assign user: {user_email} to Group: {group_name}. Group does not exist")
         elif not self.get_users(email=user_email):
             logging.error(f"User's Email: {user_email} does not exist")
-        elif self.get_groups(user_email=user_email):
-            logging.error(f"User's Email: {user_email} already in group: {group_name}")
+        elif self.get_groups(name=group_name, user_email=user_email):
+            logging.warning(f"User's Email: {user_email} already in group: {group_name}")
         else:
             logging.debug(f"Assigning user's Email: {user_email} to Group: {group_name}")
             token_type, kv_dict = self.__set_token_in_body__()
@@ -1348,15 +1354,15 @@ class WS:
                                          [{"email": user_email}]
                                          ]]
 
-            self.__call_api__(request_type='addUsersToGroups', kv_dict=kv_dict)
+            return self.__call_api__(request_type='addUsersToGroups', kv_dict=kv_dict)
 
     @check_permission(permissions=[PRODUCT, ORGANIZATION])
     def assign_to_scope(self,
                         role_type: str,
                         token: str = None,
                         email: Union[str, list] = None,
-                        group: Union[str, list] = None):
-        def __get_assignments__(a, key):
+                        group: Union[str, list] = None) -> dict:
+        def __get_assignments__(a, key) -> list:
             assignments = []
             if isinstance(a, str):
                 assignments = [{key: a}]
@@ -1394,10 +1400,12 @@ class WS:
             for user_item in all_users_assignments:
                 if self.get_users(email=user_item['email']):
                     users_assignments.append(user_item)
+                else:
+                    logging.warning(f"User email: {user_item['email']} does not exist")
 
             if users_assignments or groups_assignments:
                 kv_dict[role_type] = {'userAssignments': users_assignments,
                                       'groupAssignments': groups_assignments}
-                self.__generic_set__(set_type='Assignments', token_type=token_type, kv_dict=kv_dict)
+                return self.__generic_set__(set_type='Assignments', token_type=token_type, kv_dict=kv_dict)
             else:
                 logging.error("No valid user or group were found")
