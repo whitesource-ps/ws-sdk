@@ -136,6 +136,7 @@ class WS:
                 raise ws_errors.WsServerGenericError(body[token], error)
 
         token, body = self.__create_body__(request_type, kv_dict)
+        logging.debug(f"Calling: {self.api_url} with requestType: {request_type}")
         try:
             resp = requests.post(self.api_url, data=json.dumps(body), headers=HEADERS, timeout=self.timeout)
         except requests.RequestException:
@@ -378,8 +379,14 @@ class WS:
                 product['type'] = PRODUCT
                 product['org_token'] = self.token
 
-                if product['token'] == product_token:
+                if product['token'] == token:
+                    logging.debug(f"Found searched token: {token}")
+                    scopes.append(product)
+                    return scopes                                              # TODO FIX THIS
+                elif product['token'] == product_token:
+                    logging.debug(f"Found searched productToken: {token}")
                     prod_token_exists = True
+                    break
 
             if not prod_token_exists and product_token is not None:
                 raise ws_errors.MissingTokenError(product_token, self.token_type)
