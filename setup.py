@@ -13,7 +13,7 @@ setuptools.setup(
     install_requires=[
         "DateTime",
         "requests",
-        "memoization"
+        "requests-cache"
     ],
     extras_require={
         "spdx": ["spdx-tools"]
