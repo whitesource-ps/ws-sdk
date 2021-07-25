@@ -69,7 +69,7 @@ class TestWS(TestCase):
     def test_get_scopes(self, mock_generic_get, mock_get_organization_details):
         mock_generic_get.return_value = {'productVitals': [{'name': "PROD_NAME", 'token': "TOKEN"}]}
         mock_get_organization_details.return_value = {}
-        res = self.ws.get_scopes()
+        res = self.ws.get_scopes(token="TOKEN")
 
         self.assertIsInstance(res, list)
 
