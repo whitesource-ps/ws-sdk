@@ -389,7 +389,7 @@ class WS:
                 product['type'] = PRODUCT
                 product['org_token'] = self.token
 
-                if product['token'] == token:
+                if compare_digest(product['token'], token):
                     logging.debug(f"Found searched token: {token}")
                     scopes.append(product)
                     return scopes                                              # TODO FIX THIS
