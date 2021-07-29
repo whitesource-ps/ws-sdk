@@ -145,7 +145,7 @@ def convert_ua_conf_f_to_vars(filename: str) -> WsConfiguration:
     conf = parse_ua_conf(filename)
     ws_configuration = WsConfiguration()
     for k, v in conf.items():
-        if k[0] is '#':
+        if k[0] == '#':
             k = k[1:]
             v = ""
         setattr(ws_configuration, k.replace('.', '_'), v)
