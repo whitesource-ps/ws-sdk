@@ -7,7 +7,7 @@ from typing import Union
 import requests
 
 from ws_sdk import ws_utilities
-from ws_constants import *
+from ws_sdk.ws_constants import *
 
 
 class WSClient:
