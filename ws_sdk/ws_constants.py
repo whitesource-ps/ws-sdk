@@ -1,7 +1,7 @@
 from typing import NamedTuple
 
 # General
-CACHE_TIME = 600
+CACHE_TIME = 300
 CONN_TIMEOUT = 3600
 API_URL_SUFFIX = '/api/v1.3'
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -35,11 +35,12 @@ class AlertTypes:
 PROJECT = 'project'
 PRODUCT = 'product'
 ORGANIZATION = 'organization'
+GLOBAL = 'globalOrganization'
 
-TOKEN_TYPES = {ORGANIZATION: "orgToken",
-               PRODUCT: "productToken",
-               PROJECT: "projectToken"
-               }
+TOKEN_TYPES_MAPPING = {GLOBAL: "globalOrgToken",
+                       ORGANIZATION: "orgToken",
+                       PRODUCT: "productToken",
+                       PROJECT: "projectToken"}
 
 
 # Role Types
@@ -47,7 +48,22 @@ class RoleTypes:
     DEFAULT_APPROVER = "DEFAULT_APPROVER"
     PRODUCT_INTEGRATOR = "PRODUCT_INTEGRATOR"
     ADMIN = "ADMIN"
+
     ROLE_TYPES = [DEFAULT_APPROVER, PRODUCT_INTEGRATOR, ADMIN]
+
+    O_ADMINISTRATORS = "administrators"
+    O_ALERT_RECEIVERS = "alertsEmailReceivers"
+    O_DEFAULT_APPROVERS = "defaultApprover"
+    O_READ_ONLY_USERS = "readOnlyUsers"
+    P_ADMIN = "productAdmins"
+    P_ALERT_RECEIVERS = "alertsEmailReceivers"
+    P_ASSIGNMENTS = "productMembership"
+    P_DEFAULT_APPROVERS = "productApprovers"
+    P_INTEGRATORS = "productIntegrators"
+
+    ORG_ROLE_TYPES = [O_ADMINISTRATORS, O_ALERT_RECEIVERS, O_DEFAULT_APPROVERS, O_READ_ONLY_USERS]
+    PROD_ROLES_TYPES = [P_ADMIN, P_ALERT_RECEIVERS, P_ASSIGNMENTS, P_DEFAULT_APPROVERS, P_INTEGRATORS, P_ASSIGNMENTS]
+    ALL_ROLE_TYPES = ORG_ROLE_TYPES + PROD_ROLES_TYPES
 
 
 # Assignments

@@ -1,4 +1,5 @@
+# For development only!
 DateTime~=4.3
-requests~=2.25.1
-memoization~=0.3.2
+requests==2.26.0
+requests_cache~=0.7.1
 spdx-tools[SPDX]~=0.6.1
