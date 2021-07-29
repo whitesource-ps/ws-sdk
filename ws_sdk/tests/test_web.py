@@ -1,10 +1,8 @@
 import json
 import logging
 import sys
-import unittest
 from datetime import datetime
 from unittest import TestCase
-
 from mock import patch
 
 from ws_sdk.ws_constants import *
@@ -16,7 +14,6 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 class TestWS(TestCase):
     def setUp(self):
-        logging.basicConfig(level=logging.DEBUG)
         self.ws = WS(url="app", user_key="abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz12",
                      token="ORG_TOKEN", token_type=ORGANIZATION)
 
@@ -859,4 +856,4 @@ class TestWS(TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    TestCase.unittest.main()

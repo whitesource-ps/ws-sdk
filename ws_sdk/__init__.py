@@ -2,6 +2,7 @@ import logging
 import sys
 
 from ws_sdk.web import WS
+from ws_sdk.client import WSClient
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -14,6 +15,7 @@ logger.addHandler(handler)
 
 __all__ = (
     "WS",
+    "WSClient",
     "ws_constants",
     "ws_utilities"
 )

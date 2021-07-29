@@ -70,14 +70,10 @@ class WS:
         self.session = requests_cache.CachedSession(cache_name=self.__class__.__name__,
                                                     expire_after=timedelta(seconds=CACHE_TIME),
                                                     backend='memory')
-        if url in ['saas', 'saas-eu', 'app', 'app-eu']:
-            self.url = f"https://{url}.whitesourcesoftware.com"
-        else:
-            self.url = url
-        self.api_url = self.url + API_URL_SUFFIX
+        self.api_url = ws_utilities.get_full_ws_url(url) + API_URL_SUFFIX
 
         self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
-        self.headers = {**HEADERS, **self.header_tool_details}
+        self.headers = {**WS_HEADERS, **self.header_tool_details}
 
         if not ws_utilities.is_token(self.user_key):
             logging.warning(f"Invalid User Key: {self.user_key}")
