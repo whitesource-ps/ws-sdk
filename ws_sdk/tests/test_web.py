@@ -14,6 +14,7 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 class TestWS(TestCase):
     def setUp(self):
+        logging.basicConfig(level=logging.DEBUG)
         self.ws = WS(url="app", user_key="abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz12",
                      token="ORG_TOKEN", token_type=ORGANIZATION)
 
