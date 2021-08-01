@@ -1,12 +1,13 @@
 import json
 import logging
-from datetime import datetime
+from copy import copy
+from datetime import datetime, timedelta
 from secrets import compare_digest
 from typing import Union
 
 from ws_sdk import ws_utilities, ws_errors
 import requests
-from memoization import cached
+import requests_cache
 
 from ws_sdk.ws_constants import *
 
@@ -46,79 +47,121 @@ def report_metadata(**kwargs_metadata):
 
 class WS:
     def __init__(self,
-                 url: str,
                  user_key: str,
                  token: str,
+                 url: str = 'saas',
                  token_type: str = ORGANIZATION,
                  timeout: int = CONN_TIMEOUT,
-                 resp_format: str = "json"
+                 resp_format: str = "json",
+                 tool_details: tuple = ("ps-sdk", "0")
                  ):
         """WhiteSource Python SDK
         :api_url: URL for the API to access (e.g. saas.whitesourcesoftware.com)
         :user_key: User Key to use
         :token: Token of scope
         :token_type: Scope Type (organization, product, project)
+        :tool_details Tool name and version to include in Body and Header of API requests
         """
         self.user_key = user_key
         self.token = token
         self.token_type = token_type
         self.timeout = timeout
         self.resp_format = resp_format
-
+        self.session = requests_cache.CachedSession(cache_name=self.__class__.__name__,
+                                                    expire_after=timedelta(seconds=CACHE_TIME),
+                                                    backend='memory')
         if url in ['saas', 'saas-eu', 'app', 'app-eu']:
             self.url = f"https://{url}.whitesourcesoftware.com"
         else:
             self.url = url
         self.api_url = self.url + API_URL_SUFFIX
 
+        self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
+        self.headers = {**HEADERS, **self.header_tool_details}
+
         if not ws_utilities.is_token(self.user_key):
             logging.warning(f"Invalid User Key: {self.user_key}")
 
-    @cached(ttl=CACHE_TIME)
-    def __set_token_in_body__(self,
-                              token: str = None) -> (str, dict):
+    def set_token_in_body(self,
+                          token: str = None) -> (str, dict):
+        """
+        Determines the token, its type and add into to the request body
+        :param token:
+        :return: tuple of token_type as string and kv_dict - dictionary
+        :rtype: tuple
+        """
         kv_dict = {}
         if token is None:
             token_type = self.token_type
+            kv_dict[TOKEN_TYPES_MAPPING[token_type]] = self.token
         else:
             token_type = self.get_scope_type_by_token(token)
-            kv_dict[TOKEN_TYPES[token_type]] = token
+            kv_dict[TOKEN_TYPES_MAPPING[token_type]] = token
             logging.debug(f"Token: {token} is a {token_type}")
 
         return token_type, kv_dict
 
-    @cached(ttl=CACHE_TIME)
-    def __create_body__(self,
-                        api_call: str,
-                        kv_dict: dict = None) -> dict:
-        ret_dict = {
-            "requestType": api_call,
-            "userKey": self.user_key,
-            TOKEN_TYPES[self.token_type]: self.token
-        }
-        if isinstance(kv_dict, dict):
-            for ent in kv_dict:
-                ret_dict[ent] = kv_dict[ent]
+    def call_ws_api(self,
+                    request_type: str,
+                    kv_dict: dict = None) -> dict:
+        def __create_body(api_call: str,
+                          kv_d: dict = None) -> tuple:
+            ret_dict = {
+                        "requestType": api_call,
+                        "userKey": self.user_key,
+                        "agentInfo": self.header_tool_details
+                        }
+            if isinstance(kv_d, dict):
+                for ent in kv_d:
+                    ret_dict[ent] = kv_d[ent]
 
-        return ret_dict
+            toks = [k for k in ret_dict.keys() if 'Token' in k]  # If scope token already configured
+            if toks:
+                tok = toks[0]
+            else:
+                ret_dict[TOKEN_TYPES_MAPPING[self.token_type]] = self.token
+                tok = TOKEN_TYPES_MAPPING[self.token_type]
 
-    @cached(ttl=CACHE_TIME)
-    def __call_api__(self,
-                     request_type: str,
-                     kv_dict: dict = None) -> dict:
-        body = self.__create_body__(request_type, kv_dict)
-        token = [s for s in body.keys() if 'Token' in s]
+            return tok, ret_dict
+
+        def __handle_ws_server_errors(error):
+            """
+            2007 - User is not in Organization
+            2008 - Group does not exist
+            2015 - Inactive org
+            3010 - Missing fields: user
+            4000 - Unexpected error
+            5001 - User is not allowed to perform this action
+            :param error:
+            """
+            error_dict = json.loads(error)
+            if error_dict['errorCode'] == 2015:
+                raise ws_errors.WsServerInactiveOrg(body[token])
+            else:
+                raise ws_errors.WsServerGenericError(body[token], error)
+
+        token, body = __create_body(request_type, kv_dict)
+        logging.debug(f"Calling: {self.api_url} with requestType: {request_type}")
+        self.session.expire_after = timedelta(seconds=CACHE_TIME)
+
         try:
-            resp = requests.post(self.api_url, data=json.dumps(body), headers=HEADERS, timeout=self.timeout)
+            resp = self.session.post(self.api_url, data=json.dumps(body), headers=self.headers, timeout=self.timeout)
         except requests.RequestException:
             logging.exception(f"Received Error on {body[token[-1]]}")
             raise
 
-        if resp.status_code > 299 or "errorCode" in resp.text:
+        if not request_type.startswith("get"):
+            logging.debug("Expiring request cache")
+            self.session.expire_after = 0
+
+        if resp.status_code > 299:
             logging.error(f"API {body['requestType']} call on {body[token[-1]]} failed: {resp.text}")
             raise requests.exceptions.RequestException
+        elif "errorCode" in resp.text:
+            logging.debug(f"API returned errorCode {body['requestType']} call on {body[token]} message: {resp.text}")
+            __handle_ws_server_errors(resp.text)
         else:
-            logging.debug(f"API {body['requestType']} call on {token[-1]} {body[token[-1]]} succeeded")
+            logging.debug(f"API {body['requestType']} call on {token} {body[token]} succeeded")
 
         try:
             ret = json.loads(resp.text)
@@ -133,13 +176,12 @@ class WS:
 
         return ret
 
-    @cached(ttl=CACHE_TIME)
     def __generic_get__(self,
                         get_type: str,
                         token_type: str = None,
                         kv_dict: dict = None) -> [list, dict, bytes]:
         """
-        This function completer the API type and calls.
+        This function completes the API type and calls.
         :param get_type:
         :param token_type:
         :param kv_dict:
@@ -149,7 +191,24 @@ class WS:
         if token_type is None:
             token_type = self.token_type
 
-        return self.__call_api__(f"get{token_type.capitalize()}{get_type}", kv_dict)
+        return self.call_ws_api(f"get{token_type.capitalize()}{get_type}", kv_dict)
+
+    def __generic_set__(self,
+                        set_type: str,
+                        token_type: str = None,
+                        kv_dict: dict = None) -> [list, dict, bytes]:
+        """
+        This function completes the API type and calls.
+        :param set_type:
+        :param token_type:
+        :param kv_dict:
+        :return: can be list, dict, none or bytes (pdf, xlsx...)
+        :rtype: list or dict or bytes
+        """
+        if token_type is None:
+            token_type = self.token_type
+
+        return self.call_ws_api(f"set{token_type.capitalize()}{set_type}", kv_dict)
 
     # Covers O/P/P + byType + report
     @report_metadata(report_bin_type="xlsx")
@@ -177,12 +236,12 @@ class WS:
         :return: list with alerts or xlsx if report is True
         :rtype: list or bytes
         """
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if alert_type in AlertTypes.ALERT_TYPES:
             kv_dict["alertType"] = alert_type
         elif alert_type:
             logging.error(f"Alert: {alert_type} does not exist")
-            return
+            return None
 
         if isinstance(from_date, datetime):
             kv_dict["fromDate"] = from_date.strftime(DATE_FORMAT)
@@ -195,7 +254,7 @@ class WS:
             ret = self.__generic_get__(get_type='ResolvedAlertsReport', token_type=token_type, kv_dict=kv_dict)
         elif ignored and report:
             logging.debug("Running ignored Alerts Report")
-            ret = self.__generic_get__(get_type='IgnoredAlertsReport', token_type=token_type, kv_dict=kv_dict)
+            ret = self.__generic_get__(get_type='SecurityAlertsByVulnerabilityReport', token_type=token_type, kv_dict=kv_dict)
         elif resolved:
             logging.error("Resolved Alerts is only available in xlsx format(set report=True)")
         elif ignored:
@@ -248,7 +307,7 @@ class WS:
         :return: list or xlsx if report is True
         :rtype: list or bytes
         """
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         report_name = 'Inventory'
 
         if token_type == PROJECT and not include_in_house_data:
@@ -293,7 +352,7 @@ class WS:
         def __enrich_projects__(proj_list: list, prod_list: dict):
             for project in proj_list:
                 project['type'] = PROJECT
-                project['productToken'] = prod_list.get('token')
+                project[TOKEN_TYPES_MAPPING[PRODUCT]] = prod_list.get('token')
                 project['productName'] = prod_list.get('name')
 
             return proj_list
@@ -302,10 +361,13 @@ class WS:
             all_projs = []
             for p in products:
                 try:
-                    projects = self.__generic_get__(get_type="ProjectVitals", kv_dict={'productToken': p['token']}, token_type='product')['projectVitals']
-                    all_projs.extend(__enrich_projects__(projects, p))
+                    prod_projects = self.__generic_get__(get_type="ProjectVitals",
+                                                         kv_dict={TOKEN_TYPES_MAPPING[PRODUCT]: p['token']},
+                                                         token_type='product')['projectVitals']
+                    all_projs.extend(__enrich_projects__(prod_projects, p))
                 except KeyError:
                     logging.debug(f"Product: {p['name']} Token {p['token']} without projects. Skipping")
+
             return all_projs
 
         def __create_self_scope__() -> dict:
@@ -319,15 +381,22 @@ class WS:
             projects = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
             scopes = __enrich_projects__(projects, product)
             scopes.append(product)
-
         elif self.token_type == ORGANIZATION:
             all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
             prod_token_exists = False
+
             for product in all_products:
-                if product['token'] == product_token:
+                product['type'] = PRODUCT
+                product['org_token'] = self.token
+
+                if compare_digest(product['token'], token):
+                    logging.debug(f"Found searched token: {token}")
+                    scopes.append(product)
+                    return scopes                                              # TODO FIX THIS
+                elif product['token'] == product_token:
+                    logging.debug(f"Found searched productToken: {token}")
                     prod_token_exists = True
-                if 'type' not in product:
-                    product['type'] = PRODUCT
+                    break
 
             if not prod_token_exists and product_token is not None:
                 raise ws_errors.MissingTokenError(product_token, self.token_type)
@@ -339,6 +408,29 @@ class WS:
                 scopes.extend(all_products)
             if scope_type in [ORGANIZATION, None]:
                 scopes.append(self.get_organization_details())
+        elif self.token_type == GLOBAL:
+            organizations = self.__generic_get__(get_type="AllOrganizations", token_type="")['organizations']
+            for org in organizations:
+                org['global_token'] = self.token
+                org['token'] = org['orgToken']
+                org['type'] = ORGANIZATION
+
+            scopes = []
+            if scope_type in [PROJECT, PRODUCT]:
+                for org in organizations:
+                    temp_conn = WS(url=self.url,
+                                   user_key=self.user_key,
+                                   token=org['orgToken'],
+                                   token_type=ORGANIZATION)
+                    try:
+                        scopes.extend(temp_conn.get_scopes(scope_type=scope_type))
+                        org['active'] = True
+                    except ws_errors.WsServerInactiveOrg as e:
+                        logging.warning(e.message)
+                        org['active'] = False
+            else:
+                scopes.extend(organizations)
+                scopes.append(__create_self_scope__())
         else:
             scopes.append(__create_self_scope__())
         # Filter scopes
@@ -351,13 +443,12 @@ class WS:
         if scope_type is not None:                                              # 2nd filter because scopes may contain full scope due to caching
             scopes = [scope for scope in scopes if scope['type'] == scope_type]
         if product_token:
-            scopes = [scope for scope in scopes if scope.get('productToken') == product_token]
+            scopes = [scope for scope in scopes if scope.get(TOKEN_TYPES_MAPPING[PRODUCT]) == product_token]
 
         return scopes
 
     @check_permission(permissions=[ORGANIZATION])
     def get_organization_details(self) -> dict:
-        org_details = None
         org_details = self.__generic_get__(get_type='Details')
         org_details['name'] = org_details.get('orgName')
         org_details['token'] = org_details.get('orgToken')
@@ -373,6 +464,8 @@ class WS:
         """
         if self.token_type == ORGANIZATION:
             return self.get_organization_details()['orgName']
+        elif self.token_type == GLOBAL:
+            return "TBD"
         else:
             return self.get_tags()[0]['name']
 
@@ -389,6 +482,26 @@ class WS:
         ret = []
         for scope in scopes:
             ret.append(scope['token'])
+
+        return ret
+
+    @check_permission(permissions=[GLOBAL])
+    def get_organizations(self,
+                          name: str = None,
+                          token: str = None,
+                          active: bool = None) -> list:
+        """
+        Get all organizations under global organization
+        :param name: filter by name
+        :param token: filter by token
+        :param active: whether to return active only
+        :return: list of organization
+        :rtype: list
+        """
+        ret = self.get_scopes(name=name, token=token, scope_type=ORGANIZATION)
+
+        if active:
+            ret = [org for org in ret if org.get('active') == active]
 
         return ret
 
@@ -427,7 +540,7 @@ class WS:
         :return: list or xlsx if report is True
         :rtype: list or bytes
         """
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if not report:
             kv_dict["format"] = self.resp_format
         if status in AlertStatus.ALERT_STATUSES:
@@ -482,7 +595,7 @@ class WS:
             libs_vul[key_uuid]['vulnerabilities'].add(vul['name'])
             curr_severity = vul['severity']
             libs_vul[key_uuid]['severity'] = __get_highest_severity__(curr_severity, libs_vul[key_uuid]['severity'])
-            libs_vul[key_uuid]['lib_url'] = f"{self.url}/Wss/WSS.html#!libraryDetails;uuid={key_uuid};{TOKEN_TYPES[self.token_type]}={self.token}"
+            libs_vul[key_uuid]['lib_url'] = f"{self.url}/Wss/WSS.html#!libraryDetails;uuid={key_uuid};{TOKEN_TYPES_MAPPING[self.token_type]}={self.token}"
             libs_vul[key_uuid]['project'] = vul['project']
             libs_vul[key_uuid]['product'] = vul['product']
         logging.debug(f"Found {len(libs_vul)} libraries with vulnerabilities")
@@ -552,7 +665,7 @@ class WS:
                     logging.warning(f"License with identifier: {lic['name']} was not found")
 
         report_name = 'licenses'
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if histogram:
             logging.debug(f"Running {token_type} {report_name} Histogram")
             ret = self.__generic_get__(get_type='LicenseHistogram', token_type=token_type, kv_dict=kv_dict)['licenseHistogram']
@@ -573,7 +686,7 @@ class WS:
                          token: str = None,
                          report: bool = False) -> Union[list, bytes]:
         report_name = 'Source File Inventory Report'
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if report:
             kv_dict["format"] = "xlsx"
             logging.debug(f"Running {token_type} {report_name}")
@@ -601,7 +714,7 @@ class WS:
         :rtype: list or bytes
         """
         report_name = 'In-House Libraries'
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if report:
             logging.debug(f"Running {token_type} {report_name} Report")
             ret = self.__generic_get__(get_type='InHouseReport', token_type=token_type, kv_dict=kv_dict)
@@ -617,11 +730,75 @@ class WS:
                      token: str = None) -> bytes:
         return self.get_in_house_libraries(report=report, token=token)
 
-    def get_assignments(self,
-                        token: str = None,
-                        role_type: str = None,
-                        entity_type: str = None) -> list:
+    @check_permission(permissions=[ORGANIZATION])
+    def get_users(self,
+                  name: str = None,
+                  email: str = None) -> list:
         """
+        Get organization users
+        :param name: filter list by user name
+        :return: list of users
+        """
+        logging.debug(f"Getting organization users")
+        ret = self.__generic_get__(get_type='AllUsers', token_type="")['users']
+
+        if name:
+            ret = [user for user in ret if user.get('name') == name]
+        if email:
+            ret = [user for user in ret if user.get('email') == email]
+
+        return ret
+
+    @check_permission(permissions=[ORGANIZATION])
+    def get_groups(self,
+                   name: str = None,
+                   user_name: str = None,
+                   user_email: str = None) -> list:
+        """
+        Get organization groups
+        :param name: Filter groups by group name
+        :param user_name: return groups that contains user name
+        :param user_email: return groups that contains user name
+        :return: list of groups
+        :rtype: list
+        """
+        def __filter_by_user_detail__(detail: str,
+                                      detail_value: str,
+                                      groups: list) -> list:
+            ret_groups = []
+            for group in groups:
+                for user in group['users']:
+                    if detail_value == user[detail]:
+                        ret_groups.append(group)
+
+            return ret_groups
+
+        """
+        Get organization Groups
+        :param name: filter list by group name
+        :param user_name: only returns groups that user assigned to them
+        :param user_email: only returns groups that user email assigned to them
+        :return: list of groups
+        :return: list of groups
+        :rtype: list
+        """
+        logging.debug("Getting Organization groups")
+        ret = self.__generic_get__(get_type="AllGroups", token_type="")['groups']
+        if name:
+            ret = [group for group in ret if group.get('name') == name]
+        if user_name:
+            ret = __filter_by_user_detail__(detail='name', detail_value=user_name, groups=ret)
+        if user_email:
+            ret = __filter_by_user_detail__(detail='email', detail_value=user_email, groups=ret)
+
+        return ret
+
+    def get_user_group_assignments(self,            # TODO MERGE WITH GET_USERS and GET_GROUPS
+                                   token: str = None,
+                                   role_type: str = None,
+                                   entity_type: str = None) -> list:
+        """
+        Get users and Groups assignments
         :param token: scope token to retrieve assignments
         :param role_type: accepted roles: DEFAULT_APPROVER, PRODUCT_INTEGRATOR, ADMIN
         :param entity_type: whether to filter user or group assignments.
@@ -629,7 +806,7 @@ class WS:
         :rtype list
         """
         report_name = "Assignment"
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         ret_assignments = []
         if token_type == PROJECT:
             logging.error(f"{report_name} is unsupported on project")
@@ -670,7 +847,7 @@ class WS:
         :rtype: bytes
         """
         report_name = "Risk Report"
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if not report:
             logging.error(f"Report {report_name} is supported in pdf format. (set report=True)")
         elif token_type == PROJECT:
@@ -689,7 +866,7 @@ class WS:
         :return: bytes (xlsx)
         :rtype bytes
         """
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if report and token_type == PROJECT:
             logging.error(f"{report_name} report is unsupported on {token_type}")
         elif report:
@@ -714,7 +891,7 @@ class WS:
         :return: bytes (xlsx)
         :rtype bytes
         """
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if not report:
             logging.error(f"{report_name} is supported in xlsx format. (set report=True)")
         elif token_type == ORGANIZATION:
@@ -734,7 +911,7 @@ class WS:
         :return: list or bytes (xlsx)
         :rtype list or bytes
         """
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if not report:
             kv_dict["format"] = "json"
         logging.debug(f"Running {report_name} on {token_type}")
@@ -751,7 +928,7 @@ class WS:
         :rtype bytes
         """
         report_name = "Attributes Report"
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if token_type == PROJECT:
             logging.error(f"{report_name} is unsupported on project")
         else:
@@ -787,7 +964,7 @@ class WS:
         :return:
         """
         report_name = "Attribution Report"
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if token_type == ORGANIZATION:
             logging.error(f"{report_name} is unsupported on organization")
         elif reporting_aggregation_mode not in ['BY_COMPONENT', 'BY_PROJECT']:
@@ -824,7 +1001,7 @@ class WS:
         :rtype bytes
         """
         report_name = 'Effective Licenses Report'
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if token_type == PROJECT:
             logging.error(f"{report_name} is unsupported on project")
         else:
@@ -844,7 +1021,7 @@ class WS:
         report_name = 'Bugs Report'
         ret = None
         if report:
-            token_type, kv_dict = self.__set_token_in_body__(token)
+            token_type, kv_dict = self.set_token_in_body(token)
             logging.debug(f"Running {token_type} {report_name}")
 
             ret = self.__generic_get__(get_type='BugsReport', token_type=token_type, kv_dict=kv_dict)
@@ -866,7 +1043,7 @@ class WS:
         :rtype bytes
         """
         report_name = 'Request History Report'
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         ret = None
         if not report:
             logging.error(f"{report_name} is only supported as xlsx (set report=True")
@@ -884,7 +1061,7 @@ class WS:
                                token: str) -> dict:
         project_scope = self.get_scope_by_token(token=token)
         if project_scope['type'] == PROJECT:
-            return self.get_scope_by_token(token=project_scope['productToken'])
+            return self.get_scope_by_token(token=project_scope[TOKEN_TYPES_MAPPING[PRODUCT]])
 
     def get_project(self,
                     token: str) -> dict:
@@ -894,17 +1071,10 @@ class WS:
                 return project
         logging.error(f"Project with token: {token} was not found")
 
-    @check_permission(permissions=[ORGANIZATION])
-    def get_users(self) -> list:
-        report_name = 'Users'
-        token_type, kv_dict = self.__set_token_in_body__()
-
-        return self.__generic_get__(get_type='AllUsers', token_type="")['users']
-
     def get_tags(self,
                  token: str = None) -> list:
         report_name = "Tags"
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
 
         if token and token_type == PROJECT or self.token_type == PROJECT:                              # getProjectTags
             ret = self.__generic_get__(get_type="ProjectTags", token_type="", kv_dict=kv_dict)['projectTags']
@@ -932,13 +1102,13 @@ class WS:
         :return: dict whether succeeded.
         :rtype dict
         """
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         if token_type == PROJECT:
             project = self.get_project(token)
-            kv_dict['productToken'] = project['productToken']
+            kv_dict[TOKEN_TYPES_MAPPING[PRODUCT]] = project[TOKEN_TYPES_MAPPING[PRODUCT]]
         logging.debug(f"Deleting {token_type}: {self.get_scope_name_by_token(token)} Token: {token}")
 
-        return self.__call_api__(f"delete{token_type.capitalize()}", kv_dict)
+        return self.call_ws_api(f"delete{token_type.capitalize()}", kv_dict)
 
     def get_libraries(self,
                       search_value: str,
@@ -954,8 +1124,8 @@ class WS:
         """
         if global_search:
             logging.debug(f"Performing Global Search with value: \'{search_value}\'")
-            libs = self.__call_api__(request_type="librarySearch", kv_dict={"searchValue": search_value}).get('libraries')
-            if version:                                                     # Filtering by version # TODO Good idea to extend with <>~
+            libs = self.call_ws_api(request_type="librarySearch", kv_dict={"searchValue": search_value}).get('libraries')
+            if version:
                 logging.debug(f"Filtering search value: \'{search_value}\' by version: {version}")
                 libs = [lib for lib in libs if lib.get('version') == version]
             if search_only_name:
@@ -1015,7 +1185,7 @@ class WS:
         :return: dict whether succeeded
         :rtype dict
         """
-        token_type, kv_dict = self.__set_token_in_body__()
+        token_type, kv_dict = self.set_token_in_body()
         if not alert_uuids:
             logging.error("At least 1 alert uuid must be provided")
         elif status not in AlertStatus.ALERT_SET_STATUSES:
@@ -1027,7 +1197,7 @@ class WS:
             kv_dict['status'] = status
             kv_dict['comments'] = comments
 
-            return self.__call_api__(request_type='setAlertsStatus', kv_dict=kv_dict)
+            return self.call_ws_api(request_type='setAlertsStatus', kv_dict=kv_dict)
 
     def get_lib_notice(self,
                        product_token: str = None,
@@ -1072,7 +1242,7 @@ class WS:
 
             return ret_list
 
-        token_type, kv_dict = self.__set_token_in_body__(token=product_token)
+        token_type, kv_dict = self.set_token_in_body(token=product_token)
 
         if token_type == PRODUCT:
             ret = self.__generic_get__(get_type='NoticesTextFile', token_type="", kv_dict=kv_dict)
@@ -1086,12 +1256,12 @@ class WS:
                        lib_uuid: str,
                        text: Union[str, dict, list],
                        reference: str = None):
-        token_type, kv_dict = self.__set_token_in_body__()
+        token_type, kv_dict = self.set_token_in_body()
         kv_dict['libraryUUID'] = lib_uuid
         kv_dict['text'] = text if isinstance(text, str) else json.dumps(text)
         kv_dict['reference'] = reference
 
-        return self.__call_api__(request_type='setLibraryNotice', kv_dict=kv_dict)
+        return self.call_ws_api(request_type='setLibraryNotice', kv_dict=kv_dict)
 
     def get_policies(self,
                      token: str = None,
@@ -1104,7 +1274,7 @@ class WS:
         :rtype: list
         """
         report_name = "Policies"
-        token_type, kv_dict = self.__set_token_in_body__(token)
+        token_type, kv_dict = self.set_token_in_body(token)
         logging.debug(f"Running {token_type} {report_name}")
         kv_dict['aggregatePolicies'] = include_affected
         ret = self.__generic_get__(get_type='Policies', token_type=token_type, kv_dict=kv_dict)['policies']
@@ -1116,3 +1286,154 @@ class WS:
             pol['scope_type'] = pol_ctx2scope[pol['policyContext']]
 
         return ret
+
+    @check_permission(permissions=[ORGANIZATION])
+    def create_user(self,
+                    name: str,
+                    email: str = None,
+                    inviter_email: str = None,
+                    is_service: bool = False) -> dict:
+        """
+        Create user or service user
+        :param name: name of created user - if user exists, the method will fail
+        :param email: 
+        :param inviter_email: 
+        :param is_service:
+        :returns None if User, User Key if Service User
+        :rtype: str None
+        """
+        token_type, kv_dict = self.set_token_in_body()
+        ret = {}
+        if self.get_users(name=name):                       # createUser WILL THROW AN ERROR IF CALLED ON EXISTING USER
+            logging.warning(f"User: {name} already exists")
+        elif is_service:
+            logging.debug(f"Creating Service User: {name}")
+            kv_dict['addedUser'] = {"name": name}
+            ret = self.call_ws_api(request_type='createServiceUser', kv_dict=kv_dict)
+        elif email and inviter_email:
+            logging.debug(f"Creating User: {name} email : {email} with Inviter email: {inviter_email}")
+            kv_dict['inviter'] = {"email": inviter_email}
+            kv_dict['addedUser'] = {"name": name, "email": email}
+            ret = self.call_ws_api(request_type='createUser', kv_dict=kv_dict)
+        else:
+            logging.error("Missing details to create User")
+
+        return ret                                              #  TODO BUG IN CONFLUENCE DOCUMENTATION (userToken)
+
+    @check_permission(permissions=[ORGANIZATION, GLOBAL])
+    def delete_user(self,
+                    email: str,
+                    org_token: str = None) -> dict:
+        """
+        Remove user from organization by email address, If run by global and org_token is not None it will remove from
+        a specific token and if not will remove from all organizations under global
+        :param email: User's email to remove
+        :param org_token: Delete from a specific org when running as Global administrator
+        """
+        if self.token_type == GLOBAL:
+            orgs = self.get_organizations(token=org_token) if org_token else self.get_organizations()
+            if orgs:
+                for org in orgs:
+                    temp_conn = copy(self)                      # TODO MAKE THIS GENERIC
+                    temp_conn.token = org['token']
+                    temp_conn.token_type = ORGANIZATION
+                    temp_conn.delete_user(email)
+            else:
+                logging.error(f"Organization token: {org_token} was not found under Global Organization: {self.token}")
+        else:
+            if not self.get_users(email=email):
+                logging.error(f"User's email: {email} does not exist in the organization")
+            else:
+                logging.debug(f"Deleting user email: {email} from Organization Token: {self.token}")
+                return self.call_ws_api(request_type="removeUserFromOrganization", kv_dict={"user": {"email": email}})
+
+    @check_permission(permissions=[ORGANIZATION])
+    def create_group(self,
+                     name: str,
+                     description: str = None) -> dict:
+        token_type, kv_dict = self.set_token_in_body()
+        kv_dict['group'] = {"name": name,
+                            "description": name if description is None else description,
+                            }
+        ret = {}
+        if self.get_groups(name=name):
+            logging.warning(f"Group: \'{name}\' already exists")
+        else:
+            logging.debug(f"Creating Group: {name}")
+            ret = self.call_ws_api(request_type='createGroup', kv_dict=kv_dict)
+
+        return ret
+
+    @check_permission(permissions=[ORGANIZATION])
+    def assign_user_to_group(self,
+                             user_email: str,
+                             group_name: str) -> dict:
+        if not self.get_groups(name=group_name):
+            logging.error(f"Unable to assign user: {user_email} to Group: {group_name}. Group does not exist")
+        elif not self.get_users(email=user_email):
+            logging.error(f"User's Email: {user_email} does not exist")
+        elif self.get_groups(name=group_name, user_email=user_email):
+            logging.warning(f"User's Email: {user_email} already in group: {group_name}")
+        else:
+            logging.debug(f"Assigning user's Email: {user_email} to Group: {group_name}")
+            token_type, kv_dict = self.set_token_in_body()
+            kv_dict['assignedUsers'] = [[{'name': group_name},
+                                         [{"email": user_email}]
+                                         ]]
+
+            return self.call_ws_api(request_type='addUsersToGroups', kv_dict=kv_dict)
+
+    @check_permission(permissions=[PRODUCT, ORGANIZATION])
+    def assign_to_scope(self,
+                        role_type: str,
+                        token: str = None,
+                        email: Union[str, list] = None,
+                        group: Union[str, list] = None) -> dict:
+        def __get_assignments__(a, key) -> list:
+            assignments = []
+            if isinstance(a, str):
+                assignments = [{key: a}]
+            elif isinstance(a, list):
+                for e in a:
+                    assignments.append({key: e})
+
+            return assignments
+        """
+        Assign user(s) or group(s) to a designated scope (organization or product) with a specific role type
+        :param role_type:
+        :param token: Scope token (if no stated, assign to the connector scope
+        :param email: User's email address (one or more)
+        :param group: Group name (one or more)
+        """
+        token_type, kv_dict = self.set_token_in_body(token)
+        if not email and not group:
+            logging.error("At least 1 user or group is required")
+        elif token_type is ORGANIZATION and role_type not in RoleTypes.ORG_ROLE_TYPES:
+            logging.error(f"Invalid {ORGANIZATION} Role type: {role_type}. Available Roles: {RoleTypes.PROD_ROLES_TYPES}")
+        elif token_type is PRODUCT and role_type not in RoleTypes.PROD_ROLES_TYPES:
+            logging.error(f"Invalid {PRODUCT} Role type: {role_type}. Available Roles: {RoleTypes.PROD_ROLES_TYPES}")
+        else:
+            all_groups_assignments = __get_assignments__(group, "name")         # Filter non-existing groups
+            groups_assignments = []
+            for group_item in all_groups_assignments:
+                if self.get_groups(name=group_item['name']):
+                    groups_assignments.append(group_item)
+                else:
+                    logging.warning(f"Group: {group_item} does not exist")
+            groups_assignments = groups_assignments if len(groups_assignments) > 0 else None
+
+            all_users_assignments = __get_assignments__(email, "email")          # Filter non-existing users in the org
+            users_assignments = []
+            for user_item in all_users_assignments:
+                if self.get_users(email=user_item['email']):
+                    users_assignments.append(user_item)
+                else:
+                    logging.warning(f"User email: {user_item['email']} does not exist")
+
+            if users_assignments or groups_assignments:
+                kv_dict[role_type] = {'userAssignments': users_assignments,
+                                      'groupAssignments': groups_assignments}
+                logging.debug(f"Assigning User(s): {email} Group(s): {group} to Role: {role_type}")
+                return self.__generic_set__(set_type='Assignments', token_type=token_type, kv_dict=kv_dict)
+            else:
+                logging.error("No valid user or group were found")
