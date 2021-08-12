@@ -71,7 +71,6 @@ class WS:
                                                     expire_after=timedelta(seconds=CACHE_TIME),
                                                     backend='memory')
         self.api_url = ws_utilities.get_full_ws_url(url) + API_URL_SUFFIX
-
         self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
         self.headers = {**WS_HEADERS, **self.header_tool_details}
 
@@ -385,7 +384,7 @@ class WS:
                 product['type'] = PRODUCT
                 product['org_token'] = self.token
 
-                if compare_digest(product['token'], token):
+                if product['token'] == token:
                     logging.debug(f"Found searched token: {token}")
                     scopes.append(product)
                     return scopes                                              # TODO FIX THIS
