@@ -1,9 +1,11 @@
 import logging
 import os
+import pathlib
 import sys
 from unittest import TestCase
 from unittest.mock import patch
 
+import ws_constants
 from ws_sdk import WSClient
 
 
@@ -14,6 +16,8 @@ class TestWSClient(TestCase):
 class TestWS(TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.DEBUG)
+        pathlib.Path.mkdir(ws_constants.DEFAULT_UA_PATH, parents=True, exist_ok=True)
+
         self.client = WSClient(user_key=os.environ['WS_USER_KEY'],
                                token=os.environ['WS_ORG_TOKEN'])
 
