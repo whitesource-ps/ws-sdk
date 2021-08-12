@@ -1,3 +1,4 @@
+import sys
 from typing import NamedTuple
 
 # General
@@ -11,7 +12,7 @@ INVALID_FS_CHARS = [':', '*', '\\' '<', '>', '/', '"', '?', '*', '|']
 
 
 # UA
-DEFAULT_UA_PATH = "c:\\tmp\\ua"
+DEFAULT_UA_PATH = "c:\\tmp\\ua" if sys.platform.startswith("win") else "/tmp/ua"
 UA_JAR_FNAME = "wss-unified-agent.jar"
 UA_CONF_FNAME = "wss-unified-agent.config"
 LATEST_UA_CONFIG_FILE = "https://github.com/whitesource/unified-agent-distribution/raw/master/standAlone/wss-unified-agent.config"
