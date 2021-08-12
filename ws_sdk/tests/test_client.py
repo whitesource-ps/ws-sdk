@@ -9,14 +9,12 @@ from ws_sdk import WSClient
 
 class TestWSClient(TestCase):
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-    ws_url = os.environ['WS_URL']
 
 
 class TestWS(TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.DEBUG)
-        self.client = WSClient(url=os.environ.get('WS_URL'),
-                               user_key=os.environ['WS_USER_KEY'],
+        self.client = WSClient(user_key=os.environ['WS_USER_KEY'],
                                token=os.environ['WS_TOKEN'])
 
     def test_get_latest_ua_release_url(self):

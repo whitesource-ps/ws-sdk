@@ -1259,20 +1259,20 @@ class WS:
 
         return self.call_ws_api(request_type='setLibraryNotice', kv_dict=kv_dict)
 
-    def get_policies(self,
+    def get_policies(self,                                                  # TODO get affected policy (i.e include on each project product and org policies that affect the project
                      token: str = None,
-                     include_affected: bool = True) -> list:
+                     include_parent_policy: bool = True) -> list:
         """
         Retrieves policies from scope
         :param token: Optional to to get policies of another token
-        :param include_affected: Should inherited policies be presented (default: true)
+        :param include_parent_policy: Should inherited policies be presented (default: true)
         :return: list of policies
         :rtype: list
         """
         report_name = "Policies"
         token_type, kv_dict = self.set_token_in_body(token)
         logging.debug(f"Running {token_type} {report_name}")
-        kv_dict['aggregatePolicies'] = include_affected
+        kv_dict['aggregatePolicies'] = include_parent_policy
         ret = self.__generic_get__(get_type='Policies', token_type=token_type, kv_dict=kv_dict)['policies']
         pol_ctx2scope = {'DOMAIN': ORGANIZATION,
                          'PRODUCT': PRODUCT,
