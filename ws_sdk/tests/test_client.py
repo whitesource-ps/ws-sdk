@@ -15,7 +15,7 @@ class TestWS(TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.DEBUG)
         self.client = WSClient(user_key=os.environ['WS_USER_KEY'],
-                               token=os.environ['WS_TOKEN'])
+                               token=os.environ['WS_ORG_TOKEN'])
 
     def test_get_latest_ua_release_url(self):
         res = self.client.get_latest_ua_release_url()
