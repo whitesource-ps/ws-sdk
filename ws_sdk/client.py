@@ -15,13 +15,15 @@ class WSClient:
                  user_key: str,
                  token: str,
                  token_type: str = ORGANIZATION,
-                 url: str = 'saas',
+                 url: str = None,
                  ua_path: str = DEFAULT_UA_PATH,
                  ua_conf_with_path: str = None,
                  ua_jar_with_path: str = None):
 
         if token_type is ORGANIZATION:
             self.ua_path = ua_path
+            self.ua_path_whitesource = os.path.join(self.ua_path, "whitesource")
+            self.java_temp_dir = ua_path
             self.ua_jar_f_with_path = ua_jar_with_path if ua_jar_with_path else os.path.join(ua_path, UA_JAR_FNAME)
             self.ua_conf_f_with_path = ua_conf_with_path if ua_conf_with_path else os.path.join(ua_path, UA_CONF_FNAME)
             # UA configuration
@@ -29,23 +31,43 @@ class WSClient:
             self.ua_all_conf.apiKey = token
             self.ua_all_conf.userKey = user_key
             self.ua_all_conf.wss_url = f"{ws_utilities.get_full_ws_url(url)}/agent"
+            # self.ua_all_conf.whiteSourceFolderPath = self.ua_path
+            self.ua_all_conf.offline = "True"
+            self.ua_all_conf.noConfig = "True"
+            if logging.root.level == logging.DEBUG:
+                self.ua_all_conf.logLevel = "debug"
         else:
             logging.error("Unsupported organization type. Only Organization type is supported")
 
-    def execute_ua(self, options: str):
-        command = f"java -jar {self.ua_jar_f_with_path} {options}"
+    def execute_ua(self, options: str) -> tuple:
+        """
+        Executes the UA
+        :param options: The options to pass the UA (that are not pass as env vars)
+        :return: tuple of return code integer and str with ua output
+        :rtype: tuple
+        """
+        command = f"java -Djava.io.tmpdir={self.java_temp_dir} -jar {self.ua_jar_f_with_path} {options}"
         logging.debug(f"Running command: {command}")
         env = ws_utilities.generate_conf_ev(self.ua_all_conf)
         logging.debug(f"UA Environment Variables: {env}")
         output = subprocess.run(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        return output.stdout
+        return output.returncode, output.stdout.decode('utf-8')
 
     def execute_scan(self,
                      scan_dir: Union[list, str],
                      project_token: str = None,
                      product_token: str = None,
-                     product_name: str = None):
+                     product_name: str = None,
+                     offline_mode: bool = None):
+        """
+        Execute scan on dir(s)
+        :param scan_dir: the dir(s) to scan (comma seperated if multiple)
+        :param project_token: WS Project token to associate scan with
+        :param product_token:WS Product token to associate scan with
+        :param product_name: WS Product name to associate scan with
+        :return:
+        """
         def get_existing_paths(s_dir):
             if isinstance(s_dir, str) and os.path.exists(scan_dir):
                 ret = s_dir
@@ -74,6 +96,8 @@ class WSClient:
             logging.info(f"Scanning Dir(s): {existing_dirs}")
             output = self.execute_ua(f"-d {existing_dirs} {target}")
             logging.debug(f"UA output: {output}")
+        else:
+            logging.warning("Nothing was scanned")
 
     def get_latest_ua_release_url(self) -> dict:
         res = ws_utilities.call_gh_api(url=LATEST_UA_URL)
@@ -106,3 +130,25 @@ class WSClient:
         logging.debug(f"WS Unified Agent version {local_semver}")
 
         return local_semver
+
+    def __get_output(self, f):
+        with open(f, 'r') as fp:
+            file_content = fp.read()
+
+        return json.loads(file_content)
+
+    def get_ua_scan_output(self) -> dict:
+        ua_file_path = os.path.join(self.ua_path_whitesource, "update-request.txt")
+        return self.__get_output(ua_file_path)
+
+    def get_policy_rejection_summary(self) -> dict:
+        ua_file_path = os.path.join(self.ua_path_whitesource, "policyRejectionSummary.json")
+        return self.__get_output(ua_file_path)
+
+    def get_check_policies(self) -> dict:
+        ua_file_path = os.path.join(self.ua_path_whitesource, "checkPolicies-json.txt")
+        return self.__get_output(ua_file_path)
+
+    def get_scan_project_details(self) -> dict:
+        ua_file_path = os.path.join(self.ua_path_whitesource, "scanProjectDetails.json")
+        return self.__get_output(ua_file_path)

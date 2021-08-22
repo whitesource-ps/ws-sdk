@@ -102,6 +102,8 @@ def break_filename(filename: str) -> tuple:
             'version': re.search(r'-((?!.*-).+)(?=\.)', filename).group(1)}
 
 def get_full_ws_url(url) -> str:
+    if url is None:
+        url = 'saas'
     if url in ['saas', 'saas-eu', 'app', 'app-eu']:
         url = f"https://{url}.whitesourcesoftware.com"
 
@@ -156,5 +158,5 @@ def generate_conf_ev(ws_configuration: WsConfiguration) -> dict:
     :param ws_configuration:
     :return:
     """
-    return {f"WS_" + k.upper(): v for k, v in ws_configuration.__dict__.items()}
+    return {f"WS_" + k.upper(): v for k, v in ws_configuration.__dict__.items() if v}
 

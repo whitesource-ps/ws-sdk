@@ -49,7 +49,7 @@ class WS:
     def __init__(self,
                  user_key: str,
                  token: str,
-                 url: str = 'saas',
+                 url: str = None,
                  token_type: str = ORGANIZATION,
                  timeout: int = CONN_TIMEOUT,
                  resp_format: str = "json",
@@ -431,14 +431,15 @@ class WS:
         # Filter scopes
         if token:
             scopes = [scope for scope in scopes if compare_digest(scope['token'], token)]
-            if not scopes:
-                raise ws_errors.MissingTokenError(token, self.token_type)
+
         if name:
             scopes = [scope for scope in scopes if scope['name'] == name]
         if scope_type is not None:                                              # 2nd filter because scopes may contain full scope due to caching
             scopes = [scope for scope in scopes if scope['type'] == scope_type]
         if product_token:
             scopes = [scope for scope in scopes if scope.get(TOKEN_TYPES_MAPPING[PRODUCT]) == product_token]
+
+        logging.info(f"{len(scopes)} results were found")       # Check that MissingTokenError is not in use in other repos
 
         return scopes
 

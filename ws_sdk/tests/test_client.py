@@ -5,7 +5,6 @@ import sys
 from unittest import TestCase
 from unittest.mock import patch
 
-from ws_sdk import ws_constants
 from ws_sdk.client import WSClient
 
 
