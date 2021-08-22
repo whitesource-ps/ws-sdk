@@ -158,5 +158,5 @@ def generate_conf_ev(ws_configuration: WsConfiguration) -> dict:
     :param ws_configuration:
     :return:
     """
-    return {f"WS_" + k.upper(): v for k, v in ws_configuration.__dict__.items() if v}
+    return {f"WS_" + k.upper(): str(v) for k, v in ws_configuration.__dict__.items() if v}
 

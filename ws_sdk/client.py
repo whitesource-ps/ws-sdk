@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 import subprocess
@@ -32,23 +33,26 @@ class WSClient:
             self.ua_all_conf.userKey = user_key
             self.ua_all_conf.wss_url = f"{ws_utilities.get_full_ws_url(url)}/agent"
             # self.ua_all_conf.whiteSourceFolderPath = self.ua_path
-            self.ua_all_conf.offline = "True"
-            self.ua_all_conf.noConfig = "True"
+            self.ua_all_conf.Offline = True
+            self.ua_all_conf.noConfig = True
             if logging.root.level == logging.DEBUG:
                 self.ua_all_conf.logLevel = "debug"
         else:
             logging.error("Unsupported organization type. Only Organization type is supported")
 
-    def execute_ua(self, options: str) -> tuple:
+    def execute_ua(self,
+                   options: str,
+                   ua_conf: dict) -> tuple:
         """
         Executes the UA
         :param options: The options to pass the UA (that are not pass as env vars)
+        :param ua_conf:
         :return: tuple of return code integer and str with ua output
         :rtype: tuple
         """
         command = f"java -Djava.io.tmpdir={self.java_temp_dir} -jar {self.ua_jar_f_with_path} {options}"
         logging.debug(f"Running command: {command}")
-        env = ws_utilities.generate_conf_ev(self.ua_all_conf)
+        env = ws_utilities.generate_conf_ev(ua_conf)
         logging.debug(f"UA Environment Variables: {env}")
         output = subprocess.run(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -59,13 +63,14 @@ class WSClient:
                      project_token: str = None,
                      product_token: str = None,
                      product_name: str = None,
-                     offline_mode: bool = None):
+                     offline: bool = None):
         """
         Execute scan on dir(s)
         :param scan_dir: the dir(s) to scan (comma seperated if multiple)
         :param project_token: WS Project token to associate scan with
         :param product_token:WS Product token to associate scan with
         :param product_name: WS Product name to associate scan with
+        :param offline:
         :return:
         """
         def get_existing_paths(s_dir):
@@ -94,7 +99,12 @@ class WSClient:
 
         if target and existing_dirs:
             logging.info(f"Scanning Dir(s): {existing_dirs}")
-            output = self.execute_ua(f"-d {existing_dirs} {target}")
+            local_ua_all_conf = copy.copy(self.ua_all_conf)
+
+            if offline is not None:
+                local_ua_all_conf.Offline = offline
+
+            output = self.execute_ua(f"-d {existing_dirs} {target}", local_ua_all_conf)
             logging.debug(f"UA output: {output}")
         else:
             logging.warning("Nothing was scanned")
