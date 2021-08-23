@@ -40,9 +40,9 @@ class WSClient:
         else:
             logging.error("Unsupported organization type. Only Organization type is supported")
 
-    def execute_ua(self,
-                   options: str,
-                   ua_conf: dict) -> tuple:
+    def __execute_ua(self,
+                     options: str,
+                     ua_conf: dict) -> tuple:
         """
         Executes the UA
         :param options: The options to pass the UA (that are not pass as env vars)
@@ -104,7 +104,7 @@ class WSClient:
             if offline is not None:
                 local_ua_all_conf.Offline = offline
 
-            output = self.execute_ua(f"-d {existing_dirs} {target}", local_ua_all_conf)
+            output = self.__execute_ua(f"-d {existing_dirs} {target}", local_ua_all_conf)
             logging.debug(f"UA output: {output}")
         else:
             logging.warning("Nothing was scanned")
@@ -135,7 +135,7 @@ class WSClient:
         return self.get_latest_ua_release_url()['tag_name']
 
     def get_local_ua_semver(self):
-        output = self.execute_ua("-v")
+        output = self.__execute_ua("-v")
         local_semver = output.strip('\r\n')
         logging.debug(f"WS Unified Agent version {local_semver}")
 
