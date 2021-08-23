@@ -32,8 +32,6 @@ class WSClient:
             self.ua_all_conf.apiKey = token
             self.ua_all_conf.userKey = user_key
             self.ua_all_conf.wss_url = f"{ws_utilities.get_full_ws_url(url)}/agent"
-            # self.ua_all_conf.whiteSourceFolderPath = self.ua_path
-            self.ua_all_conf.Offline = True
             self.ua_all_conf.noConfig = True
             if logging.root.level == logging.DEBUG:
                 self.ua_all_conf.logLevel = "debug"
@@ -85,17 +83,7 @@ class WSClient:
             return ret
 
         existing_dirs = get_existing_paths(scan_dir)
-        target = None
-        if not existing_dirs:
-            logging.error(f"Directory: {existing_dirs} was not found")
-        elif project_token:
-            target = "-projectToken " + project_token
-        elif product_token:
-            target = "-productToken " + product_token
-        elif product_name:
-            target = "-product" + product_name
-        else:
-            logging.error("At least one value should be configured: productName, productToken or projectToken")
+        target = self.get_target(project_token, product_token, product_name)
 
         if target and existing_dirs:
             logging.info(f"Scanning Dir(s): {existing_dirs}")
@@ -104,10 +92,56 @@ class WSClient:
             if offline is not None:
                 local_ua_all_conf.Offline = offline
 
-            output = self.__execute_ua(f"-d {existing_dirs} {target}", local_ua_all_conf)
+            output = self.__execute_ua(f"-d {existing_dirs} -{target[0]} {target[1]}", local_ua_all_conf)
             logging.debug(f"UA output: {output}")
         else:
             logging.warning("Nothing was scanned")
+
+        if not existing_dirs:
+            logging.error(f"Directory: {existing_dirs} was not found")
+        if not target:
+            logging.error("At least one value should be configured: productName, productToken or projectToken")
+
+    def upload_offline_request(self,
+                               offline_request: Union[dict, str],
+                               project_token: str = None,
+                               product_token: str = None,
+                               product_name: str = None):
+        """
+        Method to upload an offline request to WS
+        :param offline_request: can accept full path to update file of dict
+        :param project_token: target project token
+        :param product_token: target product token
+        :param product_name: target project name
+        """
+        target = self.get_target(project_token, product_token, product_name)
+        if target:
+            logging.info(f"Uploading offline request to {target[0]} - {target[1]}")
+            if isinstance(offline_request, dict):
+                file_path = os.path.join(self.ua_path, "update_request_tmp.json")
+                with open(file_path, 'w') as fp:
+                    fp.write(json.dumps(offline_request))
+            else:
+                file_path = offline_request
+
+            output = self.__execute_ua(f"-requestFiles {file_path} -{target[0]} {target[1]}", self.ua_all_conf)
+            logging.debug(f"UA output: {output}")
+        else:
+            logging.error("No target was found")
+
+    def get_target(self,
+                   project_token: str,
+                   product_token: str,
+                   product_name: str) -> tuple:
+        target = None
+        if project_token:
+            target = ("projectToken", project_token)
+        elif product_token:
+            target = ("productToken", product_token)
+        elif product_name:
+            target = ("product", product_name)
+
+        return target
 
     def get_latest_ua_release_url(self) -> dict:
         res = ws_utilities.call_gh_api(url=LATEST_UA_URL)
@@ -141,24 +175,20 @@ class WSClient:
 
         return local_semver
 
-    def __get_output(self, f):
-        with open(f, 'r') as fp:
+    def __get_ua_output(self, f):
+        with open(os.path.join(self.ua_path_whitesource, f), 'r') as fp:
             file_content = fp.read()
 
         return json.loads(file_content)
 
     def get_ua_scan_output(self) -> dict:
-        ua_file_path = os.path.join(self.ua_path_whitesource, "update-request.txt")
-        return self.__get_output(ua_file_path)
+        return self.__get_ua_output("update-request.txt")
 
     def get_policy_rejection_summary(self) -> dict:
-        ua_file_path = os.path.join(self.ua_path_whitesource, "policyRejectionSummary.json")
-        return self.__get_output(ua_file_path)
+        return self.__get_ua_output("policyRejectionSummary.json")
 
     def get_check_policies(self) -> dict:
-        ua_file_path = os.path.join(self.ua_path_whitesource, "checkPolicies-json.txt")
-        return self.__get_output(ua_file_path)
+        return self.__get_ua_output("checkPolicies-json.txt")
 
     def get_scan_project_details(self) -> dict:
-        ua_file_path = os.path.join(self.ua_path_whitesource, "scanProjectDetails.json")
-        return self.__get_output(ua_file_path)
+        return self.__get_ua_output("scanProjectDetails.json")
