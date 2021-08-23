@@ -28,13 +28,11 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res['tag_name'], str)
 
-    @patch('ws_sdk.client.WSClient.execute_ua')
-    def test_get_local_ua_semver(self, mock_execute_ua):
+    def test_get_local_ua_semver(self):
         ua_ver = "21.6.3"
-        mock_execute_ua.return_value = ua_ver
-        res = self.client.get_local_ua_semver()
-
-        self.assertEqual(res, ua_ver)
+        with patch.object(self.client, "_WSClient__execute_ua", return_value=ua_ver) as method:
+            res = self.client.get_local_ua_semver()
+            self.assertEqual(res, ua_ver)
 
 
 if __name__ == '__main__':
