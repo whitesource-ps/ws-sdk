@@ -1,6 +1,7 @@
 import copy
 import logging
 import requests
+import os
 from dataclasses import dataclass
 from typing import Callable
 from ws_sdk.ws_constants import *
@@ -153,10 +154,13 @@ def convert_ua_conf_f_to_vars(filename: str) -> WsConfiguration:
     return ws_configuration
 
 def generate_conf_ev(ws_configuration: WsConfiguration) -> dict:
+    def to_str(t):
+        return  ",".join(t) if isinstance(t, (set, list)) else str(t)
+
     """
     Convert WsConfiguration into UA env vars dictionary
     :param ws_configuration:
-    :return:
+    :return: dictionary of env vars
     """
-    return {f"WS_" + k.upper(): str(v) for k, v in ws_configuration.__dict__.items() if v}
-
+    return {**os.environ,
+            **{f"WS_" + k.upper(): to_str(v) for k, v in ws_configuration.__dict__.items() if v is not None}}

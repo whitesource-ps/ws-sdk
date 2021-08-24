@@ -26,13 +26,16 @@ class WSClient:
             self.ua_path_whitesource = os.path.join(self.ua_path, "whitesource")
             self.java_temp_dir = ua_path
             self.ua_jar_f_with_path = ua_jar_with_path if ua_jar_with_path else os.path.join(ua_path, UA_JAR_FNAME)
-            self.ua_conf_f_with_path = ua_conf_with_path if ua_conf_with_path else os.path.join(ua_path, UA_CONF_FNAME)
             # UA configuration
-            self.ua_all_conf = ws_utilities.convert_ua_conf_f_to_vars(self.ua_conf_f_with_path)
+            # self.ua_conf_f_with_path = ua_conf_with_path if ua_conf_with_path else os.path.join(ua_path, UA_CONF_FNAME)
+            # self.ua_all_conf = ws_utilities.convert_ua_conf_f_to_vars(self.ua_conf_f_with_path) # Enable to generate class members from conf file
+            self.ua_all_conf = ws_utilities.WsConfiguration()
             self.ua_all_conf.apiKey = token
             self.ua_all_conf.userKey = user_key
             self.ua_all_conf.wss_url = f"{ws_utilities.get_full_ws_url(url)}/agent"
             self.ua_all_conf.noConfig = True
+            self.ua_all_conf.checkPolicies = False
+            self.ua_all_conf.includes = {"**/*.c", "**/*.cc", "**/*.cp", "**/*.cpp", "**/*.cxx", "**/*.c++", "**/*.h", "**/*.hpp","**/*.hxx"}
             if logging.root.level == logging.DEBUG:
                 self.ua_all_conf.logLevel = "debug"
         else:
