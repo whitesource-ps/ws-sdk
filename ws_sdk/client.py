@@ -19,8 +19,9 @@ class WSClient:
                  url: str = None,
                  ua_path: str = DEFAULT_UA_PATH,
                  ua_conf_with_path: str = None,
-                 ua_jar_with_path: str = None):
-
+                 ua_jar_with_path: str = None,
+                 tool_details: tuple = ("ps-sdk", "0")
+                 ):
         if token_type is ORGANIZATION:
             self.ua_path = ua_path
             self.ua_path_whitesource = os.path.join(self.ua_path, "whitesource")
