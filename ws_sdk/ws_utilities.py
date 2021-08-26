@@ -1,7 +1,9 @@
 import copy
+import json
 import logging
 import requests
 import os
+import shutil
 from dataclasses import dataclass
 from typing import Callable
 from ws_sdk.ws_constants import *
@@ -164,3 +166,41 @@ def generate_conf_ev(ws_configuration: WsConfiguration) -> dict:
     """
     return {**os.environ,
             **{f"WS_" + k.upper(): to_str(v) for k, v in ws_configuration.__dict__.items() if v is not None}}
+
+
+def init_ua(path: str):
+    download_ua(path)
+
+
+def download_ua(path: str,
+                inc_ua_jar_file: bool = True,
+                inc_ua_conf_file: bool = True):
+    def download_ua_file(f_details: tuple):
+        file_p = os.path.join(path, f_details[0])
+        if os.path.exists(file_p):
+            logging.debug(f"Backing previous {f_details[0]}")
+            shutil.move(file_p, f"{file_p}.bkp")
+        logging.debug(f"Downloading WS Unified Agent (version: {get_latest_ua_release_version()}) to {file_p}")
+        resp = requests.get(url=f_details[1])
+        with open(file_p, 'wb') as f:
+            f.write(resp.content)
+
+    if inc_ua_jar_file:
+        download_ua_file(UA_JAR_T)
+
+    if inc_ua_conf_file:
+        download_ua_file(UA_CONF_T)
+
+
+def get_latest_ua_release_version() -> str:
+    ver = get_latest_ua_release_url()['tag_name']
+    logging.debug(f"Latest Unified Agent version: {ver}")
+
+    return ver
+
+
+def get_latest_ua_release_url() -> dict:
+    res = call_gh_api(url=LATEST_UA_URL)
+
+    return json.loads(res.text)
+

@@ -4,8 +4,7 @@ import os
 import subprocess
 import json
 from typing import Union
-
-import requests
+from pkg_resources import parse_version
 
 from ws_sdk import ws_utilities
 from ws_sdk.ws_constants import *
@@ -18,33 +17,39 @@ class WSClient:
                  token_type: str = ORGANIZATION,
                  url: str = None,
                  ua_path: str = DEFAULT_UA_PATH,
-                 ua_conf_with_path: str = None,
                  ua_jar_with_path: str = None,
+                 skip_ua_update: bool = False,
                  tool_details: tuple = ("ps-sdk", "0")
                  ):
         if token_type is ORGANIZATION:
             self.ua_path = ua_path
             self.ua_path_whitesource = os.path.join(self.ua_path, "whitesource")
             self.java_temp_dir = ua_path
-            self.ua_jar_f_with_path = ua_jar_with_path if ua_jar_with_path else os.path.join(ua_path, UA_JAR_FNAME)
+            self.ua_jar_f_with_path = ua_jar_with_path if ua_jar_with_path else os.path.join(ua_path, UA_JAR_F_N)
             # UA configuration
             # self.ua_conf_f_with_path = ua_conf_with_path if ua_conf_with_path else os.path.join(ua_path, UA_CONF_FNAME)
-            # self.ua_all_conf = ws_utilities.convert_ua_conf_f_to_vars(self.ua_conf_f_with_path) # Enable to generate class members from conf file
-            self.ua_all_conf = ws_utilities.WsConfiguration()
-            self.ua_all_conf.apiKey = token
-            self.ua_all_conf.userKey = user_key
-            self.ua_all_conf.wss_url = f"{ws_utilities.get_full_ws_url(url)}/agent"
-            self.ua_all_conf.noConfig = True
-            self.ua_all_conf.checkPolicies = False
-            self.ua_all_conf.includes = {"**/*.c", "**/*.cc", "**/*.cp", "**/*.cpp", "**/*.cxx", "**/*.c++", "**/*.h", "**/*.hpp","**/*.hxx"}
+            # self.ua_conf = ws_utilities.convert_ua_conf_f_to_vars(self.ua_conf_f_with_path) # Enable to generate class members from conf file
+            self.ua_conf = ws_utilities.WsConfiguration()
+            self.ua_conf.apiKey = token
+            self.ua_conf.userKey = user_key
+            self.ua_conf.wss_url = f"{ws_utilities.get_full_ws_url(url)}/agent"
+            self.ua_conf.noConfig = True
+            self.ua_conf.checkPolicies = False
+            self.ua_conf.includes = {"**/*.c", "**/*.cc", "**/*.cp", "**/*.cpp", "**/*.cxx", "**/*.c++", "**/*.h", "**/*.hpp", "**/*.hxx"}
             if logging.root.level == logging.DEBUG:
-                self.ua_all_conf.logLevel = "debug"
+                self.ua_conf.logLevel = "debug"
+
+            if self.is_latest_ua_semver() or skip_ua_update:
+                logging.debug("Skipping WhiteSource Unified Agent update")
+            else:
+                logging.debug("Downloading WhiteSource Unified Agent")
+                ws_utilities.init_ua(self.ua_path)
         else:
             logging.error("Unsupported organization type. Only Organization type is supported")
 
     def __execute_ua(self,
                      options: str,
-                     ua_conf: dict) -> tuple:
+                     ua_conf: ws_utilities.WsConfiguration = None) -> tuple:
         """
         Executes the UA
         :param options: The options to pass the UA (that are not pass as env vars)
@@ -52,6 +57,8 @@ class WSClient:
         :return: tuple of return code integer and str with ua output
         :rtype: tuple
         """
+        if ua_conf is None:
+            ua_conf = self.ua_conf
         command = f"java -Djava.io.tmpdir={self.java_temp_dir} -jar {self.ua_jar_f_with_path} {options}"
         logging.debug(f"Running command: {command}")
         env = ws_utilities.generate_conf_ev(ua_conf)
@@ -91,7 +98,7 @@ class WSClient:
 
         if target and existing_dirs:
             logging.info(f"Scanning Dir(s): {existing_dirs}")
-            local_ua_all_conf = copy.copy(self.ua_all_conf)
+            local_ua_all_conf = copy.copy(self.ua_conf)
 
             if offline is not None:
                 local_ua_all_conf.Offline = offline
@@ -128,7 +135,7 @@ class WSClient:
             else:
                 file_path = offline_request
 
-            output = self.__execute_ua(f"-requestFiles {file_path} -{target[0]} {target[1]}", self.ua_all_conf)
+            output = self.__execute_ua(f"-requestFiles {file_path} -{target[0]} {target[1]}", self.ua_conf)
             logging.debug(f"UA output: {output}")
         else:
             logging.error("No target was found")
@@ -147,39 +154,16 @@ class WSClient:
 
         return target
 
-    def get_latest_ua_release_url(self) -> dict:
-        res = ws_utilities.call_gh_api(url=LATEST_UA_URL)
-
-        return json.loads(res.text)
-
-    def download_ua(self,
-                    inc_ua_jar_file: bool = True,
-                    inc_ua_conf_file: bool = True):
-        def download_ua_file(f_details: tuple):
-            path = os.path.join(self.ua_path, f_details[0])
-            logging.debug(f"Downloading WS Unified Agent (version: {self.get_latest_ua_release_version()}) to {path}")
-            resp = requests.get(url=f_details[1])
-            with open(path, 'wb') as f:
-                f.write(resp.content)
-
-        if inc_ua_jar_file:
-            download_ua_file(UA_JAR)
-
-        if inc_ua_conf_file:
-            download_ua_file(UA_CONF)
-
-    def get_latest_ua_release_version(self) -> str:
-
-        return self.get_latest_ua_release_url()['tag_name']
-
     def get_local_ua_semver(self):
-        output = self.__execute_ua("-v")
-        local_semver = output.strip('\r\n')
-        logging.debug(f"WS Unified Agent version {local_semver}")
+        local_semver = self.__execute_ua("-v")[1].strip('\r\n')
+        logging.debug(f"Local WhiteSource Unified Agent version {local_semver}")
 
         return local_semver
 
-    def __get_ua_output(self, f):
+    def is_latest_ua_semver(self) -> bool:
+        return parse_version(self.get_local_ua_semver()) >= parse_version(ws_utilities.get_latest_ua_release_version())
+
+    def __get_ua_output(self, f) -> dict:
         with open(os.path.join(self.ua_path_whitesource, f), 'r') as fp:
             file_content = fp.read()
 

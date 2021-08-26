@@ -13,13 +13,13 @@ INVALID_FS_CHARS = [':', '*', '\\' '<', '>', '/', '"', '?', '*', '|']
 
 # UA
 DEFAULT_UA_PATH = "c:\\tmp\\ua" if sys.platform.startswith("win") else "/tmp/ua"
-UA_JAR_FNAME = "wss-unified-agent.jar"
-UA_CONF_FNAME = "wss-unified-agent.config"
-LATEST_UA_CONFIG_FILE = "https://github.com/whitesource/unified-agent-distribution/raw/master/standAlone/wss-unified-agent.config"
-LATEST_UA_JAR_FILE = "https://github.com/whitesource/unified-agent-distribution/releases/latest/download/wss-unified-agent.jar"
+UA_JAR_F_N = "wss-unified-agent.jar"
+UA_CONF_F_N = "wss-unified-agent.config"
+LATEST_UA_CONF_F_U = "https://github.com/whitesource/unified-agent-distribution/raw/master/standAlone/wss-unified-agent.config"
+LATEST_UA_JAR_F_U = "https://github.com/whitesource/unified-agent-distribution/releases/latest/download/wss-unified-agent.jar"
 
-UA_JAR = (UA_JAR_FNAME, LATEST_UA_JAR_FILE)
-UA_CONF = (UA_CONF_FNAME, LATEST_UA_CONFIG_FILE)
+UA_JAR_T = (UA_JAR_F_N, LATEST_UA_JAR_F_U)
+UA_CONF_T = (UA_CONF_F_N, LATEST_UA_CONF_F_U)
 
 LATEST_UA_URL = "https://api.github.com/repos/whitesource/unified-agent-distribution/releases/latest"
 GH_HEADERS = {"Accept": "application / vnd.github.v3 + json"}
