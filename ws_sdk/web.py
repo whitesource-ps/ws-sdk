@@ -49,7 +49,7 @@ class WS:
     def __init__(self,
                  user_key: str,
                  token: str,
-                 url: str = 'saas',
+                 url: str = None,
                  token_type: str = ORGANIZATION,
                  timeout: int = CONN_TIMEOUT,
                  resp_format: str = "json",
@@ -70,14 +70,9 @@ class WS:
         self.session = requests_cache.CachedSession(cache_name=self.__class__.__name__,
                                                     expire_after=timedelta(seconds=CACHE_TIME),
                                                     backend='memory')
-        if url in ['saas', 'saas-eu', 'app', 'app-eu']:
-            self.url = f"https://{url}.whitesourcesoftware.com"
-        else:
-            self.url = url
-        self.api_url = self.url + API_URL_SUFFIX
-
+        self.api_url = ws_utilities.get_full_ws_url(url) + API_URL_SUFFIX
         self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
-        self.headers = {**HEADERS, **self.header_tool_details}
+        self.headers = {**WS_HEADERS, **self.header_tool_details}
 
         if not ws_utilities.is_token(self.user_key):
             logging.warning(f"Invalid User Key: {self.user_key}")
@@ -136,9 +131,9 @@ class WS:
             """
             error_dict = json.loads(error)
             if error_dict['errorCode'] == 2015:
-                raise ws_errors.WsServerInactiveOrg(body[token])
+                raise ws_errors.WsSdkServerInactiveOrg(body[token])
             else:
-                raise ws_errors.WsServerGenericError(body[token], error)
+                raise ws_errors.WsSdkServerGenericError(body[token], error)
 
         token, body = __create_body(request_type, kv_dict)
         logging.debug(f"Calling: {self.api_url} with requestType: {request_type}")
@@ -425,7 +420,7 @@ class WS:
                     try:
                         scopes.extend(temp_conn.get_scopes(scope_type=scope_type))
                         org['active'] = True
-                    except ws_errors.WsServerInactiveOrg as e:
+                    except ws_errors.WsSdkServerInactiveOrg as e:
                         logging.warning(e.message)
                         org['active'] = False
             else:
@@ -436,14 +431,15 @@ class WS:
         # Filter scopes
         if token:
             scopes = [scope for scope in scopes if compare_digest(scope['token'], token)]
-            if not scopes:
-                raise ws_errors.MissingTokenError(token, self.token_type)
+
         if name:
             scopes = [scope for scope in scopes if scope['name'] == name]
         if scope_type is not None:                                              # 2nd filter because scopes may contain full scope due to caching
             scopes = [scope for scope in scopes if scope['type'] == scope_type]
         if product_token:
             scopes = [scope for scope in scopes if scope.get(TOKEN_TYPES_MAPPING[PRODUCT]) == product_token]
+
+        logging.info(f"{len(scopes)} results were found")       # Check that MissingTokenError is not in use in other repos
 
         return scopes
 
@@ -1263,20 +1259,20 @@ class WS:
 
         return self.call_ws_api(request_type='setLibraryNotice', kv_dict=kv_dict)
 
-    def get_policies(self,
+    def get_policies(self,                                                  # TODO get affected policy (i.e include on each project product and org policies that affect the project
                      token: str = None,
-                     include_affected: bool = True) -> list:
+                     include_parent_policy: bool = True) -> list:
         """
         Retrieves policies from scope
         :param token: Optional to to get policies of another token
-        :param include_affected: Should inherited policies be presented (default: true)
+        :param include_parent_policy: Should inherited policies be presented (default: true)
         :return: list of policies
         :rtype: list
         """
         report_name = "Policies"
         token_type, kv_dict = self.set_token_in_body(token)
         logging.debug(f"Running {token_type} {report_name}")
-        kv_dict['aggregatePolicies'] = include_affected
+        kv_dict['aggregatePolicies'] = include_parent_policy
         ret = self.__generic_get__(get_type='Policies', token_type=token_type, kv_dict=kv_dict)['policies']
         pol_ctx2scope = {'DOMAIN': ORGANIZATION,
                          'PRODUCT': PRODUCT,

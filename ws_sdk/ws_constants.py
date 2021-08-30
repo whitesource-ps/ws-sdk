@@ -1,3 +1,4 @@
+import sys
 from typing import NamedTuple
 
 # General
@@ -5,10 +6,24 @@ CACHE_TIME = 300
 CONN_TIMEOUT = 3600
 API_URL_SUFFIX = '/api/v1.3'
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
-HEADERS = {'content-type': 'application/json'}
-
-
+WS_HEADERS = {'content-type': 'application/json'}
+DEFAULT_REMOTE_URL = ""
 INVALID_FS_CHARS = [':', '*', '\\' '<', '>', '/', '"', '?', '*', '|']
+
+
+# UA
+DEFAULT_UA_PATH = "c:\\tmp\\ua" if sys.platform.startswith("win") else "/tmp/ua"
+UA_JAR_F_N = "wss-unified-agent.jar"
+UA_CONF_F_N = "wss-unified-agent.config"
+LATEST_UA_CONF_F_U = "https://github.com/whitesource/unified-agent-distribution/raw/master/standAlone/wss-unified-agent.config"
+LATEST_UA_JAR_F_U = "https://github.com/whitesource/unified-agent-distribution/releases/latest/download/wss-unified-agent.jar"
+
+UA_JAR_T = (UA_JAR_F_N, LATEST_UA_JAR_F_U)
+UA_CONF_T = (UA_CONF_F_N, LATEST_UA_CONF_F_U)
+
+LATEST_UA_URL = "https://api.github.com/repos/whitesource/unified-agent-distribution/releases/latest"
+GH_HEADERS = {"Accept": "application / vnd.github.v3 + json"}
+MANDATORY_VALS = ['TBD']
 
 
 class AlertStatus:
@@ -151,3 +166,4 @@ class LibMetaData:
                LibMetadata(language='r', package_manager=[], file_suffices=['r']),
                LibMetadata(language='objc', package_manager=['cocoapods'], file_suffices=['.h', '.m', '.mm', '.M']),
                ]
+

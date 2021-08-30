@@ -11,4 +11,4 @@
 /src/
 /ws_sdk/__pycache__/
 /venv/
-/ws_sdk/main.py
+/main.py
