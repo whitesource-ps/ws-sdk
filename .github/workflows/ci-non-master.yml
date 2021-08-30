@@ -31,6 +31,9 @@ jobs:
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Unittesting
+        env:
+          WS_USER_KEY: ${{ secrets.WS_USER_KEY }}
+          WS_ORG_TOKEN: ${{ secrets.WS_ORG_TOKEN }}
         run: python -m unittest
       - name: Create Wheel Package
         run: python setup.py bdist_wheel

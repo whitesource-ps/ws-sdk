@@ -1,10 +1,8 @@
 import json
 import logging
 import sys
-import unittest
 from datetime import datetime
 from unittest import TestCase
-
 from mock import patch
 
 from ws_sdk.ws_constants import *
@@ -859,4 +857,4 @@ class TestWS(TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    TestCase.unittest.main()
