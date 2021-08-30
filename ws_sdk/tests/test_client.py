@@ -26,11 +26,11 @@ class TestWS(TestCase):
                                token=os.environ['WS_ORG_TOKEN'])
 
     def test_get_local_ua_semver(self):
-        ua_ret_t = (0, "21.6.3")
+        ua_ret_t = "21.6.3"
         with patch.object(self.client, "_WSClient__execute_ua", return_value=ua_ret_t) as method:
             res = self.client.get_local_ua_semver()
 
-            self.assertEqual(res, ua_ret_t[1])
+            self.assertEqual(res, ua_ret_t)
 
 
 if __name__ == '__main__':

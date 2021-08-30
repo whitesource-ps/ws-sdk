@@ -131,9 +131,9 @@ class WS:
             """
             error_dict = json.loads(error)
             if error_dict['errorCode'] == 2015:
-                raise ws_errors.WsServerInactiveOrg(body[token])
+                raise ws_errors.WsSdkServerInactiveOrg(body[token])
             else:
-                raise ws_errors.WsServerGenericError(body[token], error)
+                raise ws_errors.WsSdkServerGenericError(body[token], error)
 
         token, body = __create_body(request_type, kv_dict)
         logging.debug(f"Calling: {self.api_url} with requestType: {request_type}")
@@ -420,7 +420,7 @@ class WS:
                     try:
                         scopes.extend(temp_conn.get_scopes(scope_type=scope_type))
                         org['active'] = True
-                    except ws_errors.WsServerInactiveOrg as e:
+                    except ws_errors.WsSdkServerInactiveOrg as e:
                         logging.warning(e.message)
                         org['active'] = False
             else:

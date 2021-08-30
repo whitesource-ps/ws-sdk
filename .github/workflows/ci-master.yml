@@ -36,7 +36,7 @@ jobs:
       - name: Unittesting
         env:
           WS_USER_KEY: ${{ secrets.WS_USER_KEY }}
-          WS_SCOPE_PROJ: ${{ secrets.WS_ORG_TOKEN }}
+          WS_ORG_TOKEN: ${{ secrets.WS_ORG_TOKEN }}
         run: python -m unittest
       - name: Create Wheel Package
         run: python setup.py bdist_wheel
