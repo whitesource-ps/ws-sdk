@@ -1,3 +1,4 @@
+import base64
 import copy
 import logging
 import os
@@ -6,7 +7,7 @@ import json
 from typing import Union
 from pkg_resources import parse_version
 
-from ws_sdk import ws_utilities
+from ws_sdk import ws_utilities, ws_errors
 from ws_sdk.ws_constants import *
 
 
@@ -49,7 +50,14 @@ class WSClient:
 
     def __execute_ua(self,
                      options: str,
-                     ua_conf: ws_utilities.WsConfiguration = None) -> tuple:
+                     ua_conf: ws_utilities.WsConfiguration = None):
+        def __handle_ws_client_errors():
+            if output.returncode == 0:
+                logging.debug(f"UA executed successfully. Return Code {output.returncode}. Message: {output.stdout.decode('utf-8')}")
+            elif output.returncode == -2:
+                raise ws_errors.WsSdkClientPolicyViolation(output.returncode, output.stderr.decode('utf-8'))
+            else:
+                raise ws_errors.WsSdkClientGenericError(output.returncode, output.stderr.decode('utf-8'))
         """
         Executes the UA
         :param options: The options to pass the UA (that are not pass as env vars)
@@ -64,8 +72,9 @@ class WSClient:
         env = ws_utilities.generate_conf_ev(ua_conf)
         logging.debug(f"UA Environment Variables: {env}")
         output = subprocess.run(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        __handle_ws_client_errors()
 
-        return output.returncode, output.stdout.decode('utf-8')
+        return output.stdout.decode('utf-8')
 
     def execute_scan(self,
                      scan_dir: Union[list, str],
@@ -103,8 +112,7 @@ class WSClient:
             if offline is not None:
                 local_ua_all_conf.Offline = offline
 
-            output = self.__execute_ua(f"-d {existing_dirs} -{target[0]} {target[1]}", local_ua_all_conf)
-            logging.debug(f"UA output: {output}")
+            self.__execute_ua(f"-d {existing_dirs} -{target[0]} {target[1]}", local_ua_all_conf)
         else:
             logging.warning("Nothing was scanned")
 
@@ -135,8 +143,7 @@ class WSClient:
             else:
                 file_path = offline_request
 
-            output = self.__execute_ua(f"-requestFiles {file_path} -{target[0]} {target[1]}", self.ua_conf)
-            logging.debug(f"UA output: {output}")
+            self.__execute_ua(f"-requestFiles \"{file_path}\" -{target[0]} {target[1]}", self.ua_conf)
         else:
             logging.error("No target was found")
 
@@ -155,7 +162,7 @@ class WSClient:
         return target
 
     def get_local_ua_semver(self):
-        local_semver = self.__execute_ua("-v")[1].strip('\r\n')
+        local_semver = self.__execute_ua("-v").strip('\r\n')
         logging.debug(f"Local WhiteSource Unified Agent version {local_semver}")
 
         return local_semver
