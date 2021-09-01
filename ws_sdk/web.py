@@ -22,7 +22,7 @@ def check_permission(permissions: list):                       # Decorator to en
                         token_type = args[0].token_type
                     except IndexError:
                         logging.exception("Unable to discover token type")
-                        raise ws_errors.TokenTypeError
+                        raise ws_errors.WsSdkServerTokenTypeError
                 return token_type
 
             if __get_token_type__() in permissions:
@@ -329,7 +329,18 @@ class WS:
 
     def get_scope_by_token(self,
                            token: str) -> dict:
-        return self.get_scopes(token=token)[0]
+        """
+        Method to return the scope of a token, if not found, raise exception.
+        :param token: the searched token
+        :return: dictionary of scope
+        :rtype: dict
+        """
+        ret = self.get_scopes(token=token)
+
+        if ret:
+            return ret[0]
+        else:
+            raise ws_errors.WsSdkServerMissingTokenError(token, self.token_type)
 
     def get_scopes(self,
                    name: str = None,
@@ -394,7 +405,7 @@ class WS:
                     break
 
             if not prod_token_exists and product_token is not None:
-                raise ws_errors.MissingTokenError(product_token, self.token_type)
+                raise ws_errors.WsSdkServerMissingTokenError(product_token, self.token_type)
 
             if scope_type not in [ORGANIZATION, PRODUCT]:
                 all_projects = __get_projects_from_product__(all_products)
@@ -1243,7 +1254,7 @@ class WS:
         if token_type == PRODUCT:
             ret = self.__generic_get__(get_type='NoticesTextFile', token_type="", kv_dict=kv_dict)
         else:
-            raise ws_errors.TokenTypeError(product_token)
+            raise ws_errors.WsSdkServerTokenTypeError(product_token)
 
         return ret if as_text else __convert_notice_text_to_json__(ret)
 
