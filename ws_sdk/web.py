@@ -132,6 +132,8 @@ class WS:
             error_dict = json.loads(error)
             if error_dict['errorCode'] == 2015:
                 raise ws_errors.WsSdkServerInactiveOrg(body[token])
+            elif error_dict['errorCode'] == 5001:
+                raise ws_errors.WsSdkServerInsufficientPermissions(body[token])
             else:
                 raise ws_errors.WsSdkServerGenericError(body[token], error)
 

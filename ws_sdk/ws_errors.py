@@ -32,6 +32,12 @@ class WsSdkServerGenericError(WsSdkServerError):
         super().__init__(self.message)
 
 
+class WsSdkServerInsufficientPermissions(WsSdkServerError):
+    def __init__(self, token):
+        self.message = f"User token: {token} has insufficient permissions"
+        super().__init__(self.message)
+
+
 # Client
 class WsSdkClientError(WsSdkError):
     """Parent Exception Class for WS Client errors"""
