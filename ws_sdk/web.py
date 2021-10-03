@@ -69,6 +69,7 @@ class WS:
         self.resp_format = resp_format
         self.session = requests_cache.CachedSession(cache_name=self.__class__.__name__,
                                                     expire_after=timedelta(seconds=CACHE_TIME),
+                                                    allowable_methods=['GET', 'POST'],
                                                     backend='memory')
         self.api_url = ws_utilities.get_full_ws_url(url) + API_URL_SUFFIX
         self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
@@ -218,7 +219,7 @@ class WS:
                    tag: dict = {},
                    ignored: bool = False,
                    resolved: bool = False,
-                   report: bool = False) -> Union[list, bytes]:
+                   report: bool = False) -> Union[list, bytes, None]:
         """
         Retrieves open alerts of all types
         :param token: The token that the request will be created on
@@ -647,6 +648,7 @@ class WS:
                 licenses_dict = ws_utilities.convert_dict_list_to_dict(lst=spdx_licenses['licenses'], key_desc='licenseId')
             except ImportError:
                 logging.error("Error loading module")
+                raise
 
             return licenses_dict
 
