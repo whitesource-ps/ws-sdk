@@ -22,7 +22,7 @@ def check_permission(permissions: list):                       # Decorator to en
                         token_type = args[0].token_type
                     except IndexError:
                         logging.exception("Unable to discover token type")
-                        raise ws_errors.TokenTypeError
+                        raise ws_errors.WsSdkServerTokenTypeError
                 return token_type
 
             if __get_token_type__() in permissions:
@@ -69,6 +69,7 @@ class WS:
         self.resp_format = resp_format
         self.session = requests_cache.CachedSession(cache_name=self.__class__.__name__,
                                                     expire_after=timedelta(seconds=CACHE_TIME),
+                                                    allowable_methods=['GET', 'POST'],
                                                     backend='memory')
         self.api_url = ws_utilities.get_full_ws_url(url) + API_URL_SUFFIX
         self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
@@ -132,6 +133,8 @@ class WS:
             error_dict = json.loads(error)
             if error_dict['errorCode'] == 2015:
                 raise ws_errors.WsSdkServerInactiveOrg(body[token])
+            elif error_dict['errorCode'] == 5001:
+                raise ws_errors.WsSdkServerInsufficientPermissions(body[token])
             else:
                 raise ws_errors.WsSdkServerGenericError(body[token], error)
 
@@ -216,7 +219,7 @@ class WS:
                    tag: dict = {},
                    ignored: bool = False,
                    resolved: bool = False,
-                   report: bool = False) -> Union[list, bytes]:
+                   report: bool = False) -> Union[list, bytes, None]:
         """
         Retrieves open alerts of all types
         :param token: The token that the request will be created on
@@ -329,7 +332,18 @@ class WS:
 
     def get_scope_by_token(self,
                            token: str) -> dict:
-        return self.get_scopes(token=token)[0]
+        """
+        Method to return the scope of a token, if not found, raise exception.
+        :param token: the searched token
+        :return: dictionary of scope
+        :rtype: dict
+        """
+        ret = self.get_scopes(token=token)
+
+        if ret:
+            return ret[0]
+        else:
+            raise ws_errors.WsSdkServerMissingTokenError(token, self.token_type)
 
     def get_scopes(self,
                    name: str = None,
@@ -376,6 +390,8 @@ class WS:
             projects = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
             scopes = __enrich_projects__(projects, product)
             scopes.append(product)
+        elif self.token_type == ORGANIZATION and product_token and scope_type == PROJECT:
+            scopes = __get_projects_from_product__([product_token])
         elif self.token_type == ORGANIZATION:
             all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
             prod_token_exists = False
@@ -394,7 +410,7 @@ class WS:
                     break
 
             if not prod_token_exists and product_token is not None:
-                raise ws_errors.MissingTokenError(product_token, self.token_type)
+                raise ws_errors.WsSdkServerMissingTokenError(product_token, self.token_type)
 
             if scope_type not in [ORGANIZATION, PRODUCT]:
                 all_projects = __get_projects_from_product__(all_products)
@@ -426,7 +442,7 @@ class WS:
             else:
                 scopes.extend(organizations)
                 scopes.append(__create_self_scope__())
-        else:
+        else:                                                               # self.token_type == PROJECT
             scopes.append(__create_self_scope__())
         # Filter scopes
         if token:
@@ -634,6 +650,7 @@ class WS:
                 licenses_dict = ws_utilities.convert_dict_list_to_dict(lst=spdx_licenses['licenses'], key_desc='licenseId')
             except ImportError:
                 logging.error("Error loading module")
+                raise
 
             return licenses_dict
 
@@ -1243,7 +1260,7 @@ class WS:
         if token_type == PRODUCT:
             ret = self.__generic_get__(get_type='NoticesTextFile', token_type="", kv_dict=kv_dict)
         else:
-            raise ws_errors.TokenTypeError(product_token)
+            raise ws_errors.WsSdkServerTokenTypeError(product_token)
 
         return ret if as_text else __convert_notice_text_to_json__(ret)
 
