@@ -390,6 +390,8 @@ class WS:
             projects = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
             scopes = __enrich_projects__(projects, product)
             scopes.append(product)
+        elif self.token_type == ORGANIZATION and product_token and scope_type == PROJECT:
+            scopes = __get_projects_from_product__([product_token])
         elif self.token_type == ORGANIZATION:
             all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
             prod_token_exists = False
@@ -440,7 +442,7 @@ class WS:
             else:
                 scopes.extend(organizations)
                 scopes.append(__create_self_scope__())
-        else:
+        else:                                                               # self.token_type == PROJECT
             scopes.append(__create_self_scope__())
         # Filter scopes
         if token:

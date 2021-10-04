@@ -8,7 +8,7 @@ API_URL_SUFFIX = '/api/v1.3'
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 WS_HEADERS = {'content-type': 'application/json'}
 DEFAULT_REMOTE_URL = ""
-INVALID_FS_CHARS = [':', '*', '\\' '<', '>', '/', '"', '?', '*', '|']
+INVALID_FS_CHARS = [':', '*', '\\', '<', '>', '/', '"', '?', '|']
 
 
 # UA
