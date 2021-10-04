@@ -776,7 +776,7 @@ class TestWS(TestCase):
     def test_get_lib_notice_not_product(self, mock_set_token_in_body):
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
 
-        with self.assertRaises(ws_errors.TokenTypeError):
+        with self.assertRaises(ws_errors.WsSdkServerTokenTypeError):
             self.ws.get_lib_notice()
 
     @patch('ws_sdk.web.WS.call_ws_api')
