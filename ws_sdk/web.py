@@ -358,11 +358,11 @@ class WS:
         :return: list of scope dictionaries
         :rtype list
         """
-        def __enrich_projects__(proj_list: list, prod_list: dict):
+        def __enrich_projects__(proj_list: list, prod: dict) -> list:
             for project in proj_list:
                 project['type'] = PROJECT
-                project[TOKEN_TYPES_MAPPING[PRODUCT]] = prod_list.get('token')
-                project['productName'] = prod_list.get('name')
+                project[TOKEN_TYPES_MAPPING[PRODUCT]] = prod.get('token')
+                project['productName'] = prod.get('name')
 
             return proj_list
 
@@ -390,8 +390,6 @@ class WS:
             projects = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
             scopes = __enrich_projects__(projects, product)
             scopes.append(product)
-        elif self.token_type == ORGANIZATION and product_token and scope_type == PROJECT:
-            scopes = __get_projects_from_product__([product_token])
         elif self.token_type == ORGANIZATION:
             all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
             prod_token_exists = False
@@ -413,6 +411,8 @@ class WS:
                 raise ws_errors.WsSdkServerMissingTokenError(product_token, self.token_type)
 
             if scope_type not in [ORGANIZATION, PRODUCT]:
+                if product_token:
+                    all_products = [prod for prod in all_products if prod['token'] == product_token]
                 all_projects = __get_projects_from_product__(all_products)
                 scopes.extend(all_projects)
             if scope_type not in [ORGANIZATION, PROJECT]:
@@ -1450,3 +1450,4 @@ class WS:
                 return self.__generic_set__(set_type='Assignments', token_type=token_type, kv_dict=kv_dict)
             else:
                 logging.error("No valid user or group were found")
+
