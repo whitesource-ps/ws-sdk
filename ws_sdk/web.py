@@ -1450,3 +1450,4 @@ class WS:
                 return self.__generic_set__(set_type='Assignments', token_type=token_type, kv_dict=kv_dict)
             else:
                 logging.error("No valid user or group were found")
+
