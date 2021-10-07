@@ -7,14 +7,14 @@ class WsSdkServerError(WsSdkError):
     """Parent Exception Class for WS Application errors"""
 
 
-class MissingTokenError(WsSdkServerError):
+class WsSdkServerMissingTokenError(WsSdkServerError):
     """Raised when token is missing"""
     def __init__(self, token, token_type):
         self.message = f"Token {token} does not exist in this {token_type}"
         super().__init__(self.message)
 
 
-class TokenTypeError(WsSdkServerError):
+class WsSdkServerTokenTypeError(WsSdkServerError):
     def __init__(self, token):
         self.message = f"Unable to discover Token Type of token {token}"
         super().__init__(self.message)
@@ -29,6 +29,12 @@ class WsSdkServerInactiveOrg(WsSdkServerError):
 class WsSdkServerGenericError(WsSdkServerError):
     def __init__(self, token, error):
         self.message = f"Generic error on token: {token}. Error: {error}"
+        super().__init__(self.message)
+
+
+class WsSdkServerInsufficientPermissions(WsSdkServerError):
+    def __init__(self, token):
+        self.message = f"User token: {token} has insufficient permissions"
         super().__init__(self.message)
 
 
