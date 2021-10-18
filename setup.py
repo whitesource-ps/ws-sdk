@@ -2,14 +2,14 @@ import setuptools
 
 setuptools.setup(
     name="ws_sdk",
-    version="0.6.0.2",
+    version="0.6.0.3",
     author="WhiteSource Professional Services",
     author_email="ps@whitesourcesoftware.com",
     description="WS Python SDK",
     url='https://github.com/whitesource-ps/ws-sdk',
     license='LICENSE.txt',
     packages=setuptools.find_packages(),
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=[
         "DateTime",
         "requests",
