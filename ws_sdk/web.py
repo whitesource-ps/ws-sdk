@@ -71,6 +71,7 @@ class WS:
                                                     expire_after=timedelta(seconds=CACHE_TIME),
                                                     allowable_methods=['GET', 'POST'],
                                                     backend='memory')
+        self.url = url
         self.api_url = ws_utilities.get_full_ws_url(url) + API_URL_SUFFIX
         self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
         self.headers = {**WS_HEADERS, **self.header_tool_details}
@@ -639,9 +640,8 @@ class WS:
         :param full_spdx: Whether to enrich SPDX data with full license name and URL (requires spdx-tools package)
         :return: list
         """
-        def __get_spdx__() -> dict:
+        def __get_spdx_license_dict__() -> dict:
             logging.debug("Enriching license data with SDPX information")
-            licenses_dict = None
             try:
                 from spdx.config import _licenses
                 with open(_licenses, "r") as fp:
@@ -662,6 +662,8 @@ class WS:
                     lic['spdxName'] = "AGPL-1.0"
                 elif lic.get('name') == "BSD Zero":
                     lic['spdxName'] = "0BSD"
+                elif lic.get('name') == "Unlicense":
+                    lic['spdxName'] = "Unlicense"
 
                 if lic.get('spdxName'):
                     logging.info(f"Fixed spdxName of {lic['name']} to {lic['spdxName']}")
@@ -688,7 +690,7 @@ class WS:
             ret = self.__generic_get__(get_type='Licenses', token_type=token_type, kv_dict=kv_dict)['libraries']
 
             if full_spdx:
-                spdx_dict = __get_spdx__()
+                spdx_dict = __get_spdx_license_dict__()
                 for lib in ret:
                     __enrich_lib__(lib, spdx_dict)
 

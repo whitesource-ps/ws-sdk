@@ -9,7 +9,7 @@ setuptools.setup(
     url='https://github.com/whitesource-ps/ws-sdk',
     license='LICENSE.txt',
     packages=setuptools.find_packages(),
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=[
         "DateTime",
         "requests",
