@@ -641,7 +641,7 @@ class WS:
         :return: list
         """
         def __get_spdx_license_dict__() -> dict:
-            logging.debug("Enriching license data with SDPX information")
+            logging.debug("Enriching license data with SPDX information")
             try:
                 from spdx.config import _licenses
                 with open(_licenses, "r") as fp:
