@@ -48,7 +48,7 @@ jobs:
           artifacts: "dist/*.whl"
           allowUpdates: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: contains(github.ref, 'a|b')
+          prerelease: contains(github.ref, 'a')
       - name: Publish to Test PyPI
         if: startsWith(github.ref, 'refs/tags/test-v')
         uses: pypa/gh-action-pypi-publish@release/v1
