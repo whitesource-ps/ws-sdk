@@ -456,7 +456,7 @@ class WS:
         if product_token:
             scopes = [scope for scope in scopes if scope.get(TOKEN_TYPES_MAPPING[PRODUCT]) == product_token]
 
-        logging.info(f"{len(scopes)} results were found")       # Check that MissingTokenError is not in use in other repos
+        logging.debug(f"{len(scopes)} results were found")       # Check that MissingTokenError is not in use in other repos
 
         return scopes
 
