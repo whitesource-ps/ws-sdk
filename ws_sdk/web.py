@@ -2,13 +2,12 @@ import json
 import logging
 from copy import copy
 from datetime import datetime, timedelta
-from secrets import compare_digest
 from typing import Union
 
-from ws_sdk import ws_utilities, ws_errors
 import requests
 import requests_cache
 
+from ws_sdk import ws_utilities, ws_errors
 from ws_sdk.ws_constants import *
 
 
@@ -447,7 +446,7 @@ class WS:
             scopes.append(__create_self_scope__())
         # Filter scopes
         if token:
-            scopes = [scope for scope in scopes if compare_digest(scope['token'], token)]
+            scopes = [scope for scope in scopes if scope['token'] == token]
 
         if name:
             scopes = [scope for scope in scopes if scope['name'] == name]
@@ -456,7 +455,7 @@ class WS:
         if product_token:
             scopes = [scope for scope in scopes if scope.get(TOKEN_TYPES_MAPPING[PRODUCT]) == product_token]
 
-        logging.info(f"{len(scopes)} results were found")       # Check that MissingTokenError is not in use in other repos
+        logging.debug(f"{len(scopes)} results were found")       # Check that MissingTokenError is not in use in other repos
 
         return scopes
 
@@ -641,7 +640,7 @@ class WS:
         :return: list
         """
         def __get_spdx_license_dict__() -> dict:
-            logging.debug("Enriching license data with SDPX information")
+            logging.debug("Enriching license data with SPDX information")
             try:
                 from spdx.config import _licenses
                 with open(_licenses, "r") as fp:
@@ -1082,7 +1081,7 @@ class WS:
                     token: str) -> dict:
         all_projects = self.get_projects()
         for project in all_projects:
-            if compare_digest(project['token'], token):
+            if project['token'] == token:
                 return project
         logging.error(f"Project with token: {token} was not found")
 

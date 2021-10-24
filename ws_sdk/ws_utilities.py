@@ -10,7 +10,7 @@ from ws_sdk.ws_constants import *
 
 
 def is_token(token: str) -> bool:
-    return True if len(token) == 64 and token.isalnum() else False
+    return False if token is None or len(token) != 64 else True
 
 
 def convert_dict_list_to_dict(lst: list,
