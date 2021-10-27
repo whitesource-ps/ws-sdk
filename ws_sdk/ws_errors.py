@@ -2,6 +2,12 @@ class WsSdkError(Exception):
     """Parent Exception Class"""
 
 
+class WsSdkTokenError(WsSdkError):
+    def __init__(self, token):
+        self.message = f"Invalid token: '{token}'"
+        super().__init__(self.message)
+
+
 # Server
 class WsSdkServerError(WsSdkError):
     """Parent Exception Class for WS Application errors"""

@@ -12,3 +12,4 @@
 /ws_sdk/__pycache__/
 /venv/
 /main.py
+/ws_sdk/tests/whitesource/

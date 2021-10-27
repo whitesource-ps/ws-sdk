@@ -7,8 +7,10 @@ from typing import Union
 import requests
 import requests_cache
 
-from ws_sdk import ws_utilities, ws_errors
+from ws_sdk import ws_utilities
+from ws_sdk.ws_errors import *
 from ws_sdk.ws_constants import *
+from ws_sdk._version import __version__
 
 
 def check_permission(permissions: list):                       # Decorator to enforce WS scope token types
@@ -21,7 +23,7 @@ def check_permission(permissions: list):                       # Decorator to en
                         token_type = args[0].token_type
                     except IndexError:
                         logging.exception("Unable to discover token type")
-                        raise ws_errors.WsSdkServerTokenTypeError
+                        raise WsSdkServerTokenTypeError
                 return token_type
 
             if __get_token_type__() in permissions:
@@ -52,7 +54,7 @@ class WS:
                  token_type: str = ORGANIZATION,
                  timeout: int = CONN_TIMEOUT,
                  resp_format: str = "json",
-                 tool_details: tuple = ("ps-sdk", "0")
+                 tool_details: tuple = ("ps-sdk", __version__)
                  ):
         """WhiteSource Python SDK
         :api_url: URL for the API to access (e.g. saas.whitesourcesoftware.com)
@@ -75,8 +77,11 @@ class WS:
         self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
         self.headers = {**WS_HEADERS, **self.header_tool_details}
 
+        # if not ws_utilities.is_token(self.token): # Org token can be 32 chars seperate by 4 hyphens.
+        #     raise WsSdkTokenError(self.token)
+
         if not ws_utilities.is_token(self.user_key):
-            logging.warning(f"Invalid User Key: {self.user_key}")
+            raise WsSdkTokenError(self.user_key)
 
     def set_token_in_body(self,
                           token: str = None) -> (str, dict):
@@ -132,11 +137,11 @@ class WS:
             """
             error_dict = json.loads(error)
             if error_dict['errorCode'] == 2015:
-                raise ws_errors.WsSdkServerInactiveOrg(body[token])
+                raise WsSdkServerInactiveOrg(body[token])
             elif error_dict['errorCode'] == 5001:
-                raise ws_errors.WsSdkServerInsufficientPermissions(body[token])
+                raise WsSdkServerInsufficientPermissions(body[token])
             else:
-                raise ws_errors.WsSdkServerGenericError(body[token], error)
+                raise WsSdkServerGenericError(body[token], error)
 
         token, body = __create_body(request_type, kv_dict)
         logging.debug(f"Calling: {self.api_url} with requestType: {request_type}")
@@ -343,7 +348,7 @@ class WS:
         if ret:
             return ret[0]
         else:
-            raise ws_errors.WsSdkServerMissingTokenError(token, self.token_type)
+            raise WsSdkServerMissingTokenError(token, self.token_type)
 
     def get_scopes(self,
                    name: str = None,
@@ -408,7 +413,7 @@ class WS:
                     break
 
             if not prod_token_exists and product_token is not None:
-                raise ws_errors.WsSdkServerMissingTokenError(product_token, self.token_type)
+                raise WsSdkServerMissingTokenError(product_token, self.token_type)
 
             if scope_type not in [ORGANIZATION, PRODUCT]:
                 if product_token:
@@ -436,7 +441,7 @@ class WS:
                     try:
                         scopes.extend(temp_conn.get_scopes(scope_type=scope_type))
                         org['active'] = True
-                    except ws_errors.WsSdkServerInactiveOrg as e:
+                    except WsSdkServerInactiveOrg as e:
                         logging.warning(e.message)
                         org['active'] = False
             else:
@@ -1261,7 +1266,7 @@ class WS:
         if token_type == PRODUCT:
             ret = self.__generic_get__(get_type='NoticesTextFile', token_type="", kv_dict=kv_dict)
         else:
-            raise ws_errors.WsSdkServerTokenTypeError(product_token)
+            raise WsSdkServerTokenTypeError(product_token)
 
         return ret if as_text else __convert_notice_text_to_json__(ret)
 

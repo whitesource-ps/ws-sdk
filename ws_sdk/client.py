@@ -1,4 +1,3 @@
-import base64
 import copy
 import logging
 import os
@@ -9,6 +8,7 @@ from pkg_resources import parse_version
 
 from ws_sdk import ws_utilities, ws_errors
 from ws_sdk.ws_constants import *
+from ws_sdk._version import __version__
 
 
 class WSClient:
@@ -20,7 +20,7 @@ class WSClient:
                  ua_path: str = DEFAULT_UA_PATH,
                  ua_jar_with_path: str = None,
                  skip_ua_update: bool = False,
-                 tool_details: tuple = ("ps-sdk", "0")
+                 tool_details: tuple = ("ps-sdk", __version__)
                  ):
         if token_type is ORGANIZATION:
             self.ua_path = ua_path

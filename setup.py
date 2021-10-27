@@ -1,8 +1,10 @@
 import setuptools
+from ws_sdk._version import __version__
+
 
 setuptools.setup(
     name="ws_sdk",
-    version="0.6.0.5",
+    version=__version__,
     author="WhiteSource Professional Services",
     author_email="ps@whitesourcesoftware.com",
     description="WS Python SDK",
