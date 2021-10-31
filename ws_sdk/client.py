@@ -44,7 +44,7 @@ class WSClient:
             if self.is_latest_ua_semver() or skip_ua_update:
                 logging.debug("Skipping WhiteSource Unified Agent update")
             else:
-                logging.debug("Downloading WhiteSource Unified Agent")
+                logging.info("A new WhiteSource Unified Agent exists. Downloading the latest ")
                 ws_utilities.init_ua(self.ua_path)
         else:
             logging.error("Unsupported organization type. Only Organization type is supported")
@@ -82,14 +82,16 @@ class WSClient:
                      project_token: str = None,
                      product_token: str = None,
                      product_name: str = None,
-                     offline: bool = None):
+                     offline: bool = None,
+                     comment: str = None):
         """
         Execute scan on dir(s)
         :param scan_dir: the dir(s) to scan (comma seperated if multiple)
         :param project_token: WS Project token to associate scan with
         :param product_token:WS Product token to associate scan with
         :param product_name: WS Product name to associate scan with
-        :param offline:
+        :param offline: Whether to load an offline request or actually scan
+        :param comment: Ability to add comment to: "Last Scan Comments"
         :return:
         """
         def get_existing_paths(s_dir):
@@ -107,11 +109,13 @@ class WSClient:
         target = self.get_target(project_token, product_token, product_name)
 
         if target and existing_dirs:
-            logging.info(f"Scanning Dir(s): {existing_dirs}")
+            logging.info(f"Scanning Dir(s): {existing_dirs} to {target[0]}: {target[1]}")
             local_ua_all_conf = copy.copy(self.ua_conf)
 
             if offline is not None:
                 local_ua_all_conf.Offline = offline
+
+            local_ua_all_conf.scanComment += f";scan={comment}"
 
             self.__execute_ua(f"-d {existing_dirs} -{target[0]} {target[1]}", local_ua_all_conf)
         else:
