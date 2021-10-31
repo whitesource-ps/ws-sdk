@@ -37,6 +37,7 @@ class WSClient:
             self.ua_conf.noConfig = True
             self.ua_conf.checkPolicies = False
             self.ua_conf.includes = {"**/*.c", "**/*.cc", "**/*.cp", "**/*.cpp", "**/*.cxx", "**/*.c++", "**/*.h", "**/*.hpp", "**/*.hxx"}
+            self.ua_conf.scanComment = f"{tool_details[0]}-{tool_details[1]}"
             if logging.root.level == logging.DEBUG:
                 self.ua_conf.logLevel = "debug"
 
