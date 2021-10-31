@@ -1,22 +1,31 @@
 import json
 import logging
-import sys
 from datetime import datetime
 from unittest import TestCase
 from mock import patch
 
 from ws_sdk.ws_constants import *
 from ws_sdk.web import WS
-from ws_sdk import ws_errors
+from ws_sdk.ws_errors import *
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 
 class TestWS(TestCase):
+    valid_token = "abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz12"
+
     def setUp(self):
         logging.basicConfig(level=logging.DEBUG)
-        self.ws = WS(url="app", user_key="abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz12",
-                     token="ORG_TOKEN", token_type=ORGANIZATION)
+        self.ws = WS(url="app", user_key=self.valid_token,
+                     token=self.valid_token, token_type=ORGANIZATION)
+
+    def test_ws_constructor_invalid_user_key(self):
+        with self.assertRaises(WsSdkTokenError):
+            WS(user_key="INCORRECT", token=self.valid_token)
+
+    # def test_ws_constructor_invalid_token(self):
+    #     with self.assertRaises(WsSdkTokenError):
+    #         WS(user_key="", token="INCORRECT")
 
     @patch('ws_sdk.web.requests_cache.CachedSession.post')
     def test__call_ws_api(self, mock_post):
@@ -776,7 +785,7 @@ class TestWS(TestCase):
     def test_get_lib_notice_not_product(self, mock_set_token_in_body):
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
 
-        with self.assertRaises(ws_errors.WsSdkServerTokenTypeError):
+        with self.assertRaises(WsSdkServerTokenTypeError):
             self.ws.get_lib_notice()
 
     @patch('ws_sdk.web.WS.call_ws_api')
