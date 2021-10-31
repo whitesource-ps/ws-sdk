@@ -178,7 +178,7 @@ def download_ua(path: str,
     def download_ua_file(f_details: tuple):
         file_p = os.path.join(path, f_details[0])
         if os.path.exists(file_p):
-            logging.debug(f"Backing previous {f_details[0]}")
+            logging.debug(f"Backing up previous {f_details[0]}")
             shutil.move(file_p, f"{file_p}.bkp")
         logging.debug(f"Downloading WS Unified Agent (version: {get_latest_ua_release_version()}) to {file_p}")
         resp = requests.get(url=f_details[1])
