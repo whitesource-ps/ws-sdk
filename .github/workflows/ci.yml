@@ -26,7 +26,7 @@ jobs:
             echo "VERSION=0.0.0-dev" >> $GITHUB_ENV
           fi
 
-          echo "TOOL_WHL=${{ env.TOOL_DIR }}-${{ VERSION }}-py3-none-any.whl" >> $GITHUB_ENV
+          echo "TOOL_WHL=${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl" >> $GITHUB_ENV
       - uses: actions/checkout@v2
       - uses: UnicornGlobal/trufflehog-actions-scan@master
         with:
