@@ -19,14 +19,11 @@ jobs:
       - name: Set Environment Variables
         run: |
           echo "TOOL_DIR=ws_$TOOL_NAME" >> $GITHUB_ENV
-
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             echo "VERSION=$(echo ${{github.ref}} |  sed -r 's/^[\/a-zA-z-]+//')" >> $GITHUB_ENV
           else
-            echo "VERSION=0.0.0-dev" >> $GITHUB_ENV
+            echo "VERSION=0.0.0_ci0" >> $GITHUB_ENV
           fi
-
-          echo "TOOL_WHL=${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl" >> $GITHUB_ENV
       - uses: actions/checkout@v2
       - uses: UnicornGlobal/trufflehog-actions-scan@master
         with:
@@ -54,11 +51,11 @@ jobs:
       - name: Create Wheel Package
         run: python setup.py bdist_wheel
       - name: Install WS SDK Wheel package
-        run: pip install $TOOL_WHL
+        run: pip install dist/${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl
       - uses: ncipollo/release-action@v1
         if: startsWith(github.ref, 'refs/tags/v')
         with:
-          artifacts: $TOOL_WHL
+          artifacts: dist/${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl
           allowUpdates: true
           token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: ${{ contains(github.ref, 'a') }}
