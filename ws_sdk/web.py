@@ -129,6 +129,8 @@ class WS:
             """
             2007 - User is not in Organization
             2008 - Group does not exist
+            2011 - User doesn't exist
+            2013 - Invitation was already sent to this user, User name contains not allowed characters
             2015 - Inactive org
             3010 - Missing fields: user
             4000 - Unexpected error
@@ -153,7 +155,7 @@ class WS:
             logging.exception(f"Received Error on {body[token[-1]]}")
             raise
 
-        if not request_type.startswith("get"):
+        if not request_type.startswith(("get", "librarySearch")):
             logging.debug("Expiring request cache")
             self.session.expire_after = 0
 
@@ -194,7 +196,7 @@ class WS:
         if token_type is None:
             token_type = self.token_type
 
-        return self.call_ws_api(f"get{token_type.capitalize()}{get_type}", kv_dict)
+        return self.call_ws_api(request_type=f"get{token_type.capitalize()}{get_type}", kv_dict=kv_dict)
 
     def __generic_set__(self,
                         set_type: str,
@@ -211,7 +213,7 @@ class WS:
         if token_type is None:
             token_type = self.token_type
 
-        return self.call_ws_api(f"set{token_type.capitalize()}{set_type}", kv_dict)
+        return self.call_ws_api(request_type=f"set{token_type.capitalize()}{set_type}", kv_dict=kv_dict)
 
     # Covers O/P/P + byType + report
     @report_metadata(report_bin_type="xlsx")
@@ -756,9 +758,10 @@ class WS:
         """
         Get organization users
         :param name: filter list by user name
+        :param email:  filter list by user email
         :return: list of users
         """
-        logging.debug(f"Getting organization users")
+        logging.debug(f"Getting users of the organization ")
         ret = self.__generic_get__(get_type='AllUsers', token_type="")['users']
 
         if name:
@@ -767,6 +770,25 @@ class WS:
             ret = [user for user in ret if user.get('email') == email]
 
         return ret
+
+    @check_permission(permissions=[ORGANIZATION])
+    def get_user(self,
+                 name: str = None,
+                 email: str = None) -> dict:
+        """
+        Return user data
+        :param name: filter by user name
+        :param email: filter by user email
+        :return: dictionary with user's details
+        :rtype: dict
+        """
+        if not name and not email:
+            logging.error("Specifying name or email is mandatory")
+        else:
+            logging.debug(f"Getting user data: {name if name else email}")
+            user_list = self.get_users(name=name, email=email)
+
+            return user_list.pop() if user_list else None
 
     @check_permission(permissions=[ORGANIZATION])
     def get_groups(self,
@@ -1127,7 +1149,7 @@ class WS:
             kv_dict[TOKEN_TYPES_MAPPING[PRODUCT]] = project[TOKEN_TYPES_MAPPING[PRODUCT]]
         logging.debug(f"Deleting {token_type}: {self.get_scope_name_by_token(token)} Token: {token}")
 
-        return self.call_ws_api(f"delete{token_type.capitalize()}", kv_dict)
+        return self.call_ws_api(request_type=f"delete{token_type.capitalize()}", kv_dict=kv_dict)
 
     def get_libraries(self,
                       search_value: str,
@@ -1311,31 +1333,45 @@ class WS:
                     name: str,
                     email: str = None,
                     inviter_email: str = None,
-                    is_service: bool = False) -> dict:
+                    is_service: bool = False,
+                    add_to_web_advisor: bool = False) -> dict:
         """
         Create user or service user
-        :param name: name of created user - if user exists, the method will fail
-        :param email: 
-        :param inviter_email: 
-        :param is_service:
+        :param name: name of created user - if user exists, the method will fail. Server add mail server to the name value (i.e. name: "X" and email "Y.tld" => WS user name: "X Y"
+        :param email: email of the invitee
+        :param inviter_email:
+        :param is_service: Whether to create a service user (inviter_email and email is not required. # Space is not allowed in name (I think because email address is auto generated and does not replace the space)
+        :param add_to_web_advisor: Whether to add use to Web Advisor (Not applicable for service user)
         :returns None if User, User Key if Service User
         :rtype: str None
         """
         token_type, kv_dict = self.set_token_in_body()
         ret = {}
+        user_exists = False
         if self.get_users(name=name):                       # createUser WILL THROW AN ERROR IF CALLED ON EXISTING USER
             logging.warning(f"User: {name} already exists")
+            user_exists = True
         elif is_service:
-            logging.debug(f"Creating Service User: {name}")
-            kv_dict['addedUser'] = {"name": name}
-            ret = self.call_ws_api(request_type='createServiceUser', kv_dict=kv_dict)
+            if " " in name:
+                logging.error("Spaces in a service name are not allowed")
+            else:
+                logging.debug(f"Creating Service User: {name}")
+                kv_dict['addedUser'] = {"name": name}
+                ret = self.call_ws_api(request_type='createServiceUser', kv_dict=kv_dict).get('userToken')
         elif email and inviter_email:
             logging.debug(f"Creating User: {name} email : {email} with Inviter email: {inviter_email}")
             kv_dict['inviter'] = {"email": inviter_email}
             kv_dict['addedUser'] = {"name": name, "email": email}
             ret = self.call_ws_api(request_type='createUser', kv_dict=kv_dict)
-        else:
-            logging.error("Missing details to create User")
+            user_exists = True
+        elif not email:
+            logging.error("Missing user email to create User")
+        elif not inviter_email:
+            logging.error("Missing Inviter email to create User")
+
+        if add_to_web_advisor and user_exists:              # TODO ONLY IF WE HAVE USER KEY
+            logging.debug(f"Inviting user's email {email} to Web Advisor")
+            self.invite_user_to_web_advisor(user_email=email)
 
         return ret                                              #  TODO BUG IN CONFLUENCE DOCUMENTATION (userToken)
 
@@ -1457,3 +1493,28 @@ class WS:
             else:
                 logging.error("No valid user or group were found")
 
+    @check_permission(permissions=[ORGANIZATION])
+    def invite_user_to_web_advisor(self,
+                                   user_email: str,
+                                   user_key: str):
+        # if not user_key:
+        #     user = self.get_users()                # TODO SEE IF POSSIBLE TO GET USER KEY OTHERWISE CANT GENERATE FROM GET_USERS
+
+        kv_dict = {'userKey': user_key,
+                   'userEmail': user_email}
+
+        return self.call_ws_api(request_type='inviteUserToWebAdvisor', kv_dict=kv_dict)
+
+    @check_permission(permissions=[ORGANIZATION])
+    def regenerate_service_user_key(self,
+                                    service_user_key: str) -> str:
+        """
+        Regenerates service user keys
+        :param service_user_key: the current service key
+        :return: new service key
+        """
+        logging.debug(f"Generating new key for service user key: {service_user_key}")
+        ret = self.call_ws_api(request_type='regenerateUserKey', kv_dict={'serviceUserKey': service_user_key})['userToken']
+        logging.debug(f"New token: {ret}")
+
+        return ret
