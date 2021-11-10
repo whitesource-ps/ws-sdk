@@ -167,3 +167,7 @@ class LibMetaData:
                LibMetadata(language='objc', package_manager=['cocoapods'], file_suffices=['.h', '.m', '.mm', '.M']),
                ]
 
+
+class IntegrationTypes:
+    INT_1 = "int__1"
+    Types = [INT_1]

@@ -4,7 +4,6 @@ import logging
 import requests
 import os
 import shutil
-from dataclasses import dataclass
 from typing import Callable
 from ws_sdk.ws_constants import *
 

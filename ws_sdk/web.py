@@ -150,7 +150,7 @@ class WS:
         self.session.expire_after = timedelta(seconds=CACHE_TIME)
 
         try:
-            resp = self.session.post(self.api_url, data=json.dumps(body), headers=self.headers, timeout=self.timeout)
+            resp = self.session.post(url=self.api_url, data=json.dumps(body), headers=self.headers, timeout=self.timeout)
         except requests.RequestException:
             logging.exception(f"Received Error on {body[token[-1]]}")
             raise
@@ -1369,7 +1369,7 @@ class WS:
         elif not inviter_email:
             logging.error("Missing Inviter email to create User")
 
-        if add_to_web_advisor and user_exists:              # TODO ONLY IF WE HAVE USER KEY
+        if add_to_web_advisor and email:
             logging.debug(f"Inviting user's email {email} to Web Advisor")
             self.invite_user_to_web_advisor(user_email=email)
 
@@ -1495,13 +1495,10 @@ class WS:
 
     @check_permission(permissions=[ORGANIZATION])
     def invite_user_to_web_advisor(self,
-                                   user_email: str,
-                                   user_key: str):
-        # if not user_key:
-        #     user = self.get_users()                # TODO SEE IF POSSIBLE TO GET USER KEY OTHERWISE CANT GENERATE FROM GET_USERS
-
-        kv_dict = {'userKey': user_key,
-                   'userEmail': user_email}
+                                   user_email: str):
+        token_type, kv_dict = self.set_token_in_body()
+        kv_dict['userEmail'] = user_email
+        logging.debug(f"Inviting email: '{user_email}' to Web Advisor")
 
         return self.call_ws_api(request_type='inviteUserToWebAdvisor', kv_dict=kv_dict)
 
@@ -1512,9 +1509,37 @@ class WS:
         Regenerates service user keys
         :param service_user_key: the current service key
         :return: new service key
+        :rtype str
         """
-        logging.debug(f"Generating new key for service user key: {service_user_key}")
-        ret = self.call_ws_api(request_type='regenerateUserKey', kv_dict={'serviceUserKey': service_user_key})['userToken']
-        logging.debug(f"New token: {ret}")
+        if ws_utilities.is_token(service_user_key):
+            logging.debug(f"Generating new key for service user key: {service_user_key}")
+            ret = self.call_ws_api(request_type='regenerateUserKey', kv_dict={'serviceUserKey': service_user_key})['userToken']
+            logging.debug(f"New token: {ret}")
+        else:
+            raise WsSdkTokenError(service_user_key)
 
         return ret
+
+    @check_permission(permissions=[ORGANIZATION])       # TODO MISSING VALID integrationType VALS
+    def get_integration_token(self,
+                              integration_type: str) -> str:
+        ret = None
+        if integration_type in IntegrationTypes.Types:
+            token_type, kv_dict = self.set_token_in_body()
+            kv_dict['integrationType'] = integration_type
+            logging.debug(f"Retrieving Integration Activation Token of type: {integration_type}")
+
+            ret = self.__generic_get__(get_type='IntegrationActivationToken', token_type=token_type, kv_dict=kv_dict)
+        else:
+            logging.error(f"Invalid Integration Type: '{integration_type}'")
+
+        return ret
+
+    @check_permission(permissions=[ORGANIZATION])
+    def match_policy(self, policy_obj):     # TODO TBD
+        """
+        TBD: Method to check a lib against policy object
+        :param policy_obj: class that represents policy rules on lib (perhaps including alerts)
+        :returns whether there is a match on on which conditions
+        """
+        pass
