@@ -13,40 +13,73 @@ from ws_sdk.ws_constants import *
 from ws_sdk._version import __version__
 
 
-def check_permission(permissions: list):                       # Decorator to enforce WS scope token types
-    def decorator(function):
-        def wrapper(*args, **kwargs):
-            def __get_token_type__():                           # Internal method to get token_type from args or kwargs
-                token_type = kwargs.get('token_type')
-                if token_type is None:
-                    try:
-                        token_type = args[0].token_type
-                    except IndexError:
-                        logging.exception("Unable to discover token type")
-                        raise WsSdkServerTokenTypeError
-                return token_type
-
-            if __get_token_type__() in permissions:
-                return function.__call__(*args, **kwargs)
-            else:
-                logging.error(f"Token Type: {args[0].token_type} is unsupported to execute: {function.__name__}")
-        return wrapper
-    return decorator
-
-
-def report_metadata(**kwargs_metadata):
-    def decorator(function):
-        def wrapper(*args, **kwargs):
-            if ReportsData.REPORT_BIN_TYPE in args and kwargs_metadata.get(ReportsData.REPORT_BIN_TYPE):
-                logging.debug(f"Accessing report metadata: {ReportsData.REPORT_BIN_TYPE}")
-                return kwargs_metadata[ReportsData.REPORT_BIN_TYPE]
-            else:
-                return function.__call__(*args, **kwargs)
-        return wrapper
-    return decorator
-
-
 class WS:
+    class Decorators:
+        @classmethod
+        def report_metadata(cls, **kwargs_metadata):
+            def decorator(function):
+                def wrapper(*args, **kwargs):
+                    if len(args) == 2 and args[1] in ReportsMetaData.REPORTS_META_DATA:
+                        logging.debug(f"Accessing report metadata: '{args[1]}'")
+                        return kwargs_metadata[args[1]]
+                    else:
+                        return function.__call__(*args, **kwargs)
+
+                return wrapper
+
+            return decorator
+
+        @classmethod
+        def check_permission(cls, permissions: list):  # Decorator to enforce WS scope token types
+            def decorator(function):
+                def wrapper(*args, **kwargs):
+                    def __get_token_type__():  # Internal method to get token_type from args or kwargs
+                        token_type = kwargs.get('token_type')
+                        if token_type is None:
+                            try:
+                                token_type = args[0].token_type
+                            except IndexError:
+                                logging.exception("Unable to discover token type")
+                                raise WsSdkServerTokenTypeError
+                        return token_type
+
+                    if __get_token_type__() in permissions:
+                        return function.__call__(*args, **kwargs)
+                    else:
+                        logging.error(f"Token Type: {args[0].token_type} is unsupported to execute: {function.__name__}")
+
+                return wrapper
+
+            return decorator
+
+    @classmethod
+    def get_reports_meta_data(cls, scope: str = None) -> list:
+        """
+        Function to return report functions based on metadata on the function
+        :param cls:
+        :param scope: Whether to filter based on scope
+        :return: list of NamedTuples containing function name and function.
+        """
+        report_funcs = list()
+        class_dict = dict(cls.__dict__)
+        for f in class_dict.items():
+            if cls.Decorators.report_metadata.__name__ in str(f[1]) and (
+                    not scope or scope in f[1](None, ReportsMetaData.REPORT_SCOPE)):
+                report_funcs.append(
+                    ReportsMetaData(name=f[0].replace('get_', ''), bin_sfx=f[1](None, ReportsMetaData.REPORT_BIN_TYPE), func=f[1]))
+
+        return report_funcs
+
+    @classmethod
+    def get_report_types(cls, scope: str = None) -> list:
+        """
+        Method to return report types based on metadata on the function
+        :param cls:
+        :param scope: Whether to filter based on scope
+        :return: list of report names (without get_ function prefix)
+        """
+        return [f.name for f in cls.get_reports_meta_data(scope)]
+
     def __init__(self,
                  user_key: str,
                  token: str,
@@ -216,7 +249,7 @@ class WS:
         return self.call_ws_api(request_type=f"set{token_type.capitalize()}{set_type}", kv_dict=kv_dict)
 
     # Covers O/P/P + byType + report
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT, ORGANIZATION])
     def get_alerts(self,
                    token: str = None,
                    alert_type: str = None,
@@ -286,19 +319,19 @@ class WS:
 
         return ret.get('alerts') if isinstance(ret, dict) else ret
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT, ORGANIZATION])
     def get_ignored_alerts(self,
                            token: str = None,
                            report: bool = False) -> Union[list, bytes]:
         return self.get_alerts(token=token, report=report, ignored=True)
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT, ORGANIZATION])
     def get_resolved_alerts(self,
                             token: str = None,
                             report: bool = False) -> Union[list, bytes]:
         return self.get_alerts(token=token, report=report, resolved=True)
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT, ORGANIZATION])
     def get_inventory(self,
                       token: str = None,
                       include_in_house_data: bool = True,
@@ -356,13 +389,15 @@ class WS:
                    name: str = None,
                    token: str = None,
                    scope_type: str = None,
-                   product_token: str = None) -> list:
+                   product_token: str = None,
+                   sort_by: str = None) -> list:
         """
         :param name: filter returned scopes by name
         :param token: filter by token
         :param scope_type: filter by scope type
         :param product_token: filter projects by product token
         :return: list of scope dictionaries
+        :param sort_by: Sort returned list
         :rtype list
         """
         def __enrich_projects__(proj_list: list, prod: dict) -> list:
@@ -392,6 +427,9 @@ class WS:
                     'name': self.get_name()}
         # toDo better handling while using product_token when scope type is org
         scopes = []
+        if sort_by is not None and sort_by not in ScopeSorts.SCOPE_SORTS:
+            logging.error(f"{sort_by} is not a valid sort option")
+
         if self.token_type == PRODUCT:
             product = __create_self_scope__()
             projects = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
@@ -464,9 +502,17 @@ class WS:
 
         logging.debug(f"{len(scopes)} results were found")       # Check that MissingTokenError is not in use in other repos
 
+        if sort_by:
+            logging.debug(f"Sorting scope by: {sort_by}")
+            if sort_by is not ScopeSorts.NAME:
+                for s in scopes:
+                    s[sort_by] = ws_utilities.convert_to_time_obj(s[sort_by.rstrip("_obj")])
+
+            scopes = sorted(scopes, key=lambda d: d[sort_by])
+
         return scopes
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def get_organization_details(self) -> dict:
         org_details = self.__generic_get__(get_type='Details')
         org_details['name'] = org_details.get('orgName')
@@ -504,7 +550,7 @@ class WS:
 
         return ret
 
-    @check_permission(permissions=[GLOBAL])
+    @Decorators.check_permission(permissions=[GLOBAL])
     def get_organizations(self,
                           name: str = None,
                           token: str = None,
@@ -524,24 +570,34 @@ class WS:
 
         return ret
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def get_products(self,
-                     name: str = None) -> list:
-
-        return self.get_scopes(name=name, scope_type=PRODUCT)
+                     name: str = None,
+                     sort_by: str = None) -> list:
+        """
+        Retrieved all products of org
+        :param name: filter product by name
+        :param sort_by: Sort returned list
+        :return: list of products
+        :rtype list
+        """
+        return self.get_scopes(name=name, scope_type=PRODUCT, sort_by=sort_by)
 
     def get_projects(self,
                      name: str = None,
-                     product_token: str = None) -> list:
+                     product_token: str = None,
+                     sort_by: str = None) -> list:
         """
+        Retrieves products of the calling scope (org or product)
         :param name: filter returned scopes by name
         :param product_token: if stated retrieves projects of specific product. If left blank retrieves all the projects in the org
         :return: list
+        :param sort_by: Sort returned list
         :rtype list
         """
-        return self.get_scopes(name=name, scope_type=PROJECT, product_token=product_token)
+        return self.get_scopes(name=name, scope_type=PROJECT, product_token=product_token, sort_by=sort_by)
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT, ORGANIZATION])
     def get_vulnerability(self,
                           status: str = None,  # "Active", "Ignored", "Resolved"
                           container: bool = False,
@@ -584,7 +640,7 @@ class WS:
 
         return ret['vulnerabilities'] if isinstance(ret, dict) else ret
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ORGANIZATION])
     def get_container_vulnerability(self,
                                     report: bool = False,
                                     token: str = None) -> bytes:
@@ -621,7 +677,7 @@ class WS:
 
         return list(libs_vul.values())
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def get_change_log(self,
                        start_date: datetime = None) -> list:
         report_name = "Change Log Report"
@@ -702,7 +758,7 @@ class WS:
 
         return ret
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT, ORGANIZATION])
     def get_source_files(self,
                          token: str = None,
                          report: bool = False) -> Union[list, bytes]:
@@ -718,13 +774,13 @@ class WS:
 
         return ret['sourceFiles'] if isinstance(ret, dict) else ret
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT, ORGANIZATION])
     def get_source_file_inventory(self,
                                   report: bool = True,
                                   token: str = None) -> bytes:
         return self.get_source_files(token=token, report=report)
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT, ORGANIZATION])
     def get_in_house_libraries(self,
                                report: bool = False,
                                token: str = None) -> Union[list, bytes]:
@@ -745,13 +801,13 @@ class WS:
 
         return ret['sourceFiles'] if isinstance(ret, dict) else ret
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT, ORGANIZATION])
     def get_in_house(self,
                      report: bool = True,
                      token: str = None) -> bytes:
         return self.get_in_house_libraries(report=report, token=token)
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def get_users(self,
                   name: str = None,
                   email: str = None) -> list:
@@ -771,7 +827,7 @@ class WS:
 
         return ret
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def get_user(self,
                  name: str = None,
                  email: str = None) -> dict:
@@ -790,7 +846,7 @@ class WS:
 
             return user_list.pop() if user_list else None
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def get_groups(self,
                    name: str = None,
                    user_name: str = None,
@@ -877,7 +933,7 @@ class WS:
 
         return ret_assignments
 
-    @report_metadata(report_bin_type="pdf")
+    @Decorators.report_metadata(report_bin_type="pdf", report_scope_types=[PRODUCT, ORGANIZATION])
     def get_risk(self,
                  token: str = None,
                  report: bool = True) -> bytes:
@@ -897,7 +953,7 @@ class WS:
             logging.debug(f"Running {report_name} on {token_type}")
             return self.__generic_get__(get_type='RiskReport', token_type=token_type, kv_dict=kv_dict)
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PRODUCT, ORGANIZATION])
     def get_library_location(self,
                              token: str = None,
                              report: bool = False) -> Union[list, bytes]:
@@ -922,7 +978,7 @@ class WS:
 
         return ret['libraryLocations'] if isinstance(ret, dict) else ret
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT])
     def get_license_compatibility(self,
                                   token: str = None,
                                   report: bool = False) -> bytes:
@@ -941,7 +997,7 @@ class WS:
             logging.debug(f"Running {report_name} on {token_type}")
             return self.__generic_get__(get_type='LicenseCompatibilityReport', token_type=token_type, kv_dict=kv_dict)
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT, ORGANIZATION])
     def get_due_diligence(self,
                           token: str = None,
                           report: bool = False) -> Union[list, bytes]:
@@ -960,7 +1016,7 @@ class WS:
 
         return ret['licenses'] if isinstance(ret, dict) else ret
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PRODUCT, ORGANIZATION])
     def get_attributes(self,
                        token: str = None) -> bytes:
         """
@@ -976,7 +1032,7 @@ class WS:
             logging.debug(f"Running {token_type} {report_name}")
             return self.__generic_get__(get_type='AttributesReport', token_type=token_type, kv_dict=kv_dict)
 
-    @report_metadata(report_bin_type=["html", 'txt'])
+    @Decorators.report_metadata(report_bin_type=["html", 'txt'], report_scope_types=[PROJECT, PRODUCT])
     def get_attribution(self,
                         reporting_aggregation_mode: str,
                         token: str,
@@ -990,7 +1046,7 @@ class WS:
                         custom_attribute: str = None,
                         include_versions: str = True) -> Union[dict, bytes]:
         """
-        Method that creates Inventory like response with custom attrbiuted and notice text/reference data
+        Method that creates Inventory like response with custom attributed and notice text/reference data
         :param reporting_aggregation_mode:
         :param token:
         :param report_header:
@@ -1033,7 +1089,7 @@ class WS:
 
             return self.__generic_get__(get_type='AttributionReport', token_type=token_type, kv_dict=kv_dict)
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PRODUCT, ORGANIZATION])
     def get_effective_licenses(self,
                                token: str = None) -> bytes:
         """
@@ -1049,7 +1105,7 @@ class WS:
             logging.debug(f"Running {token_type} {report_name}")
             return self.__generic_get__(get_type='EffectiveLicensesReport', token_type=token_type, kv_dict=kv_dict)
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT, ORGANIZATION])
     def get_bugs(self,
                  report: bool = True,
                  token: str = None) -> bytes:
@@ -1071,7 +1127,7 @@ class WS:
 
         return ret
 
-    @report_metadata(report_bin_type="xlsx")
+    @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[PROJECT, PRODUCT, ORGANIZATION])
     def get_request_history(self,
                             plugin: bool = False,
                             report: bool = True,
@@ -1214,7 +1270,7 @@ class WS:
 
         return ret
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def set_alerts_status(self,
                           alert_uuids: Union[list, str],
                           status: str = None,
@@ -1292,7 +1348,7 @@ class WS:
 
         return ret if as_text else __convert_notice_text_to_json__(ret)
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def set_lib_notice(self,
                        lib_uuid: str,
                        text: Union[str, dict, list],
@@ -1328,7 +1384,7 @@ class WS:
 
         return ret
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def create_user(self,
                     name: str,
                     email: str = None,
@@ -1375,7 +1431,7 @@ class WS:
 
         return ret                                              #  TODO BUG IN CONFLUENCE DOCUMENTATION (userToken)
 
-    @check_permission(permissions=[ORGANIZATION, GLOBAL])
+    @Decorators.check_permission(permissions=[ORGANIZATION, GLOBAL])
     def delete_user(self,
                     email: str,
                     org_token: str = None) -> dict:
@@ -1402,7 +1458,7 @@ class WS:
                 logging.debug(f"Deleting user email: {email} from Organization Token: {self.token}")
                 return self.call_ws_api(request_type="removeUserFromOrganization", kv_dict={"user": {"email": email}})
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def create_group(self,
                      name: str,
                      description: str = None) -> dict:
@@ -1419,7 +1475,7 @@ class WS:
 
         return ret
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def assign_user_to_group(self,
                              user_email: str,
                              group_name: str) -> dict:
@@ -1438,7 +1494,7 @@ class WS:
 
             return self.call_ws_api(request_type='addUsersToGroups', kv_dict=kv_dict)
 
-    @check_permission(permissions=[PRODUCT, ORGANIZATION])
+    @Decorators.check_permission(permissions=[PRODUCT, ORGANIZATION])
     def assign_to_scope(self,
                         role_type: str,
                         token: str = None,
@@ -1493,7 +1549,7 @@ class WS:
             else:
                 logging.error("No valid user or group were found")
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def invite_user_to_web_advisor(self,
                                    user_email: str):
         token_type, kv_dict = self.set_token_in_body()
@@ -1502,7 +1558,7 @@ class WS:
 
         return self.call_ws_api(request_type='inviteUserToWebAdvisor', kv_dict=kv_dict)
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def regenerate_service_user_key(self,
                                     service_user_key: str) -> str:
         """
@@ -1520,7 +1576,7 @@ class WS:
 
         return ret
 
-    @check_permission(permissions=[ORGANIZATION])       # TODO MISSING VALID integrationType VALS
+    @Decorators.check_permission(permissions=[ORGANIZATION])       # TODO MISSING VALID integrationType VALS
     def get_integration_token(self,
                               integration_type: str) -> str:
         ret = None
@@ -1535,7 +1591,7 @@ class WS:
 
         return ret
 
-    @check_permission(permissions=[ORGANIZATION])
+    @Decorators.check_permission(permissions=[ORGANIZATION])
     def match_policy(self, policy_obj):     # TODO TBD
         """
         TBD: Method to check a lib against policy object
