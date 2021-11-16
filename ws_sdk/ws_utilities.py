@@ -93,7 +93,7 @@ def break_filename(filename: str) -> tuple:
             'version': re.search(r'-((?!.*-).+)(?=\.)', filename).group(1)}
 
 def get_full_ws_url(url) -> str:
-    if url is None:
+    if url is None or not url:
         url = 'saas'
     if url in ['saas', 'saas-eu', 'app', 'app-eu']:
         url = f"https://{url}.whitesourcesoftware.com"
