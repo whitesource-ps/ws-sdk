@@ -21,13 +21,11 @@ jobs:
           echo "TOOL_DIR=ws_$TOOL_NAME" >> $GITHUB_ENV
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             echo "VERSION=$(echo ${{github.ref}} |  sed -r 's/^[\/a-zA-z-]+//')" >> $GITHUB_ENV
-
             if [[ $VERSION =~ [ab] ]]; then
               RELEASE=false >> $GITHUB_ENV
             else:
               RELEASE=true >> $GITHUB_ENV
             fi
-
           else
             echo "VERSION=0.0.0_ci0" >> $GITHUB_ENV
           fi
