@@ -188,21 +188,21 @@ class TestWS(TestCase):
     def test_get_alerts_by_project_tag(self, mock_generic_get, mock_set_token_in_body):
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
         mock_generic_get.return_value = {'alerts': []}
-        res = self.ws.get_alerts(project_tag=True, tag={"key": "value"})
+        res = self.ws.get_alerts(tags={"key": "value"})
 
         self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.set_token_in_body')
     def test_get_alerts_by_project_tag_product_token(self, mock_set_token_in_body):
         mock_set_token_in_body.return_value = (PRODUCT, {})
-        res = self.ws.get_alerts(project_tag=True, tag={"key": "value"}, token=PRODUCT)
+        res = self.ws.get_alerts(tags={"key": "value"}, token=PRODUCT)
 
         self.assertIs(res, None)
 
     @patch('ws_sdk.web.WS.set_token_in_body')
-    def test_get_alerts_by_project_no_tag(self, mock_set_token_in_body):
+    def test_get_alerts_by_project_2_tags(self, mock_set_token_in_body):
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
-        res = self.ws.get_alerts(project_tag=True)
+        res = self.ws.get_alerts(tags={'k1': "v2", 'k2': "v2"})
 
         self.assertIs(res, None)
 

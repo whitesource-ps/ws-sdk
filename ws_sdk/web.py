@@ -250,13 +250,12 @@ class WS:
 
     # Covers O/P/P + byType + report
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
-    def get_alerts(self,
+    def get_alerts(self,                                                 #TODO REQUIRES A NICE REFACTOR
                    token: str = None,
                    alert_type: str = None,
                    from_date: datetime = None,
                    to_date: datetime = None,
-                   project_tag: bool = False,
-                   tag: dict = {},
+                   tags: dict = None,
                    ignored: bool = False,
                    resolved: bool = False,
                    report: bool = False) -> Union[list, bytes, None]:
@@ -266,14 +265,14 @@ class WS:
         :param alert_type: Allows filtering alerts by a single type from ALERT_TYPES
         :param from_date: Allows filtering of alerts by start date. Works together with to_date
         :param to_date: Allows filtering of alerts by end date. Works together with from_date
-        :param project_tag: should filter by project tags
-        :param tag: dict of Key:Value of the tag. Allowed only 1 pair
+        :param tags: filter by tags in form of of Key:Value dict. only 1 is allowed.
         :param ignored: Should output include ignored reports
         :param resolved: Should output include resolved reports
         :param report: Create xlsx report type
         :return: list with alerts or xlsx if report is True
         :rtype: list or bytes
         """
+        report_name = "Alerts"
         token_type, kv_dict = self.set_token_in_body(token)
         if alert_type in AlertTypes.ALERT_TYPES:
             kv_dict["alertType"] = alert_type
@@ -288,24 +287,21 @@ class WS:
 
         ret = None
         if resolved and report:
-            logging.debug("Running Resolved Alerts Report")
+            logging.debug(f"Running Resolved {report_name} Report")
             ret = self.__generic_get__(get_type='ResolvedAlertsReport', token_type=token_type, kv_dict=kv_dict)
-        elif ignored and report:
-            logging.debug("Running ignored Alerts Report")
+        elif report:
+            logging.debug(f"Running {report_name} Report")
+            kv_dict["format"] = "xlsx"
             ret = self.__generic_get__(get_type='SecurityAlertsByVulnerabilityReport', token_type=token_type, kv_dict=kv_dict)
         elif resolved:
-            logging.error("Resolved Alerts is only available in xlsx format(set report=True)")
+            logging.error(f"Resolved {report_name} is only available in xlsx format(set report=True)")
         elif ignored:
-            logging.debug("Running ignored Alerts")
+            logging.debug(f"Running ignored {report_name}")
             ret = self.__generic_get__(get_type='IgnoredAlerts', token_type=token_type, kv_dict=kv_dict)
-        elif report:
-            logging.debug("Running Alerts Report")
-            kv_dict["format"] = "xlsx"
-            ret = self.__generic_get__(get_type='AlertsReport', token_type=token_type, kv_dict=kv_dict)
-        elif project_tag:
+        elif tags:
             if token_type != ScopeTypes.ORGANIZATION:
                 logging.error("Getting project alerts tag is only supported with organization token")
-            elif len(tag) == 1:
+            elif len(tags) == 1:
                 logging.debug("Running Alerts by project tag")
                 ret = self.__generic_get__(get_type='AlertsByProjectTag', token_type=token_type, kv_dict=kv_dict)
             else:
