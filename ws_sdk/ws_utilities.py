@@ -6,7 +6,7 @@ import os
 import shutil
 from typing import Callable
 from ws_sdk.ws_constants import *
-
+from datetime import datetime
 
 def is_token(token: str) -> bool:
     return False if token is None or len(token) != 64 else True
@@ -66,17 +66,6 @@ def get_all_req_schemas(ws_conn) -> dict:
     return req_schema_list
 
 
-def get_report_types():
-    from ws_sdk import web
-    report_types = set()
-    class_dict = dict(web.WS.__dict__)
-    for f in class_dict.items():
-        if web.report_metadata.__name__ in str(f[1]):
-            report_types.add(f[0].replace('get_',''))
-
-    return report_types
-
-
 def get_lib_metadata_by_name(language: str) -> LibMetaData.LibMetadata:
     """
     Method that Returns matadata on a language
@@ -104,7 +93,7 @@ def break_filename(filename: str) -> tuple:
             'version': re.search(r'-((?!.*-).+)(?=\.)', filename).group(1)}
 
 def get_full_ws_url(url) -> str:
-    if url is None:
+    if url is None or not url:
         url = 'saas'
     if url in ['saas', 'saas-eu', 'app', 'app-eu']:
         url = f"https://{url}.whitesourcesoftware.com"
@@ -163,8 +152,7 @@ def generate_conf_ev(ws_configuration: WsConfiguration) -> dict:
     :param ws_configuration:
     :return: dictionary of env vars
     """
-    return {**os.environ,
-            **{f"WS_" + k.upper(): to_str(v) for k, v in ws_configuration.__dict__.items() if v is not None}}
+    return {**os.environ, **{f"WS_" + k.upper(): to_str(v) for k, v in ws_configuration.__dict__.items() if v is not None}}
 
 
 def init_ua(path: str):
@@ -202,4 +190,7 @@ def get_latest_ua_release_url() -> dict:
     res = call_gh_api(url=LATEST_UA_URL)
 
     return json.loads(res.text)
+
+def convert_to_time_obj(time: str):
+    return datetime.strptime(time, '%Y-%m-%d %H:%M:%S %z')
 

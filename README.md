@@ -1,8 +1,8 @@
-![Logo](https://whitesource-resources.s3.amazonaws.com/ws-sig-images/Whitesource_Logo_178x44.png)
+[![Logo](https://whitesource-resources.s3.amazonaws.com/ws-sig-images/Whitesource_Logo_178x44.png)](https://www.whitesourcesoftware.com/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
 [![CI](https://github.com/whitesource-ps/ws-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/whitesource-ps/ws-sdk/actions/workflows/ci.yml)
 [![Python 3.7](https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Blue_Python_3.6%2B_Shield_Badge.svg/86px-Blue_Python_3.6%2B_Shield_Badge.svg.png)](https://www.python.org/downloads/release/python-360/)
-![PyPI](https://img.shields.io/pypi/v/ws-sdk?style=plastic)
+[![PyPI](https://img.shields.io/pypi/v/ws-sdk?style=plastic)](https://pypi.org/project/ws-sdk/)
 
 # [WhiteSource Python SDK](https://github.com/whitesource-ps/ws-sdk)
 SDK written in Python to simplify access to WhiteSource resources
