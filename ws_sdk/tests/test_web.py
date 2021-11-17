@@ -581,9 +581,18 @@ class TestWS(TestCase):
     @patch('ws_sdk.web.WS.set_token_in_body')
     @patch('ws_sdk.web.WS.__generic_get__')
     def test_get_attribution(self, mock_generic_get, mock_set_token_in_body):
-        mock_generic_get.return_value = bytes()
+        mock_generic_get.return_value = dict()
         mock_set_token_in_body.return_value = (PRODUCT, {})
         res = self.ws.get_attribution(reporting_aggregation_mode="BY_COMPONENT", token="TOKEN")
+
+        self.assertIsInstance(res, dict)
+
+    @patch('ws_sdk.web.WS.set_token_in_body')
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_attribution_bin(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = bytes()
+        mock_set_token_in_body.return_value = (PRODUCT, {})
+        res = self.ws.get_attribution(reporting_aggregation_mode="BY_COMPONENT", token="TOKEN", report=True)
 
         self.assertIsInstance(res, bytes)
 

@@ -46,7 +46,7 @@ class AlertTypes:
                    REJECTED_BY_POLICY_RESOURCE]
 
 
-# Scope Types
+# Scope Types - Deprecated
 PROJECT = 'project'
 PRODUCT = 'product'
 ORGANIZATION = 'organization'
@@ -54,13 +54,17 @@ GLOBAL = 'globalOrganization'
 
 
 class ScopeTypes:
+    PROJECT = 'project'
+    PRODUCT = 'product'
+    ORGANIZATION = 'organization'
+    GLOBAL = 'globalOrganization'
     SCOPE_TYPES = [PROJECT, PRODUCT, ORGANIZATION, GLOBAL]
 
 
-TOKEN_TYPES_MAPPING = {GLOBAL: "globalOrgToken",
-                       ORGANIZATION: "orgToken",
-                       PRODUCT: "productToken",
-                       PROJECT: "projectToken"}
+TOKEN_TYPES_MAPPING = {ScopeTypes.GLOBAL: "globalOrgToken",
+                       ScopeTypes.ORGANIZATION: "orgToken",
+                       ScopeTypes.PRODUCT: "productToken",
+                       ScopeTypes.PROJECT: "projectToken"}
 
 
 # Role Types
