@@ -6,7 +6,7 @@ on:
     tags:
       - '*'
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '0 4 * * 6'
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -29,8 +29,8 @@ jobs:
           else
             echo "VERSION=0.0.0_ci0" >> $GITHUB_ENV
           fi
-          echo "RELEASE{}?:" ${{ env.RELEASE }} "RELEASE?:" env.RELEASE
-          echo "PRERELEASE{}?:" ${{ !env.RELEASE }} "PRERELEASE?:" !env.RELEASE
+          echo "RELEASE{}?:" env.RELEASE
+          echo "PRERELEASE{}?:" ${{ !env.RELEASE }}
       - uses: actions/checkout@v2
       - uses: UnicornGlobal/trufflehog-actions-scan@master
         with:
