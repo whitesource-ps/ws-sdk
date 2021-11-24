@@ -1,22 +1,17 @@
 import setuptools
-from ws_sdk._version import __version__
-
+from ws_sdk._version import __version__, __description__, __tool_name__
 
 setuptools.setup(
-    name="ws_sdk",
+    name=f"ws_{__tool_name__}",
     version=__version__,
     author="WhiteSource Professional Services",
     author_email="ps@whitesourcesoftware.com",
-    description="WS Python SDK",
+    description=__description__,
     url='https://github.com/whitesource-ps/ws-sdk',
     license='LICENSE.txt',
     packages=setuptools.find_packages(),
     python_requires='>=3.7',
-    install_requires=[
-        "DateTime",
-        "requests",
-        "requests-cache"
-    ],
+    install_requires=[line.strip() for line in open("requirements.txt").readlines()],
     extras_require={
         "spdx": ["spdx-tools"]
     },

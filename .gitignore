@@ -13,3 +13,4 @@
 /venv/
 /main.py
 /ws_sdk/tests/whitesource/
+/sdk.egg-info/

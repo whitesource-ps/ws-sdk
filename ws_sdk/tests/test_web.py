@@ -188,21 +188,21 @@ class TestWS(TestCase):
     def test_get_alerts_by_project_tag(self, mock_generic_get, mock_set_token_in_body):
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
         mock_generic_get.return_value = {'alerts': []}
-        res = self.ws.get_alerts(project_tag=True, tag={"key": "value"})
+        res = self.ws.get_alerts(tags={"key": "value"})
 
         self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.set_token_in_body')
     def test_get_alerts_by_project_tag_product_token(self, mock_set_token_in_body):
         mock_set_token_in_body.return_value = (PRODUCT, {})
-        res = self.ws.get_alerts(project_tag=True, tag={"key": "value"}, token=PRODUCT)
+        res = self.ws.get_alerts(tags={"key": "value"}, token=PRODUCT)
 
         self.assertIs(res, None)
 
     @patch('ws_sdk.web.WS.set_token_in_body')
-    def test_get_alerts_by_project_no_tag(self, mock_set_token_in_body):
+    def test_get_alerts_by_project_2_tags(self, mock_set_token_in_body):
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
-        res = self.ws.get_alerts(project_tag=True)
+        res = self.ws.get_alerts(tags={'k1': "v2", 'k2': "v2"})
 
         self.assertIs(res, None)
 
@@ -581,9 +581,18 @@ class TestWS(TestCase):
     @patch('ws_sdk.web.WS.set_token_in_body')
     @patch('ws_sdk.web.WS.__generic_get__')
     def test_get_attribution(self, mock_generic_get, mock_set_token_in_body):
-        mock_generic_get.return_value = bytes()
+        mock_generic_get.return_value = dict()
         mock_set_token_in_body.return_value = (PRODUCT, {})
         res = self.ws.get_attribution(reporting_aggregation_mode="BY_COMPONENT", token="TOKEN")
+
+        self.assertIsInstance(res, dict)
+
+    @patch('ws_sdk.web.WS.set_token_in_body')
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_attribution_bin(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = bytes()
+        mock_set_token_in_body.return_value = (PRODUCT, {})
+        res = self.ws.get_attribution(reporting_aggregation_mode="BY_COMPONENT", token="TOKEN", report=True)
 
         self.assertIsInstance(res, bytes)
 
@@ -684,7 +693,8 @@ class TestWS(TestCase):
     @patch('ws_sdk.web.WS.call_ws_api')
     @patch('ws_sdk.web.WS.get_project')
     @patch('ws_sdk.web.WS.set_token_in_body')
-    def test_delete_scope(self, mock_set_token_in_body, mock_get_project, mock_call_ws_api, mock_get_scope_name_by_token):
+    def test_delete_scope(self, mock_set_token_in_body, mock_get_project, mock_call_ws_api,
+                          mock_get_scope_name_by_token):
         mock_set_token_in_body.return_value = (PROJECT, {})
         mock_get_project.return_value = {'token': "TOKEN", 'productToken': "PROD_TOKEN"}
         mock_call_ws_api.return_value = {}
@@ -813,7 +823,8 @@ class TestWS(TestCase):
 
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws.create_user(name="NAME", email="EMAIL@ADDRESS.COM", inviter_email="INVITER@ADDRESS.COM")
-            self.assertEqual(cm.output, ["DEBUG:root:Creating User: NAME email : EMAIL@ADDRESS.COM with Inviter email: INVITER@ADDRESS.COM"])
+            self.assertEqual(cm.output, [
+                "DEBUG:root:Creating User: NAME email : EMAIL@ADDRESS.COM with Inviter email: INVITER@ADDRESS.COM"])
 
     @patch('ws_sdk.web.WS.call_ws_api')
     @patch('ws_sdk.web.WS.get_users')
@@ -823,7 +834,8 @@ class TestWS(TestCase):
 
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws.delete_user(email="EMAIL@ADDRESS.COM")
-            self.assertEqual(cm.output, [f"DEBUG:root:Deleting user email: EMAIL@ADDRESS.COM from Organization Token: {self.ws.token}"])
+            self.assertEqual(cm.output, [
+                f"DEBUG:root:Deleting user email: EMAIL@ADDRESS.COM from Organization Token: {self.ws.token}"])
 
     @patch('ws_sdk.web.WS.call_ws_api')
     @patch('ws_sdk.web.WS.get_groups')
@@ -862,8 +874,30 @@ class TestWS(TestCase):
 
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws.assign_to_scope(role_type=RoleTypes.P_INTEGRATORS, group=group_name)
-            self.assertEqual(cm.output, [f"DEBUG:root:Assigning User(s): None Group(s): {group_name} to Role: {RoleTypes.P_INTEGRATORS}"])
+            self.assertEqual(cm.output, [
+                f"DEBUG:root:Assigning User(s): None Group(s): {group_name} to Role: {RoleTypes.P_INTEGRATORS}"])
+
+    @patch('ws_sdk.web.WS.call_ws_api')
+    def test_invite_user_to_web_advisor(self, mock_call_ws_api):
+        with self.assertLogs(level='DEBUG') as cm:
+            res = self.ws.invite_user_to_web_advisor(user_email="INVITEE@EMAIL.COM")
+            self.assertEqual(cm.output, ["DEBUG:root:Inviting email: 'INVITEE@EMAIL.COM' to Web Advisor"])
+
+    @patch('ws_sdk.web.WS.call_ws_api')
+    def test_regenerate_service_user_key(self, mock_call_ws_api):
+        mock_call_ws_api.return_value = {'userToken': self.valid_token}
+        res = self.ws.regenerate_service_user_key(service_user_key=self.valid_token)
+
+        self.assertEqual(res, self.valid_token)
+
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_integration_token(self, mock_generic_get):
+        mock_generic_get.return_value = self.valid_token
+        ret = self.ws.get_integration_token(integration_type=IntegrationTypes.INT_1)
+
+        self.assertEqual(ret, self.valid_token)
 
 
 if __name__ == '__main__':
     TestCase.unittest.main()
+

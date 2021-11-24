@@ -46,16 +46,25 @@ class AlertTypes:
                    REJECTED_BY_POLICY_RESOURCE]
 
 
-# Scope Types
+# Scope Types - Deprecated
 PROJECT = 'project'
 PRODUCT = 'product'
 ORGANIZATION = 'organization'
 GLOBAL = 'globalOrganization'
 
-TOKEN_TYPES_MAPPING = {GLOBAL: "globalOrgToken",
-                       ORGANIZATION: "orgToken",
-                       PRODUCT: "productToken",
-                       PROJECT: "projectToken"}
+
+class ScopeTypes:
+    PROJECT = 'project'
+    PRODUCT = 'product'
+    ORGANIZATION = 'organization'
+    GLOBAL = 'globalOrganization'
+    SCOPE_TYPES = [PROJECT, PRODUCT, ORGANIZATION, GLOBAL]
+
+
+TOKEN_TYPES_MAPPING = {ScopeTypes.GLOBAL: "globalOrgToken",
+                       ScopeTypes.ORGANIZATION: "orgToken",
+                       ScopeTypes.PRODUCT: "productToken",
+                       ScopeTypes.PROJECT: "projectToken"}
 
 
 # Role Types
@@ -145,9 +154,14 @@ class LibTypes:
                     "Nuget": LIB_T_NUGET}  # YES?
 
 
-class ReportsData:
+class ReportsMetaData(NamedTuple):
+    name: str
+    bin_sfx: str
+    func: callable
+
     REPORT_BIN_TYPE = "report_bin_type"
-    REPORT_META_DATA = [REPORT_BIN_TYPE]
+    REPORT_SCOPE = "report_scope_types"
+    REPORTS_META_DATA = [REPORT_BIN_TYPE, REPORT_SCOPE]
 
 
 class LibMetaData:
@@ -167,3 +181,15 @@ class LibMetaData:
                LibMetadata(language='objc', package_manager=['cocoapods'], file_suffices=['.h', '.m', '.mm', '.M']),
                ]
 
+
+class ScopeSorts:
+    NAME = "name"
+    UPDATE_TIME = "lastUpdatedDate_obj"
+    CREATE_TIME = "creationDate_obj"
+
+    SCOPE_SORTS = [NAME, UPDATE_TIME, CREATE_TIME]
+
+
+class IntegrationTypes:
+    INT_1 = "int__1"
+    Types = [INT_1]
