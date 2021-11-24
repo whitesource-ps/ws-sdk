@@ -57,8 +57,7 @@ jobs:
         run: python setup.py bdist_wheel
       - name: Install Wheel package
         run: pip install dist/${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl
-      - name Create GH Release
-        uses: ncipollo/release-action@v1
+      - uses: ncipollo/release-action@v1
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           artifacts: dist/${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl
