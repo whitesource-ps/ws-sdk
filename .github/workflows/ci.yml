@@ -6,7 +6,7 @@ on:
     tags:
       - '*'
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '0 4 * * 6'
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -22,9 +22,9 @@ jobs:
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             echo "VERSION=$(echo ${{github.ref}} |  sed -r 's/^[\/a-zA-z-]+//')" >> $GITHUB_ENV
             if [[ $VERSION == *@(a|b)* ]]; then
-              RELEASE=0 >> $GITHUB_ENV
+              PRERELEASE=true >> $GITHUB_ENV
             else:
-              RELEASE=1 >> $GITHUB_ENV
+              RELEASE=true >> $GITHUB_ENV
             fi
           else
             echo "VERSION=0.0.0_ci0" >> $GITHUB_ENV
@@ -55,9 +55,10 @@ jobs:
         run: python -m unittest
       - name: Create Wheel Package
         run: python setup.py bdist_wheel
-      - name: Install WS SDK Wheel package
+      - name: Install Wheel package
         run: pip install dist/${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl
-      - uses: ncipollo/release-action@v1
+      - name Create GH Release
+        uses: ncipollo/release-action@v1
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           artifacts: dist/${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl
@@ -80,7 +81,7 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Publish to Confluence - Internal
-        if: ${{ env.RELEASE }}
+        if: env.RELEASE == 'true'
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
@@ -89,7 +90,7 @@ jobs:
           user: ${{ secrets.CONFLUENCE_USER }}
           token: ${{ secrets.CONFLUENCE_TOKEN }}
       - name: Publish to Confluence - Public
-        if: ${{ env.RELEASE }}
+        if: env.RELEASE == 'true'
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
