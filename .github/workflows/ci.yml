@@ -57,7 +57,7 @@ jobs:
         run: python -m unittest
       - name: Create Wheel Package
         run: python setup.py bdist_wheel
-      - name: Install WS SDK Wheel package
+      - name: Install Wheel package
         run: pip install dist/${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl
       - uses: ncipollo/release-action@v1
         if: startsWith(github.ref, 'refs/tags/v')
@@ -82,7 +82,7 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Publish to Confluence - Internal
-        if: ${{ env.RELEASE }}
+        if: env.RELEASE == 'true'
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
@@ -91,7 +91,7 @@ jobs:
           user: ${{ secrets.CONFLUENCE_USER }}
           token: ${{ secrets.CONFLUENCE_TOKEN }}
       - name: Publish to Confluence - Public
-        if: ${{ env.RELEASE }}
+        if: env.RELEASE == 'true'
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
