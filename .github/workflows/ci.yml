@@ -30,7 +30,6 @@ jobs:
             echo "VERSION=0.0.0_ci0" >> $GITHUB_ENV
           fi
           echo "RELEASE{}?:" ${{ env.RELEASE }}
-          echo "PRERELEASE{}?:" ${{ env.PRERELEASE }}
       - uses: actions/checkout@v2
       - uses: UnicornGlobal/trufflehog-actions-scan@master
         with:
@@ -82,7 +81,7 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Publish to Confluence - Internal
-        if: ${{ env.RELEASE == 'true' }}
+        if: env.RELEASE == 'true'
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
@@ -91,7 +90,7 @@ jobs:
           user: ${{ secrets.CONFLUENCE_USER }}
           token: ${{ secrets.CONFLUENCE_TOKEN }}
       - name: Publish to Confluence - Public
-        if: ${{ env.RELEASE == 'true' }}
+        if: env.RELEASE == 'true'
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
