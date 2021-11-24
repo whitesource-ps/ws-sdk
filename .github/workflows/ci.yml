@@ -54,7 +54,7 @@ jobs:
           WS_ORG_TOKEN: ${{ secrets.WS_ORG_TOKEN }}
         run: python -m unittest
       - name: Create Wheel Package
-        run: python setup.py bdist_wheel
+        run: python setup.py bdist_wheel spdx
       - name: Install WS SDK Wheel package
         run: pip install dist/${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl
       - uses: ncipollo/release-action@v1
