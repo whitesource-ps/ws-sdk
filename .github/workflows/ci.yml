@@ -90,7 +90,7 @@ jobs:
           user: ${{ secrets.CONFLUENCE_USER }}
           token: ${{ secrets.CONFLUENCE_TOKEN }}
       - name: Publish to Confluence - Public
-        if: env.RELEASE == 'true'
+        if: ${{ env.RELEASE == true }}
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
