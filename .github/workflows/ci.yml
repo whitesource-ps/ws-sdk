@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 mock wheel
+          pip install flake8 mock wheel spdx-tools
           pip install -r requirements.txt
       - name: Lint with flake8
         run: |
