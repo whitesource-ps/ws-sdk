@@ -22,9 +22,9 @@ jobs:
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             echo "VERSION=$(echo ${{github.ref}} |  sed -r 's/^[\/a-zA-z-]+//')" >> $GITHUB_ENV
             if [[ $VERSION == *@(a|b)* ]]; then
-              PRERELEASE=true >> $GITHUB_ENV
+              "RELEASE=false" >> $GITHUB_ENV
             else:
-              RELEASE=true >> $GITHUB_ENV
+              "RELEASE=true" >> $GITHUB_ENV
             fi
           else
             echo "VERSION=0.0.0_ci0" >> $GITHUB_ENV
@@ -65,7 +65,7 @@ jobs:
           artifacts: dist/${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl
           allowUpdates: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: ${{ env.PRERELEASE }}
+          prerelease: ${{ env.RELEASE == 'false' }}
       - name: Publish to Test PyPI
         if: startsWith(github.ref, 'refs/tags/test-v')
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -82,7 +82,7 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Publish to Confluence - Internal
-        if: env.RELEASE == 'true'
+        if: ${{ env.RELEASE == 'true' }}
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
@@ -91,7 +91,7 @@ jobs:
           user: ${{ secrets.CONFLUENCE_USER }}
           token: ${{ secrets.CONFLUENCE_TOKEN }}
       - name: Publish to Confluence - Public
-        if: env.RELEASE == 'true'
+        if: ${{ env.RELEASE == 'true' }}
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
