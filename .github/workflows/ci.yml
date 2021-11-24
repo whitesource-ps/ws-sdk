@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 mock wheel
+          pip install flake8 mock wheel spdx
           pip install -r requirements.txt
       - name: Lint with flake8
         run: |
@@ -54,7 +54,7 @@ jobs:
           WS_ORG_TOKEN: ${{ secrets.WS_ORG_TOKEN }}
         run: python -m unittest
       - name: Create Wheel Package
-        run: python setup.py bdist_wheel spdx
+        run: python setup.py bdist_wheel
       - name: Install WS SDK Wheel package
         run: pip install dist/${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl
       - uses: ncipollo/release-action@v1
