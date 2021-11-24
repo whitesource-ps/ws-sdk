@@ -18,18 +18,16 @@ jobs:
     steps:
       - name: Set Environment Variables
         run: |
+          echo "RELEASE=false" >> $GITHUB_ENV
           echo "TOOL_DIR=ws_$TOOL_NAME" >> $GITHUB_ENV
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
             echo "VERSION=$(echo ${{github.ref}} |  sed -r 's/^[\/a-zA-z-]+//')" >> $GITHUB_ENV
-            if [[ $VERSION == *@(a|b)* ]]; then
-              "RELEASE=false" >> $GITHUB_ENV
-            else:
-              "RELEASE=true" >> $GITHUB_ENV
+            if [[ $VERSION != *@(a|b)* ]]; then
+              echo "RELEASE=true" >> $GITHUB_ENV
             fi
           else
             echo "VERSION=0.0.0_ci0" >> $GITHUB_ENV
           fi
-          echo "RELEASE{}?:" ${{ env.RELEASE }}
       - uses: actions/checkout@v2
       - uses: UnicornGlobal/trufflehog-actions-scan@master
         with:
@@ -81,7 +79,7 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Publish to Confluence - Internal
-        if: env.RELEASE == 'true'
+        if: ${{ env.RELEASE == 'true' }}
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
@@ -90,7 +88,7 @@ jobs:
           user: ${{ secrets.CONFLUENCE_USER }}
           token: ${{ secrets.CONFLUENCE_TOKEN }}
       - name: Publish to Confluence - Public
-        if: ${{ env.RELEASE == true }}
+        if: ${{ env.RELEASE == 'true' }}
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
