@@ -22,13 +22,15 @@ jobs:
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             echo "VERSION=$(echo ${{github.ref}} |  sed -r 's/^[\/a-zA-z-]+//')" >> $GITHUB_ENV
             if [[ $VERSION == *@(a|b)* ]]; then
-              RELEASE=0 >> $GITHUB_ENV
+              RELEASE=false >> $GITHUB_ENV
             else:
-              RELEASE=1 >> $GITHUB_ENV
+              RELEASE=true >> $GITHUB_ENV
             fi
           else
             echo "VERSION=0.0.0_ci0" >> $GITHUB_ENV
           fi
+          echo "RELEASE{}?:" ${{ env.RELEASE }} "RELEASE?:" env.RELEASE
+          echo "PRERELEASE{}?:" ${{ !env.RELEASE }} "PRERELEASE?:" !env.RELEASE
       - uses: actions/checkout@v2
       - uses: UnicornGlobal/trufflehog-actions-scan@master
         with:
