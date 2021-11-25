@@ -8,7 +8,7 @@ setuptools.setup(
     author_email="ps@whitesourcesoftware.com",
     description=__description__,
     url='https://github.com/whitesource-ps/ws-sdk',
-    license='LICENSE.txt',
+    license='LICENSE',
     packages=setuptools.find_packages(),
     python_requires='>=3.7',
     install_requires=[line.strip() for line in open("requirements.txt").readlines()],
