@@ -115,9 +115,6 @@ class WSClient:
             if offline is not None:
                 local_ua_all_conf.Offline = offline
 
-            self.add_scan_comment(key="k0", value="v0", ua_conf=local_ua_all_conf)
-            self.add_scan_comment(key="k1", value="v1", ua_conf=local_ua_all_conf)
-
             self.__execute_ua(f"-d {existing_dirs} -{target[0]} {target[1]}", local_ua_all_conf)
         else:
             logging.warning("Nothing was scanned")
