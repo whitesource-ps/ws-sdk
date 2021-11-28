@@ -11,7 +11,7 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     env:
-      TOOL_NAME: sdk
+      TOOL_NAME: ws_sdk
     strategy:
       matrix:
         python-version: [3.7, 3.8, 3.9]
@@ -19,14 +19,13 @@ jobs:
       - name: Set Environment Variables
         run: |
           echo "RELEASE=false" >> $GITHUB_ENV
-          echo "TOOL_DIR=ws_$TOOL_NAME" >> $GITHUB_ENV
+          echo "VERSION=0.0.0.ci0" >> $GITHUB_ENV
+          echo "TOOL_DIR=$TOOL_NAME" >> $GITHUB_ENV
           if [[ $GITHUB_REF == refs/tags/v* ]]; then
             echo "VERSION=$(echo ${{github.ref}} |  sed -r 's/^[\/a-zA-z-]+//')" >> $GITHUB_ENV
             if [[ $VERSION != *@(a|b)* ]]; then
               echo "RELEASE=true" >> $GITHUB_ENV
             fi
-          else
-            echo "VERSION=0.0.0.ci0" >> $GITHUB_ENV
           fi
       - uses: actions/checkout@v2
       - uses: UnicornGlobal/trufflehog-actions-scan@master
