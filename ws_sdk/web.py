@@ -10,7 +10,7 @@ import requests_cache
 from ws_sdk import ws_utilities
 from ws_sdk.ws_errors import *
 from ws_sdk.ws_constants import *
-from ws_sdk._version import __version__
+from ws_sdk._version import __version__, __tool_name__
 
 
 class WS:
@@ -87,7 +87,7 @@ class WS:
                  token_type: str = ScopeTypes.ORGANIZATION,
                  timeout: int = CONN_TIMEOUT,
                  resp_format: str = "json",
-                 tool_details: tuple = ("ps-sdk", __version__)
+                 tool_details: tuple = (f"ps-{__tool_name__.replace('_','-')}", __version__)
                  ):
         """WhiteSource Python SDK
         :api_url: URL for the API to access (e.g. saas.whitesourcesoftware.com)
@@ -401,6 +401,9 @@ class WS:
                 project['type'] = ScopeTypes.PROJECT
                 project[TOKEN_TYPES_MAPPING[ScopeTypes.PRODUCT]] = prod.get('token')
                 project['productName'] = prod.get('name')
+
+                if project.get('lastScanComment'):  # in case of comments trying to restore into dict of: k1:v1;k2:v2...
+                    project['project_metadata_d'] = dict([kv.split(':', 1) for kv in project['lastScanComment'].split(';') if ':' in kv])
 
             return proj_list
 
@@ -1177,6 +1180,18 @@ class WS:
             if project['token'] == token:
                 return project
         logging.error(f"Project with token: {token} was not found")
+        raise WsSdkServerMissingTokenError(token, ScopeTypes.PROJECT)
+
+    def get_project_metadata(self,
+                             token: str) -> dict:
+        """
+        Method to return metadata dictionary base on project's scan comment
+        :param token:
+        :return:
+        """
+        project = self.get_project(token=token)
+
+        return project['project_metadata_d']
 
     def get_tags(self,
                  token: str = None) -> list:
