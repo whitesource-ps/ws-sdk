@@ -675,9 +675,8 @@ class TestWS(TestCase):
     @patch('ws_sdk.web.WS.get_projects')
     def test_get_project_not_found(self, mock_get_projects):
         mock_get_projects.return_value = [{'token': "TOKEN"}]
-        res = self.ws.get_project(token="NOT_FOUND")
-
-        self.assertIs(res, None)
+        with self.assertRaises(WsSdkServerMissingTokenError):
+            res = self.ws.get_project(token="NOT_FOUND")
 
     @patch('ws_sdk.web.WS.get_scopes')
     def test_get_product_of_project(self, mock_get_scopes):

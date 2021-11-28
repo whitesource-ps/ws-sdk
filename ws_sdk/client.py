@@ -37,7 +37,7 @@ class WSClient:
             self.ua_conf.noConfig = True
             self.ua_conf.checkPolicies = False
             self.ua_conf.includes = {"**/*.c", "**/*.cc", "**/*.cp", "**/*.cpp", "**/*.cxx", "**/*.c++", "**/*.h", "**/*.hpp", "**/*.hxx"}
-            self.ua_conf.scanComment = f"{tool_details[0]}-{tool_details[1]}"
+            self.ua_conf.scanComment = f"agent:{tool_details[0]};agentVersion:{tool_details[1]}"
             if logging.root.level == logging.DEBUG:
                 self.ua_conf.logLevel = "debug"
 
@@ -115,7 +115,8 @@ class WSClient:
             if offline is not None:
                 local_ua_all_conf.Offline = offline
 
-            local_ua_all_conf.scanComment += f";scan={comment}"
+            self.add_scan_comment(key="k0", value="v0", ua_conf=local_ua_all_conf)
+            self.add_scan_comment(key="k1", value="v1", ua_conf=local_ua_all_conf)
 
             self.__execute_ua(f"-d {existing_dirs} -{target[0]} {target[1]}", local_ua_all_conf)
         else:
@@ -192,3 +193,21 @@ class WSClient:
 
     def get_scan_project_details(self) -> dict:
         return self.__get_ua_output("scanProjectDetails.json")
+
+    def add_scan_comment(self,
+                         key: str,
+                         value: str,
+                         ua_conf=None):
+        """
+        Method to add data into comments. Each top section is seperated by ';' and presented as key : value(e.g. top_key1=top_value1;top_key2=top_value2
+        :param key: the key of the data
+        :param value: the value of the data
+        :param ua_conf: the UA configuration object to use (None meaning it will change self).
+        """
+        if not ua_conf:
+            ua_conf = self.ua_conf
+
+        if ua_conf.scanComment:
+            ua_conf.scanComment += ';'
+
+        ua_conf.scanComment += f"{key}:{value}"
