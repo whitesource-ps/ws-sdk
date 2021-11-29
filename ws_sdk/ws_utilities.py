@@ -13,11 +13,13 @@ def is_token(token: str) -> bool:
 
 
 def convert_dict_list_to_dict(lst: list,
-                              key_desc: str or tuple) -> dict:
+                              key_desc: str or tuple = "id",
+                              should_replace_f: callable = None) -> dict:
     """
     Function to convert list of dictionaries into dictionary of dictionaries according to specified key
     :param lst: List of dictionaries
     :param key_desc: the key or keys (as tuple) description of the returned dictionary (a key can be str or dict)
+    :param should_replace_f: function that receives a and b dictionaries and returns true if a should replace b
     :return: dict with key according to key description and the dictionary value
     """
     def create_key(key_desc: str or tuple,
@@ -50,7 +52,16 @@ def convert_dict_list_to_dict(lst: list,
     ret = {}
     for i in lst:
         curr_key = create_key(key_desc, i)
-        ret[curr_key] = i
+
+        insert_key = False
+        if ret.get(curr_key) and should_replace_f:
+            logging.warning(f"Key {curr_key} exists. Running '{should_replace_f.__name__}'")
+            insert_key = should_replace_f(i, ret[curr_key])
+        else:
+            insert_key = True
+
+        if insert_key:
+            ret[curr_key] = i
 
     return ret
 
