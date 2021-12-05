@@ -111,6 +111,7 @@ class WSClient:
         if target and existing_dirs:
             logging.info(f"Scanning Dir(s): {existing_dirs} to {target[0]}: {target[1]}")
             local_ua_all_conf = copy.copy(self.ua_conf)
+            self.add_scan_comment(comment, ua_conf=local_ua_all_conf)
 
             if offline is not None:
                 local_ua_all_conf.Offline = offline

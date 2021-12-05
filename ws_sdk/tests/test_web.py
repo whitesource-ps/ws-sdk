@@ -262,7 +262,7 @@ class TestWS(TestCase):
     def test_get_inventory__product_report(self, mock_generic_get, mock_set_token_in_body):
         mock_generic_get.return_value = bytes()
         mock_set_token_in_body.return_value = (PRODUCT, {})
-        res = self.ws.get_inventory(report=True, token="PRODUCT")
+        res = self.ws.get_inventory(token="PRODUCT", report=True)
 
         self.assertIsInstance(res, bytes)
 
@@ -281,6 +281,15 @@ class TestWS(TestCase):
         mock_generic_get.return_value = {'libraries': []}
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
         res = self.ws.get_inventory()
+
+        self.assertIsInstance(res, list)
+
+    @patch('ws_sdk.web.WS.set_token_in_body')
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_lib_dependencies(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = []
+        mock_set_token_in_body.return_value = (PROJECT, {})
+        res = self.ws.get_lib_dependencies(token="TOKEN", key_uuid="KEY_UUID")
 
         self.assertIsInstance(res, list)
 
