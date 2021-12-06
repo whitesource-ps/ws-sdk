@@ -23,17 +23,18 @@ class TestWS(TestCase):
         pathlib.Path("ws_constants.DEFAULT_UA_PATH").mkdir(parents=True, exist_ok=True)
         mock_convert_ua_conf_f_to_vars.return_value.apiKey = None
         mock_convert_ua_conf_f_to_vars.return_value.userKey = None
-        mock_convert_ua_conf_f_to_vars.return_value.wss_url = None
+        mock_convert_ua_conf_f_to_vars.return_value.ws_url = None
         mock_is_latest_ua_semver.return_value = True
         self.client = WSClient(user_key=os.environ.get('WS_USER_KEY', self.valid_token),
                                token=os.environ.get('WS_ORG_TOKEN', self.valid_token))
 
-    def test_get_local_ua_semver(self):
+    @patch('ws_sdk.client.WSClient._execute_ua')
+    def test_get_local_ua_semver(self, mock):
         ua_ret_t = "21.6.3"
-        with patch.object(self.client, "_WSClient__execute_ua", return_value=ua_ret_t) as method:
-            res = self.client.get_local_ua_semver()
+        mock.return_value.stdout = bytes(ua_ret_t, 'utf-8')
+        res = self.client.get_local_ua_semver()
 
-            self.assertEqual(res, ua_ret_t)
+        self.assertEqual(res, ua_ret_t)
 
     def test_add_scan_comment(self):
         key = "key1"

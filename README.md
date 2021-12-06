@@ -25,9 +25,11 @@ The SDK contains the following modules:
 1. Install package from Pypi: `pip install ws-sdk` .
 
 ## Execution
+
 ```python
 # Web (WhiteSource Application)
 from ws_sdk.web import WS
+
 ws = WS(api_url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
 # Get alerts 
 all_alerts = ws.get_alerts()
@@ -40,11 +42,12 @@ ws.create_user(name='USER_TEST1', email="USER_TEST1@EMAIL.COM", inviter_email="I
 
 # Client (WhiteSource Unified Agent)
 from ws_sdk.client import WSClient
+
 ws_client = WSClient(api_url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN", ua_path="/UA/WORKING/DIR")
 # Download latest UA jar and conf file
 ws_client.download_ua()
 # Execute scan into defined project token
-out = ws_client.execute_scan(scan_dir="/PATH/TO/DIR", project_token="PROJ_TOKEN")
+out = ws_client.scan(scan_dir="/PATH/TO/DIR", project_token="PROJ_TOKEN")
 # Read scan artifcat's policy rejection summary 
 pol_rej = ws_client.get_policy_rejection_summary()
 ```

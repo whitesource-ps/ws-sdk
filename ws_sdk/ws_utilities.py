@@ -7,7 +7,7 @@ import shutil
 from typing import Callable
 from ws_sdk.ws_constants import *
 from datetime import datetime
-
+import pathlib
 def is_token(token: str) -> bool:
     return False if token is None or len(token) != 64 else True
 
@@ -170,10 +170,15 @@ def init_ua(path: str):
     download_ua(path)
 
 
+def is_ua_exists(ua_jar_f_with_path):
+    return os.path.exists(ua_jar_f_with_path)
+
+
 def download_ua(path: str,
                 inc_ua_jar_file: bool = True,
                 inc_ua_conf_file: bool = True):
     def download_ua_file(f_details: tuple):
+        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
         file_p = os.path.join(path, f_details[0])
         if os.path.exists(file_p):
             logging.debug(f"Backing up previous {f_details[0]}")
@@ -204,4 +209,3 @@ def get_latest_ua_release_url() -> dict:
 
 def convert_to_time_obj(time: str):
     return datetime.strptime(time, '%Y-%m-%d %H:%M:%S %z')
-
