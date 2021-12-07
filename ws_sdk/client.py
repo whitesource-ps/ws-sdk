@@ -43,7 +43,7 @@ class WSClient:
             self.ua_conf.whiteSourceFolderPath = self.ua_path
             self.ua_conf.noConfig = True
             self.ua_conf.checkPolicies = False
-            self.ua_conf.includes = LibMetaData.WS_ALL_SCAN_SUFFICES
+            # self.ua_conf.includes = LibMetaData.
             self.ua_conf.scanComment = f"agent:{tool_details[0]};agentVersion:{tool_details[1]}"
             self.ua_conf.showProgressBar = False
             if logging.root.level == logging.DEBUG:
