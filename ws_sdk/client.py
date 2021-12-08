@@ -1,7 +1,6 @@
 import copy
 import logging
 import os
-import subprocess
 import json
 from typing import Union
 from pkg_resources import parse_version
@@ -21,7 +20,7 @@ class WSClient:
                  token: str,
                  token_type: str = ORGANIZATION,
                  url: str = None,
-                 java_bin: str = "java",
+                 java_bin: str = JAVA_BIN,
                  ua_path: str = f"c:/tmp/ws-{__tool_name__}" if sys.platform == "win32" else f"/tmp/{__tool_name__}",
                  ua_jar_with_path: str = None,
                  skip_ua_update: bool = False,
@@ -33,19 +32,16 @@ class WSClient:
             self.java_temp_dir = ua_path
             self.ua_jar_f_with_path = ua_jar_with_path if ua_jar_with_path else os.path.join(ua_path, UA_JAR_F_N)
             # UA configuration
-            # self.ua_conf_f_with_path = ua_conf_with_path if ua_conf_with_path else os.path.join(ua_path, UA_CONF_FNAME)
-            # self.ua_conf = ws_utilities.convert_ua_conf_f_to_vars(self.ua_conf_f_with_path) # Enable to generate class members from conf file
             self.ua_conf = ws_utilities.WsConfiguration()
             self.ua_conf.apiKey = token
             self.ua_conf.userKey = user_key
             self.ws_url = f"{ws_utilities.get_full_ws_url(url)}"
-            self.java_bin = java_bin
+            self.java_bin = java_bin if bool(java_bin) else JAVA_BIN
             self.ua_conf.wss_url = self.get_client_api_url(self.ws_url)
             self.ua_conf.log_files_path = self.ua_path
             self.ua_conf.whiteSourceFolderPath = self.ua_path
             self.ua_conf.noConfig = True
             self.ua_conf.checkPolicies = False
-            # self.ua_conf.includes = LibMetaData.
             self.ua_conf.scanComment = f"agent:{tool_details[0]};agentVersion:{tool_details[1]}"
             self.ua_conf.showProgressBar = False
             # Input validation

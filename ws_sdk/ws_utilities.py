@@ -172,11 +172,11 @@ def init_ua(path: str):
     download_ua(path)
 
 
-def is_java_exists(java_bin: str = "java") -> bool:
+def is_java_exists(java_bin: str = JAVA_BIN) -> bool:
     return True if get_java_version(java_bin) else False
 
 
-def get_java_version(java_bin: str = "java") -> str:
+def get_java_version(java_bin: str =  JAVA_BIN) -> str:
     output = execute_command(command=java_bin, switches="-version")
     ret = re.findall(r'[0-9._]+', output[1].splitlines()[0]).pop() if output[1] else None
     logging.debug(f"Java version: '{ret}'")
