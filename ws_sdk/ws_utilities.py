@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 from typing import Callable
+
 from ws_sdk.ws_constants import *
 from datetime import datetime
 import pathlib
@@ -139,6 +140,11 @@ def parse_ua_conf(filename: str) -> dict:
 
 class WsConfiguration:
     ...
+
+    def append_lang_to_scan(self, includes):
+        if self.includes is None:
+            self.includes = LibMetaData.LangSuffix.DEFAULT
+        self.includes += includes
 
 def convert_ua_conf_f_to_vars(filename: str) -> WsConfiguration:
     """

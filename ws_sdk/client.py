@@ -108,7 +108,8 @@ class WSClient:
              product_token: str = None,
              product_name: str = None,
              offline: bool = None,
-             comment: str = None) -> tuple:
+             comment: str = None,
+             include: list = None) -> tuple:
         """
         Execute scan on dir(s)
         :param scan_dir: the dir(s) to scan (comma seperated if multiple)
@@ -118,6 +119,7 @@ class WSClient:
         :param product_name: WS Product name to associate scan with
         :param offline: Whether to load an offline request or actually scan
         :param comment: Ability to add comment to: "Last Scan Comments"
+        :param include: list of suffices to scan
         :return: return tuple output and error stream and return code
         """
 
@@ -139,6 +141,9 @@ class WSClient:
             if offline is not None:
                 local_ua_all_conf.Offline = offline
 
+            if include:
+                local_ua_all_conf.append_lang_to_scan(include)
+
             ret = self._execute_ua(f"-d {existing_dirs} -{target[0]} {target[1]}", local_ua_all_conf)
         else:
             logging.warning("Nothing was scanned")
@@ -150,7 +155,8 @@ class WSClient:
                     product_token: str = None,
                     docker_images: list = None,
                     offline: bool = False,
-                    comment: str = None):
+                    comment: str = None,
+                    include: list = None) -> tuple:
         target = self.get_target(None, product_token, product_name)
         if not target:
             logging.error("Docker scan mode is set but no product token of name passed")
@@ -166,6 +172,9 @@ class WSClient:
             logging.debug(f"Docker images to scan: {local_ua_all_conf.docker_includes}")
         if offline is not None:
             local_ua_all_conf.Offline = offline
+
+        if include:
+            local_ua_all_conf.append_lang_to_scan(include)
 
         ret = self._execute_ua(f"-d {self.ua_path} -{target[0]} {target[1]}", local_ua_all_conf)
 
