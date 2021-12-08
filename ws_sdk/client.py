@@ -21,6 +21,7 @@ class WSClient:
                  token: str,
                  token_type: str = ORGANIZATION,
                  url: str = None,
+                 java_bin: str = "java",
                  ua_path: str = f"c:/tmp/ws-{__tool_name__}" if sys.platform == "win32" else f"/tmp/{__tool_name__}",
                  ua_jar_with_path: str = None,
                  skip_ua_update: bool = False,
@@ -38,6 +39,7 @@ class WSClient:
             self.ua_conf.apiKey = token
             self.ua_conf.userKey = user_key
             self.ws_url = f"{ws_utilities.get_full_ws_url(url)}"
+            self.java_bin = java_bin
             self.ua_conf.wss_url = self.get_client_api_url(self.ws_url)
             self.ua_conf.log_files_path = self.ua_path
             self.ua_conf.whiteSourceFolderPath = self.ua_path
@@ -46,6 +48,9 @@ class WSClient:
             # self.ua_conf.includes = LibMetaData.
             self.ua_conf.scanComment = f"agent:{tool_details[0]};agentVersion:{tool_details[1]}"
             self.ua_conf.showProgressBar = False
+            # Input validation
+            if not ws_utilities.is_java_exists(self.java_bin):
+                logging.warning(f"Java: '{java_bin}' was not found")
             if logging.root.level == logging.DEBUG:
                 self.ua_conf.logLevel = "debug"
             else:
@@ -62,12 +67,12 @@ class WSClient:
                     options: str,
                     ua_conf: ws_utilities.WsConfiguration = None) -> tuple:
         def _handle_ws_client_errors():
-            if output.returncode == 0:
-                logging.debug(f"UA executed successfully. Return Code {output.returncode}. Message: {output.stdout.decode('utf-8')}")
-            elif output.returncode == -2:
-                raise ws_errors.WsSdkClientPolicyViolation(output.returncode, output.stderr.decode('utf-8'))
+            if output[0] == 0:
+                logging.debug(f"UA executed successfully. Return Code {output[0]}. Message: {output[1]}")
+            elif output[0] == -2:
+                raise ws_errors.WsSdkClientPolicyViolation(output)
             else:
-                raise ws_errors.WsSdkClientGenericError(output.returncode, output.stderr.decode('utf-8') + output.stdout.decode('utf-8'))
+                raise ws_errors.WsSdkClientGenericError(output)
         """
         Executes the UA
         :param options: The options to pass the UA (that are not pass as env vars)
@@ -77,12 +82,12 @@ class WSClient:
         """
         if ua_conf is None:
             ua_conf = self.ua_conf
-        command = f"java -Djava.io.tmpdir={self.java_temp_dir} -jar {self.ua_jar_f_with_path} {options}"
-        logging.debug(f"Running command: {command}")
+        command = f"{self.java_bin}"
+        switches = f"-Djava.io.tmpdir={self.java_temp_dir} -jar {self.ua_jar_f_with_path} {options}"
         env = ws_utilities.generate_conf_ev(ua_conf)
         orig_path = os.getcwd()
         os.chdir(self.ua_path)                                                  # TODO CONSIDER PUTTING ON CONSTRUCTOR
-        output = subprocess.run(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output = ws_utilities.execute_command(command=command, switches=switches, env=env)
         os.chdir(orig_path)
         _handle_ws_client_errors()
 
@@ -199,8 +204,8 @@ class WSClient:
 
         return ret
 
-    def get_local_ua_semver(self):
-        local_semver = self._execute_ua("-v").stdout.decode('utf-8').strip('\r\n')
+    def get_local_ua_semver(self) -> str:
+        local_semver = self._execute_ua("-v")[1].strip('\r\n')
         logging.debug(f"Local WhiteSource Unified Agent version {local_semver}")
 
         return local_semver

@@ -29,9 +29,9 @@ class TestWS(TestCase):
                                token=os.environ.get('WS_ORG_TOKEN', self.valid_token))
 
     @patch('ws_sdk.client.WSClient._execute_ua')
-    def test_get_local_ua_semver(self, mock):
+    def test_get_local_ua_semver(self, mock_execute_ua):
         ua_ret_t = "21.6.3"
-        mock.return_value.stdout = bytes(ua_ret_t, 'utf-8')
+        mock_execute_ua.return_value = (0, ua_ret_t)
         res = self.client.get_local_ua_semver()
 
         self.assertEqual(res, ua_ret_t)

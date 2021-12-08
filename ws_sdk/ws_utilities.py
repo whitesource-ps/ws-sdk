@@ -3,7 +3,9 @@ import json
 import logging
 import requests
 import os
+import re
 import shutil
+import subprocess
 from typing import Callable
 from ws_sdk.ws_constants import *
 from datetime import datetime
@@ -169,6 +171,40 @@ def generate_conf_ev(ws_configuration: WsConfiguration) -> dict:
 def init_ua(path: str):
     download_ua(path)
 
+
+def is_java_exists(java_bin: str = "java") -> bool:
+    return True if get_java_version(java_bin) else False
+
+
+def get_java_version(java_bin: str = "java") -> str:
+    output = execute_command(command=java_bin, switches="-version")
+    ret = re.findall(r'[0-9._]+', output[1].splitlines()[0]).pop() if output[1] else None
+    logging.debug(f"Java version: '{ret}'")
+
+    return ret
+
+
+def execute_command(command: str,
+                    switches: str = None,
+                    env = None) -> tuple:
+    output = None
+    full_command = f"{command} {switches}"
+    logging.debug(f"Executing command: {full_command}")
+    ret = (-1, None)
+    try:
+        if env:
+            output = subprocess.run(full_command, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        else:
+            output = subprocess.run(full_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        ret = (output.returncode, output.stdout.decode("utf-8"))
+    except FileNotFoundError:
+        logging.error(f"'{command}' not found")
+    except PermissionError:
+        logging.error(f"Permission denied running: '{command}'")
+    except OSError:
+        logging.exception(f"Error running command: '{command}'")
+
+    return ret
 
 def is_ua_exists(ua_jar_f_with_path):
     return os.path.exists(ua_jar_f_with_path)
