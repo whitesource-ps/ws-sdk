@@ -139,12 +139,15 @@ def parse_ua_conf(filename: str) -> dict:
     return ua_conf_dict
 
 class WsConfiguration:
-    ...
+    def __init__(self):
+        self.includes = None
 
     def append_lang_to_scan(self, includes):
         if self.includes is None:
             self.includes = LibMetaData.LangSuffix.DEFAULT
         self.includes += includes
+        ls = []
+
 
 def convert_ua_conf_f_to_vars(filename: str) -> WsConfiguration:
     """
