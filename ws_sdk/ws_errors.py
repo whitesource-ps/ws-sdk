@@ -50,12 +50,12 @@ class WsSdkClientError(WsSdkError):
 
 
 class WsSdkClientGenericError(WsSdkClientError):
-    def __init__(self, return_code, error):
-        self.message = f"Generic error running Unified Agent: {error}. Return Code: {return_code}"
+    def __init__(self, error_t: tuple):
+        self.message = f"Generic error running Unified Agent: {error_t[1]}. Return Code: {error_t[0]}"
         super().__init__(self.message)
 
 
 class WsSdkClientPolicyViolation(WsSdkClientError):
-    def __init__(self, return_code, error):
-        self.message = f"Policy Violation discovered when running Unified Agent: {error}. Return Code: {return_code}"
+    def __init__(self, error_t: tuple):
+        self.message = f"Policy Violation discovered when running Unified Agent: {error_t[1]}. Return Code: {error_t[0]}"
         super().__init__(self.message)
