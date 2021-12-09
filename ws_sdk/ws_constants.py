@@ -184,10 +184,13 @@ class LibMetaData:
     class LangSuffix:
         C_SRC = ["**/*.c", "**/*.h"]
         CPP_SRC = ["**/*.cp", "**/*.cpp", "**/*.hpp", "**/*.c++", "**/*.cc", "**/*.hxx", "**/*.cxx", "**/*.h++"]
-        C_SHRP = ["**/*.cs"]
+        C_SHRP_SRC = ["**/*.cs"]
         JAVA_BIN = ["**/*.jar", "**/*.war", "**/*.jar.pack.gz"]
         JAVA_SRC = ["**/*.java"]
+        JAVA = JAVA_SRC + JAVA_BIN
         PYTHON_PKG = ["**/*.whl", "**/*.egg"]
+        PYTHON_SRC = ["**/*.py", "**/*.py3"]
+        PYTHON = PYTHON_SRC + PYTHON_PKG
         ARCHIVE = ["**/*.7z", "**/*.bz2", "**/*.tar", "**/*.tar.bz2", "**/*.tar.gz", "**/*.tbz", "**/*.tgz"]
         LINUX_PKG = ["**/*.rpm", "**/*.deb", "**/*.apk"]
         LINUX_LIB = ["**/*.so"]
@@ -195,32 +198,23 @@ class LibMetaData:
         WINDOWS_EXEC = ["**/*.exe", "**/*.bat"]
         WINDOWS_PKG = ["**/*.msi"]
         WINDOWS_LIB = ["**/*.dll"]
-        ASP = ["**/*.asp", "**/*.aspx"]
+        ASP_SRC = ["**/*.asp", "**/*.aspx"]
         MAC_PKG = ["**/*.dmg"]
-        APL_MISC = ["**/*.applescript"]
+        APL_MISC_SRC = ["**/*.applescript"]
         RUBY_PKG = ["**/*.gem"]
-        GO = ["**/*.go"]
-        PERL = ["**/*.perl"]
-        PHP = ["**/*.php", "**/*.php3", "**/*.php4", "**/*.php5"]
+        GO_SRC = ["**/*.go"]
+        PERL_SRC = ["**/*.perl"]
+        PHP_SRC = ["**/*.php", "**/*.php3", "**/*.php4", "**/*.php5"]
         PASCAL = ["**/*.pascal"]
-        JAVASCRIPT = ["**/*.js", "**/*.min.js", "**/*.jsx"]
+        JAVASCRIPT_SRC = ["**/*.js", "**/*.min.js", "**/*.jsx"]
         LISP = ["**/*.lisp"]
-        DEFAULT = C_SRC + CPP_SRC
-
-        ALL_SCAN_SUFFICES = ["**/*.a", "**/*.aar", "**/*.air", "**/*.ar", "**/*.car",
-                            "**/*.conda", "**/*.cpa", "**/*.crate", "**/*.docker",
-                            "**/*.drpm", "**/*.ear", "**/*.epk", "**/*.gal",
-                            "**/*.gzip", "**/*.har", "**/*.hpi", "**/*.jpi",
-                            "**/*.ko", "**/*.nupkg", "**/*.pkg.tar.xz",
-                            "**/*.sar", "**/*.sit", "**/*.swc", "**/*.swf", "**/*.udeb", "**/*.zip",
-                            "**/*.4th", "**/*.6pl", "**/*.6pm", "**/*.8xk", "**/*.8xk.txt", "**/*.8xp", "**/*.8xp.txt",
-                            "**/*.E", "**/*.ML", "**/*._coffee", "**/*._js", "**/*._ls", "**/*.abap", "**/*.ada",
-                            "**/*.adb", "**/*.ado", "**/*.adp", "**/*.ads", "**/*.agda", "**/*.ahk", "**/*.ahkl",
-                            "**/*.aidl", "**/*.aj", "**/*.al", "**/*.als", "**/*.ampl", "**/*.apl", "**/*.app.src",
-                              "**/*.arc", "**/*.as", "**/*.asax", "**/*.asc", "**/*.ascx", "**/*.asd",
-                             "**/*.ash", "**/*.ashx", "**/*.asmx", "**/*.au3", "**/*.aug",
-                             "**/*.auk", "**/*.aw", "**/*.axd", "**/*.axi", "**/*.axi.erb", "**/*.axs",
-                             "**/*.axs.erb", "**/*.b", "**/*.bas", "**/*.bash", "**/*.bats", "**/*.bb",
+        ASSORTED_SUFFICES = ["**/*.a", "**/*.aar", "**/*.air", "**/*.ar", "**/*.car","**/*.conda", "**/*.cpa", "**/*.crate", "**/*.docker",
+                            "**/*.drpm", "**/*.ear", "**/*.epk", "**/*.gal", "**/*.gzip", "**/*.har", "**/*.hpi", "**/*.jpi",
+                            "**/*.ko", "**/*.nupkg", "**/*.pkg.tar.xz", "**/*.sar", "**/*.sit", "**/*.swc", "**/*.swf", "**/*.udeb", "**/*.zip",
+                            "**/*.4th", "**/*.6pl", "**/*.6pm", "**/*.8xk", "**/*.8xk.txt", "**/*.8xp", "**/*.8xp.txt", "**/*.E", "**/*.ML", "**/*._coffee", "**/*._js", "**/*._ls", "**/*.abap", "**/*.ada",
+                            "**/*.adb", "**/*.ado", "**/*.adp", "**/*.ads", "**/*.agda", "**/*.ahk", "**/*.ahkl", "**/*.aidl", "**/*.aj", "**/*.al", "**/*.als", "**/*.ampl", "**/*.apl", "**/*.app.src",
+                              "**/*.arc", "**/*.as", "**/*.asax", "**/*.asc", "**/*.ascx", "**/*.asd", "**/*.ash", "**/*.ashx", "**/*.asmx", "**/*.au3", "**/*.aug",
+                             "**/*.auk", "**/*.aw", "**/*.axd", "**/*.axi", "**/*.axi.erb", "**/*.axs", "**/*.axs.erb", "**/*.b", "**/*.bas", "**/*.bash", "**/*.bats", "**/*.bb",
                              "**/*.befunge", "**/*.bf", "**/*.bison", "**/*.bmx", "**/*.bones", "**/*.boo", "**/*.boot",
                              "**/*.brd", "**/*.bro", "**/*.brs", "**/*.bsl", "**/*.bsv", "**/*.builder", "**/*.bzl",
                              "**/*.cake", "**/*.capnp", "**/*.cats", "**/*.cbl",
@@ -279,7 +273,7 @@ class LibMetaData:
                              "**/*.pod", "**/*.podsl", "**/*.podspec", "**/*.pogo", "**/*.pony", "**/*.pov", "**/*.pp",
                              "**/*.pprx", "**/*.prg", "**/*.pri", "**/*.pro", "**/*.prolog", "**/*.prw", "**/*.ps1",
                              "**/*.psc", "**/*.psd1", "**/*.psgi", "**/*.psm1", "**/*.purs", "**/*.pwn", "**/*.pxd",
-                             "**/*.pxi", "**/*.py", "**/*.py3", "**/*.pyde", "**/*.pyp", "**/*.pyt", "**/*.pyw",
+                             "**/*.pxi", "**/*.pyde", "**/*.pyp", "**/*.pyt", "**/*.pyw",
                              "**/*.pyx", "**/*.qbs", "**/*.qml", "**/*.r", "**/*.r2", "**/*.r3", "**/*.rabl", "**/*.rake",
                              "**/*.rb", "**/*.rbbas", "**/*.rbfrm", "**/*.rbmnu", "**/*.rbres", "**/*.rbtbar",
                              "**/*.rbuild", "**/*.rbuistate", "**/*.rbw", "**/*.rbx", "**/*.rbxs", "**/*.rd", "**/*.re",
@@ -306,8 +300,9 @@ class LibMetaData:
                              "**/*.xojo_window", "**/*.xpl", "**/*.xproc", "**/*.xpy", "**/*.xq", "**/*.xql", "**/*.xqm",
                              "**/*.xquery", "**/*.xqy", "**/*.xrl", "**/*.xs", "**/*.xsjs", "**/*.xsjslib", "**/*.xsl",
                              "**/*.xslt", "**/*.xsp-config", "**/*.xsp.metadata", "**/*.xtend", "**/*.y", "**/*.yacc",
-                             "**/*.yap", "**/*.yrl", "**/*.yy", "**/*.zep", "**/*.zimpl", "**/*.zmpl", "**/*.zpl"] + JAVA_BIN + CPP_SRC + CPP_SRC + LINUX_PKG
-
+                             "**/*.yap", "**/*.yrl", "**/*.yy", "**/*.zep", "**/*.zimpl", "**/*.zmpl", "**/*.zpl"]
+        # ALL_SUFFICES =
+        UA_DEFAULT = C_SRC + CPP_SRC
 
 class ScopeSorts:
     NAME = "name"

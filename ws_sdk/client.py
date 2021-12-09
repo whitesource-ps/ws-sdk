@@ -40,7 +40,6 @@ class WSClient:
             self.ua_conf.wss_url = self.get_client_api_url(self.ws_url)
             self.ua_conf.log_files_path = self.ua_path
             self.ua_conf.whiteSourceFolderPath = self.ua_path
-            self.ua_conf.noConfig = True
             self.ua_conf.checkPolicies = False
             self.ua_conf.scanComment = f"agent:{tool_details[0]};agentVersion:{tool_details[1]}"
             self.ua_conf.showProgressBar = False
@@ -79,7 +78,7 @@ class WSClient:
         if ua_conf is None:
             ua_conf = self.ua_conf
         command = f"{self.java_bin}"
-        switches = f"-Djava.io.tmpdir={self.java_temp_dir} -jar {self.ua_jar_f_with_path} {options}"
+        switches = f"-Djava.io.tmpdir={self.java_temp_dir} -jar {self.ua_jar_f_with_path} {options} -noConfig True"  #-noConfig True => configFilePath=DEFAULT
         env = ws_utilities.generate_conf_ev(ua_conf)
         orig_path = os.getcwd()
         os.chdir(self.ua_path)                                                  # TODO CONSIDER PUTTING ON CONSTRUCTOR
@@ -119,7 +118,7 @@ class WSClient:
         :param product_name: WS Product name to associate scan with
         :param offline: Whether to load an offline request or actually scan
         :param comment: Ability to add comment to: "Last Scan Comments"
-        :param include: list of suffices to scan
+        :param include: specify list of suffices to scan
         :return: return tuple output and error stream and return code
         """
 
@@ -142,7 +141,7 @@ class WSClient:
                 local_ua_all_conf.Offline = offline
 
             if include:
-                local_ua_all_conf.append_lang_to_scan(include)
+                local_ua_all_conf.set_include_suffices_to_scan(include)
 
             ret = self._execute_ua(f"-d {existing_dirs} -{target[0]} {target[1]}", local_ua_all_conf)
         else:
@@ -167,6 +166,8 @@ class WSClient:
         self.add_scan_comment(key="comment", value=comment, ua_conf=local_ua_all_conf)
 
         local_ua_all_conf.docker_scanImages = True
+        local_ua_all_conf.projectTag = "scan_type:Docker"
+        local_ua_all_conf.projectName = "IRRELEVANT"
         if docker_images:
             local_ua_all_conf.docker_includes = docker_images if isinstance(docker_images, (set, list)) else [docker_images]
             logging.debug(f"Docker images to scan: {local_ua_all_conf.docker_includes}")
@@ -174,7 +175,7 @@ class WSClient:
             local_ua_all_conf.Offline = offline
 
         if include:
-            local_ua_all_conf.append_lang_to_scan(include)
+            local_ua_all_conf.set_include_suffices_to_scan(include)
 
         ret = self._execute_ua(f"-d {self.ua_path} -{target[0]} {target[1]}", local_ua_all_conf)
 
