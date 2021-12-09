@@ -164,7 +164,7 @@ class WSClient:
         local_ua_all_conf = copy.copy(self.ua_conf)
         local_ua_all_conf.docker_scanImages = True
         self.add_scan_comment(key="comment", value=comment, ua_conf=local_ua_all_conf)
-
+        self.ua_conf.disable_runprestep()
         local_ua_all_conf.docker_scanImages = True
         local_ua_all_conf.projectTag = "scan_type:Docker"
         local_ua_all_conf.projectName = "IRRELEVANT"

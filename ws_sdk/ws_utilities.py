@@ -146,6 +146,24 @@ class WsConfiguration:
     def set_include_suffices_to_scan(self, includes):
         self.includes = includes
 
+    def disable_runprestep(self):
+        self.ua_conf.bazel_runPreStep = False
+        self.ua_conf.bower_runPreStep = False
+        self.ua_conf.haskell_runPreStep = False
+        self.ua_conf.cargo_runPreStep = False
+        self.ua_conf.cocoapods_runPreStep = False
+        self.ua_conf.hex_runPreStep = False
+        self.ua_conf.maven_runPreStep = False
+        self.ua_conf.npm_runPreStep = False
+        self.ua_conf.nuget_runPreStep = False
+        self.ua_conf.ocaml_runPreStep = False
+        self.ua_conf.paket_runPreStep = False
+        self.ua_conf.php_runPreStep = False
+        self.ua_conf.python_runPoetryPreStep = False
+        self.ua_conf.python_runPipenvPreStep = False
+        self.ua_conf.r_runPreStep = False
+        self.ua_conf.sbt_runPreStep = False
+
 
 def convert_ua_conf_f_to_vars(filename: str) -> WsConfiguration:
     """
