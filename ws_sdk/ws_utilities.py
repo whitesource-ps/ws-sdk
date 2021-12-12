@@ -3,21 +3,27 @@ import json
 import logging
 import requests
 import os
+import re
 import shutil
+import subprocess
 from typing import Callable
+
 from ws_sdk.ws_constants import *
 from datetime import datetime
+import pathlib
 
 def is_token(token: str) -> bool:
     return False if token is None or len(token) != 64 else True
 
 
 def convert_dict_list_to_dict(lst: list,
-                              key_desc: str or tuple) -> dict:
+                              key_desc: str or tuple = "id",
+                              should_replace_f: callable = None) -> dict:
     """
     Function to convert list of dictionaries into dictionary of dictionaries according to specified key
     :param lst: List of dictionaries
     :param key_desc: the key or keys (as tuple) description of the returned dictionary (a key can be str or dict)
+    :param should_replace_f: function that receives a and b dictionaries and returns true if a should replace b
     :return: dict with key according to key description and the dictionary value
     """
     def create_key(key_desc: str or tuple,
@@ -50,7 +56,16 @@ def convert_dict_list_to_dict(lst: list,
     ret = {}
     for i in lst:
         curr_key = create_key(key_desc, i)
-        ret[curr_key] = i
+
+        insert_key = False
+        if ret.get(curr_key) and should_replace_f:
+            logging.warning(f"Key {curr_key} exists. Running '{should_replace_f.__name__}'")
+            insert_key = should_replace_f(i, ret[curr_key])
+        else:
+            insert_key = True
+
+        if insert_key:
+            ret[curr_key] = i
 
     return ret
 
@@ -125,7 +140,30 @@ def parse_ua_conf(filename: str) -> dict:
     return ua_conf_dict
 
 class WsConfiguration:
-    ...
+    def __init__(self):
+        self.includes = None
+
+    def set_include_suffices_to_scan(self, includes):
+        self.includes = includes
+
+    def disable_runprestep(self):
+        self.ua_conf.bazel_runPreStep = False
+        self.ua_conf.bower_runPreStep = False
+        self.ua_conf.haskell_runPreStep = False
+        self.ua_conf.cargo_runPreStep = False
+        self.ua_conf.cocoapods_runPreStep = False
+        self.ua_conf.hex_runPreStep = False
+        self.ua_conf.maven_runPreStep = False
+        self.ua_conf.npm_runPreStep = False
+        self.ua_conf.nuget_runPreStep = False
+        self.ua_conf.ocaml_runPreStep = False
+        self.ua_conf.paket_runPreStep = False
+        self.ua_conf.php_runPreStep = False
+        self.ua_conf.python_runPoetryPreStep = False
+        self.ua_conf.python_runPipenvPreStep = False
+        self.ua_conf.r_runPreStep = False
+        self.ua_conf.sbt_runPreStep = False
+
 
 def convert_ua_conf_f_to_vars(filename: str) -> WsConfiguration:
     """
@@ -159,10 +197,58 @@ def init_ua(path: str):
     download_ua(path)
 
 
+def is_java_exists(java_bin: str = JAVA_BIN) -> bool:
+    return True if get_java_version(java_bin) else False
+
+
+def get_java_version(java_bin: str =  JAVA_BIN) -> str:
+    ret = None
+    output = execute_command(command=java_bin, switches="-version")
+    if output[1]:
+        output_lines = output[1].splitlines()
+        ret = re.findall(r'[0-9._]+', output_lines[0])
+        if ret:
+            ret = ret[0]
+            logging.debug(f"Java version: '{ret}'")
+        else:
+            ret = None
+    else:
+        logging.error(f"Unable to discover Java version at: '{java_bin}'")
+
+    return ret
+
+
+def execute_command(command: str,
+                    switches: str = None,
+                    env = None) -> tuple:
+    output = None
+    full_command_l = [command] + switches if isinstance(switches, list) else [command] + switches.split()
+    logging.debug(f"Executing command: {full_command_l}")
+    ret = (-1, None)
+    try:
+        if env:
+            output = subprocess.run(full_command_l, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        else:
+            output = subprocess.run(full_command_l, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        ret = (output.returncode, output.stdout.decode("utf-8"))
+    except FileNotFoundError:
+        logging.error(f"'{command}' not found")
+    except PermissionError:
+        logging.error(f"Permission denied running: '{command}'")
+    except OSError:
+        logging.exception(f"Error running command: '{command}'")
+
+    return ret
+
+def is_ua_exists(ua_jar_f_with_path):
+    return os.path.exists(ua_jar_f_with_path)
+
+
 def download_ua(path: str,
                 inc_ua_jar_file: bool = True,
-                inc_ua_conf_file: bool = True):
+                inc_ua_conf_file: bool = False):
     def download_ua_file(f_details: tuple):
+        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
         file_p = os.path.join(path, f_details[0])
         if os.path.exists(file_p):
             logging.debug(f"Backing up previous {f_details[0]}")
@@ -193,4 +279,3 @@ def get_latest_ua_release_url() -> dict:
 
 def convert_to_time_obj(time: str):
     return datetime.strptime(time, '%Y-%m-%d %H:%M:%S %z')
-

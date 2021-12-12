@@ -21,7 +21,7 @@ class WS:
                 def wrapper(*args, **kwargs):
                     if len(args) == 2 and args[1] in ReportsMetaData.REPORTS_META_DATA:
                         logging.debug(f"Accessing report metadata: '{args[1]}'")
-                        return kwargs_metadata[args[1]]
+                        return kwargs_metadata.get(args[1])
                     else:
                         return function.__call__(*args, **kwargs)
 
@@ -272,7 +272,7 @@ class WS:
         :return: list with alerts or xlsx if report is True
         :rtype: list or bytes
         """
-        report_name = "Alerts"
+        name = "Alerts"
         token_type, kv_dict = self.set_token_in_body(token)
         if alert_type in AlertTypes.ALERT_TYPES:
             kv_dict["alertType"] = alert_type
@@ -287,16 +287,16 @@ class WS:
 
         ret = None
         if resolved and report:
-            logging.debug(f"Running Resolved {report_name} Report")
+            logging.debug(f"Running Resolved {name} Report")
             ret = self.__generic_get__(get_type='ResolvedAlertsReport', token_type=token_type, kv_dict=kv_dict)
         elif report:
-            logging.debug(f"Running {report_name} Report")
+            logging.debug(f"Running {name} Report")
             kv_dict["format"] = "xlsx"
             ret = self.__generic_get__(get_type='SecurityAlertsByVulnerabilityReport', token_type=token_type, kv_dict=kv_dict)
         elif resolved:
-            logging.error(f"Resolved {report_name} is only available in xlsx format(set report=True)")
+            logging.error(f"Resolved {name} is only available in xlsx format(set report=True)")
         elif ignored:
-            logging.debug(f"Running ignored {report_name}")
+            logging.debug(f"Running ignored {name}")
             ret = self.__generic_get__(get_type='IgnoredAlerts', token_type=token_type, kv_dict=kv_dict)
         elif tags:
             if token_type != ScopeTypes.ORGANIZATION:
@@ -331,32 +331,77 @@ class WS:
     def get_inventory(self,
                       token: str = None,
                       include_in_house_data: bool = True,
+                      as_dependency_tree: bool = False,
                       with_dependencies: bool = False,
                       report: bool = False) -> Union[list, bytes]:
+        def get_deps(library: dict, parent_lib: dict, main_list: list):
+            deps = library.get('dependencies')
+            if deps:
+                for d in deps:
+                    get_deps(d, library, main_list)
+
+            if parent_lib:
+                logging.debug(f"Library '{library['filename']}' is a dependency of library '{parent_lib['filename']}'")
+                library['is_dependency_of'] = parent_lib
+            else:
+                logging.debug(f"Library '{library['filename']}' is a direct dependency")        # THIS MAY NOT BE ALWAYS TRUE
+
+            main_list.append(library)
+
         """
-        :param with_dependencies: Include library dependency (Project Hierarchy)
+        :param as_dependency_tree: Include library dependency (Project Hierarchy)
         :param token: The token that the request will be created on
         :param include_in_house_data:
+        :param with_dependencies: return flat list of all libs in project including transient
         :param report: Get data in binary form
         :return: list or xlsx if report is True
         :rtype: list or bytes
         """
         token_type, kv_dict = self.set_token_in_body(token)
-        report_name = 'Inventory'
-
+        name = 'Inventory'
         if token_type == ScopeTypes.PROJECT and not include_in_house_data:
             kv_dict["includeInHouseData"] = include_in_house_data
-            logging.debug(f"Running {token_type} {report_name}")
+            logging.debug(f"Running {token_type} {name}")
             ret = self.__generic_get__('Inventory', token_type=token_type, kv_dict=kv_dict)
-        elif token_type == ScopeTypes.PROJECT and with_dependencies:
-            logging.debug(f"Running {token_type} Hierarchy")
+        elif token_type == ScopeTypes.PROJECT and as_dependency_tree or with_dependencies:
             ret = self.__generic_get__(get_type="Hierarchy", token_type=token_type, kv_dict=kv_dict)
+            if with_dependencies:
+                m_l = []
+                [get_deps(lib, None, m_l) in lib for lib in ret['libraries']]
+                ret = m_l
+            else:
+                logging.debug(f"Running {token_type} Hierarchy")
         else:
             kv_dict["format"] = "xlsx" if report else "json"
-            logging.debug(f"Running {token_type} {report_name} Report")
+            logging.debug(f"Running {token_type} {name} Report")
             ret = self.__generic_get__(get_type="InventoryReport", token_type=token_type, kv_dict=kv_dict)
 
         return ret['libraries'] if isinstance(ret, dict) else ret
+
+    @Decorators.report_metadata(report_scope_types=[ScopeTypes.PROJECT])
+    def get_lib_dependencies(self,
+                             key_uuid: str,
+                             report: bool = False,
+                             token: str = None) -> list:
+        """
+        Method to get lib dependencies (and dependencies of dependencies...) by  keyUuid
+        :param key_uuid:
+        :param report:
+        :param token:
+        :return: list of dependency libs
+        """
+        name = "Lib Dependency"
+        token_type, kv_dict = self.set_token_in_body(token)
+        ret = None
+        if report:
+            logging.error(f"{name} is not support as report")
+        elif token_type == ScopeTypes.PROJECT:
+            kv_dict["keyUuid"] = key_uuid
+            ret = self.__generic_get__(get_type="LibraryDependencies", token_type=token_type, kv_dict=kv_dict)
+        else:
+            logging.error(f"Method is only supported with organization token")
+
+        return ret
 
     def get_scope_type_by_token(self,
                                 token: str) -> str:
@@ -603,7 +648,7 @@ class WS:
                           cluster: bool = False,
                           report: bool = False,
                           token: str = None) -> Union[list, bytes]:
-        report_name = "Vulnerability Report"
+        name = "Vulnerability Report"
         """
         Retrieves scope vulnerabilities. Default is "Open" If status not not set.   
         :param status: str Alert status: "Active", "Ignored", "Resolved"
@@ -623,18 +668,18 @@ class WS:
 
         if container:
             if token_type == ScopeTypes.ORGANIZATION:
-                logging.debug(f"Running Container {report_name}")
+                logging.debug(f"Running Container {name}")
                 ret = self.__generic_get__(get_type='ContainerVulnerabilityReportRequest', token_type=token_type, kv_dict=kv_dict)
             else:
-                logging.error(f"Container {report_name} is unsupported on {token_type}")
+                logging.error(f"Container {name} is unsupported on {token_type}")
         elif cluster:
             if token_type == ScopeTypes.PRODUCT:
-                logging.debug(f"Running Cluster {report_name}")
+                logging.debug(f"Running Cluster {name}")
                 ret = self.__generic_get__(get_type='ClusterVulnerabilityReportRequest', token_type="", kv_dict=kv_dict)
             else:
-                logging.error(f"Cluster {report_name} is unsupported on {token_type}")
+                logging.error(f"Cluster {name} is unsupported on {token_type}")
         else:
-            logging.debug(f"Running {report_name}")
+            logging.debug(f"Running {name}")
             ret = self.__generic_get__(get_type='VulnerabilityReport', token_type=token_type, kv_dict=kv_dict)
 
         return ret['vulnerabilities'] if isinstance(ret, dict) else ret
@@ -679,12 +724,12 @@ class WS:
     @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
     def get_change_log(self,
                        start_date: datetime = None) -> list:
-        report_name = "Change Log Report"
+        name = "Change Log Report"
         if start_date is None:
             kv_dict = None
         else:
             kv_dict = {'startDateTime': start_date.strftime("%Y-%m-%d %H:%M:%S")}
-        logging.debug(f"Running {report_name}")
+        logging.debug(f"Running {name}")
 
         return self.__generic_get__(get_type="ChangesReport", token_type="", kv_dict=kv_dict)['changes']
 
@@ -1238,9 +1283,10 @@ class WS:
                       search_only_name: bool = False,
                       global_search: bool = True) -> list:
         """
+        Method to search for libraries in WS Database
         :param search_only_name: Specify to return results that match the exact name
-        :param version: Optional version of the searched library
-        :param search_value: Search string to search
+        :param version: Optional version of the searched library.
+        :param search_value: Search string to search. Acts like "contains" i.e. search for all libraries that contains the string.
         :param global_search: whether to search global database.
         :return:
         """

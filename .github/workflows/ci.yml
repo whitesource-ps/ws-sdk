@@ -28,6 +28,9 @@ jobs:
             fi
           fi
       - uses: actions/checkout@v2
+      - name: Set package version
+        run: |
+          sed -E -i  "s/^__version__ = \"[a-z0-9\.]+\"/__version__ = \"$VERSION\"/g"  ${{ env.TOOL_DIR }}/_version.py
       - uses: UnicornGlobal/trufflehog-actions-scan@master
         with:
           branch: ${{ github.head_ref }}
@@ -87,7 +90,7 @@ jobs:
           user: ${{ secrets.CONFLUENCE_USER }}
           token: ${{ secrets.CONFLUENCE_TOKEN }}
       - name: Publish to Confluence - Public
-        if: ${{ env.RELEASE == true }}
+        if: ${{ env.RELEASE == 'true' }}
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
