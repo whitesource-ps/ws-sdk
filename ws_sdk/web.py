@@ -165,6 +165,7 @@ class WS:
             2011 - User doesn't exist
             2013 - Invitation was already sent to this user, User name contains not allowed characters
             2015 - Inactive org
+            2021 - Invalid option value for property
             3010 - Missing fields: user
             4000 - Unexpected error
             5001 - User is not allowed to perform this action
@@ -1081,12 +1082,12 @@ class WS:
                         token: str,
                         reporting_aggregation_mode: str = "BY_PROJECT",
                         report: bool = False,
-                        report_header: str = "Attribution Report",
+                        report_header: str = None,
                         report_title: str = None,
                         report_footer: str = None,
                         reporting_scope: str = None,
                         missing_license_display_option: str = "BLANK",
-                        export_format: str = None,
+                        export_format: str = "json",
                         license_reference_text_placement: str = "LICENSE_SECTION",
                         custom_attribute: str = None,
                         include_versions: str = True) -> Union[dict, bytes]:
@@ -1106,39 +1107,42 @@ class WS:
         :param include_versions:
         :return:
         """
-        report_name = "Attribution Report"
+        name = "Attribution Report"
         ret = None
         token_type, kv_dict = self.set_token_in_body(token)
 
-        if not export_format:
-            export_format = "TXT" if report else "JSON"
-
         if token_type == ScopeTypes.ORGANIZATION:
-            logging.error(f"{report_name} is unsupported on organization")
+            logging.error(f"{name} is unsupported on organization")
         elif reporting_aggregation_mode not in ['BY_COMPONENT', 'BY_PROJECT']:
-            logging.error(f"{report_name} incorrect reporting_aggregation_mode value. Supported: BY_COMPONENT or BY_PROJECT")
+            logging.error(f"{name} incorrect reporting_aggregation_mode value. Supported: BY_COMPONENT or BY_PROJECT")
         elif missing_license_display_option not in ['BLANK', 'GENERIC_LICENSE']:
-            logging.error(f"{report_name} missing_license_display_option value. Supported: BLANK or GENERIC_LICENSE")
-        elif report and export_format == "JSON":
-            logging.error(f"{report_name} only JSON is supported in non report mode")
+            logging.error(f"{name} missing_license_display_option value. Supported: BLANK or GENERIC_LICENSE")
+        elif report and export_format == "json":
+            logging.error(f"{name} only JSON is supported in non report mode")
         elif report and export_format not in ['TXT', 'HTML']:
-            logging.error(f"{report_name} incorrect export_format value. Supported: TXT, HTML or JSON")
+            logging.error(f"{name} incorrect export_format value. Supported: TXT, HTML or JSON")
         elif reporting_scope not in [None, 'SUMMARY', 'LICENSES', 'COPYRIGHTS', 'NOTICES', 'PRIMARY_ATTRIBUTES']:
-            logging.error(f"{report_name} incorrect reporting scope value. Supported: SUMMARY, LICENSES, COPYRIGHTS, NOTICES or PRIMARY_ATTRIBUTES")
+            logging.error(f"{name} incorrect reporting scope value. Supported: SUMMARY, LICENSES, COPYRIGHTS, NOTICES or PRIMARY_ATTRIBUTES")
         elif license_reference_text_placement not in ['LICENSE_SECTION', 'APPENDIX_SECTION']:
-            logging.error(f"{report_name} incorrect license_reference_text_placement value. Supported: LICENSE_SECTION or APPENDIX_SECTION  ")
+            logging.error(f"{name} incorrect license_reference_text_placement value. Supported: LICENSE_SECTION or APPENDIX_SECTION  ")
         else:
-            kv_dict['reportHeader'] = report_header
-            kv_dict['reportTitle'] = report_title
-            kv_dict['reportFooter'] = report_footer
-            kv_dict['reportingScope'] = reporting_scope
+            if report_header:
+                kv_dict['reportHeader'] = report_header
+            if report_title:
+                kv_dict['reportTitle'] = report_title
+            if report_footer:
+                kv_dict['reportFooter'] = report_footer
+            if reporting_scope:
+                kv_dict['reportingScope'] = reporting_scope
+            if custom_attribute:
+                kv_dict['customAttribute'] = custom_attribute
+
             kv_dict['reportingAggregationMode'] = reporting_aggregation_mode
             kv_dict['missingLicenseDisplayOption'] = missing_license_display_option
             kv_dict['exportFormat'] = export_format
             kv_dict['licenseReferenceTextPlacement'] = license_reference_text_placement
-            kv_dict['customAttribute'] = custom_attribute
-            kv_dict['includeVersions'] = include_versions
-            logging.debug(f"Running {token_type} {report_name}")
+            kv_dict['includeVersions'] = str(include_versions)
+            logging.debug(f"Running {token_type} {name}")
             ret = self.__generic_get__(get_type='AttributionReport', token_type=token_type, kv_dict=kv_dict)
 
         return ret
