@@ -1119,7 +1119,7 @@ class WS:
             logging.error(f"{name} missing_license_display_option value. Supported: BLANK or GENERIC_LICENSE")
         elif report and export_format == "json":
             logging.error(f"{name} only JSON is supported in non report mode")
-        elif report and export_format not in ['TXT', 'HTML']:
+        elif report and export_format.upper() not in ['TXT', 'HTML']:
             logging.error(f"{name} incorrect export_format value. Supported: TXT, HTML or JSON")
         elif reporting_scope not in [None, 'SUMMARY', 'LICENSES', 'COPYRIGHTS', 'NOTICES', 'PRIMARY_ATTRIBUTES']:
             logging.error(f"{name} incorrect reporting scope value. Supported: SUMMARY, LICENSES, COPYRIGHTS, NOTICES or PRIMARY_ATTRIBUTES")
