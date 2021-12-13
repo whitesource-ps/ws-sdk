@@ -1,16 +1,18 @@
-import copy
 import json
-import logging
-import requests
 import os
+import pathlib
 import re
 import shutil
 import subprocess
-from typing import Callable
+from datetime import datetime
+from logging import getLogger
+
+import requests
 
 from ws_sdk.ws_constants import *
-from datetime import datetime
-import pathlib
+
+logger = getLogger(__name__)
+
 
 def is_token(token: str) -> bool:
     return False if token is None or len(token) != 64 else True
@@ -37,20 +39,20 @@ def convert_dict_list_to_dict(lst: list,
                 try:
                     if isinstance(x, str) and dct[x]:
                         ret.append(dct[x])
-                        logging.debug(f"Key type is a string: {dct[x]}")
+                        logger.debug(f"Key type is a string: {dct[x]}")
                     elif isinstance(x, dict):
                         for key, value in x.items():
-                            logging.debug(f"Key type is a dict: {key}")
+                            logger.debug(f"Key type is a dict: {key}")
                             internal_dict = dct.get(key, None)
                             if internal_dict:
                                 ret.append(internal_dict.get(value, None))
                 except KeyError:
-                    logging.error(f"Key: {key_desc} was not found")
+                    logger.error(f"Key: {key_desc} was not found")
                     return None
-            logging.debug(f"Key is tuple: {ret}")
+            logger.debug(f"Key is tuple: {ret}")
             return tuple(ret)
         else:
-            logging.error(f"Unsupported key_desc: {type(key_desc)}")
+            logger.error(f"Unsupported key_desc: {type(key_desc)}")
             return None
 
     ret = {}
@@ -59,7 +61,7 @@ def convert_dict_list_to_dict(lst: list,
 
         insert_key = False
         if ret.get(curr_key) and should_replace_f:
-            logging.warning(f"Key {curr_key} exists. Running '{should_replace_f.__name__}'")
+            logger.warning(f"Key {curr_key} exists. Running '{should_replace_f.__name__}'")
             insert_key = should_replace_f(i, ret[curr_key])
         else:
             insert_key = True
@@ -74,7 +76,7 @@ def get_all_req_schemas(ws_conn) -> dict:
     supported_requests = ws_conn.__generic_get__(get_type="SupportedRequests", token_type="")['supportedRequests']
     req_schema_list = {}
     for req in supported_requests:
-        logging.info(f"Calling on {req}")
+        logger.info(f"Calling on {req}")
         req_schema = ws_conn.__generic_get__(get_type="RequestSchema", token_type="", kv_dict={"request": req})
         req_schema_list[req] = req_schema
 
@@ -91,7 +93,7 @@ def get_lib_metadata_by_name(language: str) -> LibMetaData.LibMetadata:
     for lang_metadata in LibMetaData.L_TYPES:
         if lang_metadata.language == lc_lang:
             return lang_metadata
-    logging.error("Language is unsupported")
+    logger.error("Language is unsupported")
 
     return None
 
@@ -116,11 +118,11 @@ def get_full_ws_url(url) -> str:
     return url
 
 def call_gh_api(url: str):
-    logging.debug(f"Calling url: {url}")
+    logger.debug(f"Calling url: {url}")
     try:
         res = requests.get(url=url, headers=GH_HEADERS)
     except requests.RequestException:
-        logging.exception("Error getting last release")
+        logger.exception("Error getting last release")
 
     return res
 
@@ -209,11 +211,11 @@ def get_java_version(java_bin: str =  JAVA_BIN) -> str:
         ret = re.findall(r'[0-9._]+', output_lines[0])
         if ret:
             ret = ret[0]
-            logging.debug(f"Java version: '{ret}'")
+            logger.debug(f"Java version: '{ret}'")
         else:
             ret = None
     else:
-        logging.error(f"Unable to discover Java version at: '{java_bin}'")
+        logger.error(f"Unable to discover Java version at: '{java_bin}'")
 
     return ret
 
@@ -223,7 +225,7 @@ def execute_command(command: str,
                     env = None) -> tuple:
     output = None
     full_command_l = [command] + switches if isinstance(switches, list) else [command] + switches.split()
-    logging.debug(f"Executing command: {full_command_l}")
+    logger.debug(f"Executing command: {full_command_l}")
     ret = (-1, None)
     try:
         if env:
@@ -232,11 +234,11 @@ def execute_command(command: str,
             output = subprocess.run(full_command_l, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         ret = (output.returncode, output.stdout.decode("utf-8"))
     except FileNotFoundError:
-        logging.error(f"'{command}' not found")
+        logger.error(f"'{command}' not found")
     except PermissionError:
-        logging.error(f"Permission denied running: '{command}'")
+        logger.error(f"Permission denied running: '{command}'")
     except OSError:
-        logging.exception(f"Error running command: '{command}'")
+        logger.exception(f"Error running command: '{command}'")
 
     return ret
 
@@ -251,9 +253,9 @@ def download_ua(path: str,
         pathlib.Path(path).mkdir(parents=True, exist_ok=True)
         file_p = os.path.join(path, f_details[0])
         if os.path.exists(file_p):
-            logging.debug(f"Backing up previous {f_details[0]}")
+            logger.debug(f"Backing up previous {f_details[0]}")
             shutil.move(file_p, f"{file_p}.bkp")
-        logging.debug(f"Downloading WS Unified Agent (version: {get_latest_ua_release_version()}) to {file_p}")
+        logger.debug(f"Downloading WS Unified Agent (version: {get_latest_ua_release_version()}) to {file_p}")
         resp = requests.get(url=f_details[1])
         with open(file_p, 'wb') as f:
             f.write(resp.content)
@@ -267,7 +269,7 @@ def download_ua(path: str,
 
 def get_latest_ua_release_version() -> str:
     ver = get_latest_ua_release_url()['tag_name']
-    logging.debug(f"Latest Unified Agent version: {ver}")
+    logger.debug(f"Latest Unified Agent version: {ver}")
 
     return ver
 
