@@ -132,7 +132,7 @@ class WSClient:
         ret = None
         if not existing_dirs:
             logger.error(f"No valid directories were found in: {scan_dir}")
-        elif not project_token or not project_name:
+        elif not (project_token or project_name):
             logger.error("Project name or token must be passed")
         elif not target:
             logger.error("At least one value should be configured: productName, productToken or projectToken")
