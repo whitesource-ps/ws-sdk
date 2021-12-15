@@ -168,6 +168,7 @@ class WSClient:
         local_ua_all_conf.docker_scanImages = True
         local_ua_all_conf.projectTag = "scan_type:Docker"
         local_ua_all_conf.projectName = "IRRELEVANT"
+
         if docker_images:
             local_ua_all_conf.docker_includes = docker_images if isinstance(docker_images, (set, list)) else [docker_images]
             logging.debug(f"Docker images to scan: {local_ua_all_conf.docker_includes}")
