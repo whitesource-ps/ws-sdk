@@ -10,14 +10,14 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    env:
-      TOOL_NAME: ws_sdk
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9, 3.10]
     steps:
       - name: Set Environment Variables
         run: |
+          TOOL_NAME=$(echo '${{ github.repository }}' |awk -F '/' '{gsub(/-/, "_", $0) ;print $NF}')
+          echo "TOOL_NAME=$TOOL_NAME" >> $GITHUB_ENV
           echo "RELEASE=false" >> $GITHUB_ENV
           echo "VERSION=0.0.0.ci0" >> $GITHUB_ENV
           echo "TOOL_DIR=$TOOL_NAME" >> $GITHUB_ENV
@@ -81,7 +81,7 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Publish to Confluence - Internal
-        if: ${{ env.RELEASE == true }}
+        if: ${{ env.RELEASE }}
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
@@ -90,7 +90,7 @@ jobs:
           user: ${{ secrets.CONFLUENCE_USER }}
           token: ${{ secrets.CONFLUENCE_TOKEN }}
       - name: Publish to Confluence - Public
-        if: ${{ env.RELEASE == 'true' }}
+        if: ${{ env.RELEASE }}
         uses: cupcakearmy/confluence-markdown-sync@v1
         with:
           from: README.md
