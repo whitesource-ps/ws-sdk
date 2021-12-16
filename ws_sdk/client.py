@@ -10,8 +10,7 @@ from ws_sdk import ws_utilities, ws_errors
 from ws_sdk.ws_constants import *
 from ws_sdk._version import __version__, __tool_name__
 
-
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class WSClient:
@@ -172,6 +171,7 @@ class WSClient:
         local_ua_all_conf.docker_scanImages = True
         local_ua_all_conf.projectTag = "scan_type:Docker"
         local_ua_all_conf.projectName = "IRRELEVANT"
+
         if docker_images:
             local_ua_all_conf.docker_includes = docker_images if isinstance(docker_images, (set, list)) else [docker_images]
             logger.debug(f"Docker images to scan: {local_ua_all_conf.docker_includes}")

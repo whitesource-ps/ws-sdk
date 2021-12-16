@@ -164,6 +164,11 @@ class ReportsMetaData(NamedTuple):
     REPORTS_META_DATA = [REPORT_BIN_TYPE, REPORT_SCOPE]
 
 
+class UAArchiveFiles:
+    ARCHIVE_EXTRACTION_DEPTH_MAX = 10
+    ALL_ARCHIVE_FILES = "**/*.aar", "**/*.car", "**/*.ear", "**/*.egg", "**/*.gem", "**/*.hpi", "**/*.jar", "**/*.nupkg", "**/*.rar", "**/*.rpm", "**/*.sca", "**/*.sda", "**/*.tar", "**/*.tar.bz2", "**/*.tar.gz", "**/*.tar.xz", "**/*.tgz", "**/*.war", "**/*.whl", "**/*.xz", "**/*.zip"
+
+
 class LibMetaData:
     class LibMetadata(NamedTuple):
         language: str

@@ -1,14 +1,18 @@
 import json
-import logging
 from datetime import datetime
 from unittest import TestCase
 from mock import patch
+import logging
 
+import ws_sdk.web
 from ws_sdk.ws_constants import *
 from ws_sdk.web import WS
 from ws_sdk.ws_errors import *
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+logger = logging.getLogger(__name__)
+ws_sdk_web = logging.getLogger(ws_sdk.web.WS.__module__)
+ws_sdk_web.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 
 
 class TestWS(TestCase):
