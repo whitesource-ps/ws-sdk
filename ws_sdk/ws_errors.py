@@ -26,6 +26,12 @@ class WsSdkServerTokenTypeError(WsSdkServerError):
         super().__init__(self.message)
 
 
+class WsSdkServerMissingGroupError(WsSdkServerError):
+    def __init__(self, name):
+        self.message = f"Group {name} does not exist"
+        super().__init__(self.message)
+
+
 class WsSdkServerInactiveOrg(WsSdkServerError):
     def __init__(self, token):
         self.message = f"Organization {token} is inactive"

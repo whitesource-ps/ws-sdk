@@ -309,6 +309,7 @@ class LibMetaData:
         # ALL_SUFFICES =
         UA_DEFAULT = C_SRC + CPP_SRC
 
+
 class ScopeSorts:
     NAME = "name"
     UPDATE_TIME = "lastUpdatedDate_obj"

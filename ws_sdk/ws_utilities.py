@@ -1,18 +1,17 @@
-import copy
 import json
-import logging
-import requests
 import os
+import pathlib
 import re
 import shutil
 import subprocess
+from datetime import datetime
+from logging import getLogger
 
+import requests
 
 from ws_sdk.ws_constants import *
-from datetime import datetime
-import pathlib
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def is_token(token: str) -> bool:
@@ -118,6 +117,7 @@ def get_full_ws_url(url) -> str:
 
     return url
 
+
 def call_gh_api(url: str):
     logger.debug(f"Calling url: {url}")
     try:
@@ -126,6 +126,7 @@ def call_gh_api(url: str):
         logger.exception("Error getting last release")
 
     return res
+
 
 def parse_ua_conf(filename: str) -> dict:
     """
