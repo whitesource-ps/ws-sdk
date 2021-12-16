@@ -4,11 +4,15 @@ from datetime import datetime
 from unittest import TestCase
 from mock import patch
 
+import ws_sdk.web
 from ws_sdk.ws_constants import *
 from ws_sdk.web import WS
 from ws_sdk.ws_errors import *
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+logger = logging.getLogger(__name__)
+ws_sdk_web = logging.getLogger(ws_sdk.web.WS.__module__)
+ws_sdk_web.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 
 
 class TestWS(TestCase):
@@ -781,14 +785,14 @@ class TestWS(TestCase):
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
         with self.assertLogs(level='INFO') as cm:
             self.ws.set_alerts_status(alert_uuids=[], status=AlertStatus.AL_STATUS_ACTIVE)
-            self.assertEqual(cm.output, ["ERROR:root:At least 1 alert uuid must be provided"])
+            self.assertEqual(cm.output, ["ERROR:ws_sdk.web:At least 1 alert uuid must be provided"])
 
     @patch('ws_sdk.web.WS.set_token_in_body')
     def test_set_alerts_status_invalid_status(self, mock_set_token_in_body):
         mock_set_token_in_body.return_value = (self.ws.token_type, {})
         with self.assertLogs(level='INFO') as cm:
             self.ws.set_alerts_status(alert_uuids=["UUID"], status="INVALID")
-            self.assertEqual(cm.output, ['ERROR:root:INVALID status is invalid. Must be \"Ignored\" or \"Active\"'])
+            self.assertEqual(cm.output, ['ERROR:ws_sdk.web:INVALID status is invalid. Must be \"Ignored\" or \"Active\"'])
 
     @patch('ws_sdk.web.WS.set_token_in_body')
     @patch('ws_sdk.web.WS.__generic_get__')
@@ -832,7 +836,7 @@ class TestWS(TestCase):
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws.create_user(name="NAME", email="EMAIL@ADDRESS.COM", inviter_email="INVITER@ADDRESS.COM")
             self.assertEqual(cm.output, [
-                "DEBUG:root:Creating User: NAME email : EMAIL@ADDRESS.COM with Inviter email: INVITER@ADDRESS.COM"])
+                "DEBUG:ws_sdk.web:Creating User: NAME email : EMAIL@ADDRESS.COM with Inviter email: INVITER@ADDRESS.COM"])
 
     @patch('ws_sdk.web.WS.call_ws_api')
     @patch('ws_sdk.web.WS.get_users')
@@ -843,7 +847,7 @@ class TestWS(TestCase):
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws.delete_user(email="EMAIL@ADDRESS.COM")
             self.assertEqual(cm.output, [
-                f"DEBUG:root:Deleting user email: EMAIL@ADDRESS.COM from Organization Token: {self.ws.token}"])
+                f"DEBUG:ws_sdk.web:Deleting user email: EMAIL@ADDRESS.COM from Organization Token: {self.ws.token}"])
 
     @patch('ws_sdk.web.WS.call_ws_api')
     @patch('ws_sdk.web.WS.get_groups')
@@ -855,7 +859,7 @@ class TestWS(TestCase):
 
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws.create_group(name="GRP_NAME")
-            self.assertEqual(cm.output, [f"DEBUG:root:Creating Group: GRP_NAME"])
+            self.assertEqual(cm.output, [f"DEBUG:ws_sdk.web:Creating Group: GRP_NAME"])
 
     @patch('ws_sdk.web.WS.set_token_in_body')
     @patch('ws_sdk.web.WS.get_users')
@@ -869,7 +873,7 @@ class TestWS(TestCase):
 
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws.assign_user_to_group(user_email="EMAIL", group_name="GRP_NAME")
-            self.assertEqual(cm.output, ["DEBUG:root:Assigning user's Email: EMAIL to Group: GRP_NAME"])
+            self.assertEqual(cm.output, ["DEBUG:ws_sdk.web:Assigning user's Email: EMAIL to Group: GRP_NAME"])
 
     @patch('ws_sdk.web.WS.get_groups')
     @patch('ws_sdk.web.WS.__generic_set__')
@@ -883,13 +887,13 @@ class TestWS(TestCase):
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws.assign_to_scope(role_type=RoleTypes.P_INTEGRATORS, group=group_name)
             self.assertEqual(cm.output, [
-                f"DEBUG:root:Assigning User(s): None Group(s): {group_name} to Role: {RoleTypes.P_INTEGRATORS}"])
+                f"DEBUG:ws_sdk.web:Assigning User(s): None Group(s): {group_name} to Role: {RoleTypes.P_INTEGRATORS}"])
 
     @patch('ws_sdk.web.WS.call_ws_api')
     def test_invite_user_to_web_advisor(self, mock_call_ws_api):
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws.invite_user_to_web_advisor(user_email="INVITEE@EMAIL.COM")
-            self.assertEqual(cm.output, ["DEBUG:root:Inviting email: 'INVITEE@EMAIL.COM' to Web Advisor"])
+            self.assertEqual(cm.output, ["DEBUG:ws_sdk.web:Inviting email: 'INVITEE@EMAIL.COM' to Web Advisor"])
 
     @patch('ws_sdk.web.WS.call_ws_api')
     def test_regenerate_service_user_key(self, mock_call_ws_api):
