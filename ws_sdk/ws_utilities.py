@@ -1,12 +1,8 @@
-import copy
 import json
-import logging
-import requests
 import os
 import re
 import shutil
 import subprocess
-
 
 from ws_sdk.ws_constants import *
 from datetime import datetime

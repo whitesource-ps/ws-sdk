@@ -1,4 +1,5 @@
 import copy
+from logging import getLogger
 import logging
 import os
 import json
@@ -48,7 +49,7 @@ class WSClient:
             # Input validation
             if not ws_utilities.is_java_exists(self.java_bin):
                 logger.warning(f"Java: '{java_bin}' was not found")
-            if logger.root.level == logging.DEBUG:
+            if logger.level == logging.DEBUG:
                 self.ua_conf.logLevel = "debug"
             else:
                 self.ua_conf.log_files_level = "Off"        # Generate logs in files

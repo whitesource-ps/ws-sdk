@@ -605,7 +605,7 @@ class TestWS(TestCase):
     def test_get_attribution_bin(self, mock_generic_get, mock_set_token_in_body):
         mock_generic_get.return_value = bytes()
         mock_set_token_in_body.return_value = (PRODUCT, {})
-        res = self.ws.get_attribution(reporting_aggregation_mode="BY_COMPONENT", token="TOKEN", report=True)
+        res = self.ws.get_attribution(reporting_aggregation_mode="BY_COMPONENT", token="TOKEN", report=True, export_format="TXT")
 
         self.assertIsInstance(res, bytes)
 
