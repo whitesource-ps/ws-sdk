@@ -575,21 +575,22 @@ class WS:
 
     def get_name(self) -> str:
         """
-        Method to retun self name of token configured in SDK
+        Method to return self name of token configured in SDK
         :return: name of configured in SDK
         :rtype: str
         """
         if self.token_type == ScopeTypes.ORGANIZATION:
             return self.get_organization_details()['orgName']
         elif self.token_type == ScopeTypes.GLOBAL:
-            return "TBD"
+            return "Global Organization"
         else:
             return self.get_tags()[0]['name']
 
     def get_scopes_from_name(self, name) -> list:
         """
-        :param name:
-        :return:
+        Method to return scope list of dictionaries from name
+        :param name: the name of scope to return
+        :return: list of dictionaries
         """
         return self.get_scopes(name=name)
 
@@ -655,7 +656,8 @@ class WS:
                           container: bool = False,
                           cluster: bool = False,
                           report: bool = False,
-                          token: str = None) -> Union[list, bytes]:
+                          token: str = None,
+                          vulnerability_names: Union[str, list] = None) -> Union[list, bytes]:
         name = "Vulnerability Report"
         """
         Retrieves scope vulnerabilities. Default is "Open" If status not not set.   
@@ -664,6 +666,7 @@ class WS:
         :param cluster:
         :param report:
         :param token: The token that the request will be created on
+        :param vulnerability_names: Filter by vulnerability. Can be single string: CVE-2020-1234 or a list: [CVE-2020-1234, CVE-2020-5678]
         :return: list or xlsx if report is True
         :rtype: list or bytes
         """
@@ -674,7 +677,9 @@ class WS:
             kv_dict['status'] = status
         ret = None
 
-        if container:
+        if report and vulnerability_names:
+            logger.error(f"Unable to filter by vulnerability in {name} when running as report")
+        elif container:
             if token_type == ScopeTypes.ORGANIZATION:
                 logger.debug(f"Running Container {name}")
                 ret = self.__generic_get__(get_type='ContainerVulnerabilityReportRequest', token_type=token_type, kv_dict=kv_dict)
@@ -689,6 +694,13 @@ class WS:
         else:
             logger.debug(f"Running {name}")
             ret = self.__generic_get__(get_type='VulnerabilityReport', token_type=token_type, kv_dict=kv_dict)
+
+        if isinstance(ret, dict):
+            vulnerabilities = ret.get('vulnerabilities')
+            if isinstance(vulnerability_names, str):
+                vulnerability_names = [vulnerability_names]
+            if vulnerability_names:
+                ret = [x for x in vulnerabilities if x['name'] in vulnerability_names]
 
         return ret['vulnerabilities'] if isinstance(ret, dict) else ret
 
@@ -1133,9 +1145,9 @@ class WS:
             logger.error(f"{name} incorrect reporting_aggregation_mode value. Supported: BY_COMPONENT or BY_PROJECT")
         elif missing_license_display_option not in ['BLANK', 'GENERIC_LICENSE']:
             logger.error(f"{name} missing_license_display_option value. Supported: BLANK or GENERIC_LICENSE")
-        elif report and export_format == "json":
+        elif report and export_format == "JSON":
             logger.error(f"{name} only JSON is supported in non report mode")
-        elif report and export_format.upper() not in ['TXT', 'HTML']:
+        elif report and export_format not in ['TXT', 'HTML']:
             logger.error(f"{name} incorrect export_format value. Supported: TXT, HTML or JSON")
         elif reporting_scope not in [None, 'SUMMARY', 'LICENSES', 'COPYRIGHTS', 'NOTICES', 'PRIMARY_ATTRIBUTES']:
             logger.error(f"{name} incorrect reporting scope value. Supported: SUMMARY, LICENSES, COPYRIGHTS, NOTICES or PRIMARY_ATTRIBUTES")
@@ -1159,6 +1171,7 @@ class WS:
             kv_dict['licenseReferenceTextPlacement'] = license_reference_text_placement
             kv_dict['includeVersions'] = str(include_versions)
             logger.debug(f"Running {token_type} {name}")
+            
             ret = self.__generic_get__(get_type='AttributionReport', token_type=token_type, kv_dict=kv_dict)
 
         return ret

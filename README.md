@@ -15,14 +15,15 @@ The SDK contains the following modules:
 - **Linux (Bash):**	CentOS, Debian, Ubuntu, RedHat
 - **Windows (PowerShell):**	10, 2012, 2016
 
-## How to build and install package from source
+## How to install package from PyPi
+1. Obtain connection details from WS Application (Home > Admin > Integration).
+1. Install package from Pypi: `pip install ws-sdk` .
+
+## How to build and install package from source (for developers)
 1. Download the code: `git clone https://github.com/whitesource-ps/ws-sdk.git`.
 1. Build wheel package `python setup.py bdist_wheel` .
 1. Download wheel from GitHub and install : `pip install ws-sdk*.whl` .
 
-## How to install package
-1. Obtain connection details from WS Application (Home > Admin > Integration).
-1. Install package from Pypi: `pip install ws-sdk` .
 
 ## Execution
 
