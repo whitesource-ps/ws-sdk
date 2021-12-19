@@ -835,8 +835,8 @@ class TestWS(TestCase):
 
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws.create_user(name="NAME", email="EMAIL@ADDRESS.COM", inviter_email="INVITER@ADDRESS.COM")
-            self.assertEqual(cm.output, [
-                "DEBUG:ws_sdk.web:Creating User: NAME email : EMAIL@ADDRESS.COM with Inviter email: INVITER@ADDRESS.COM"])
+            self.assertEqual(cm.output, ["DEBUG:ws_sdk.web:Token: 'None' is a organization",
+                                         "DEBUG:ws_sdk.web:Creating User: NAME email : EMAIL@ADDRESS.COM with Inviter email: INVITER@ADDRESS.COM"])
 
     @patch('ws_sdk.web.WS.call_ws_api')
     @patch('ws_sdk.web.WS.get_users')
@@ -893,7 +893,8 @@ class TestWS(TestCase):
     def test_invite_user_to_web_advisor(self, mock_call_ws_api):
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws.invite_user_to_web_advisor(user_email="INVITEE@EMAIL.COM")
-            self.assertEqual(cm.output, ["DEBUG:ws_sdk.web:Inviting email: 'INVITEE@EMAIL.COM' to Web Advisor"])
+            self.assertEqual(cm.output, ["DEBUG:ws_sdk.web:Token: 'None' is a organization",
+                                         "DEBUG:ws_sdk.web:Inviting email: 'INVITEE@EMAIL.COM' to Web Advisor"])
 
     @patch('ws_sdk.web.WS.call_ws_api')
     def test_regenerate_service_user_key(self, mock_call_ws_api):
