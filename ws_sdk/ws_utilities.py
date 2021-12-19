@@ -103,11 +103,13 @@ def get_package_managers_by_language(language: str) -> list:
 
     return lang_md.package_manager if lang_md else None
 
+
 def break_filename(filename: str) -> tuple:
     import re
     return {"suffix": re.search(r'.([a-zA-z0-9]+$)', filename).group(1),
             'name': re.search(r'(^[a-zA-Z0-9-]+)(?=-)', filename).group(1),
             'version': re.search(r'-((?!.*-).+)(?=\.)', filename).group(1)}
+
 
 def get_full_ws_url(url) -> str:
     if url is None or not url:

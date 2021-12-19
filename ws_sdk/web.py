@@ -1,4 +1,5 @@
 import json
+import uuid
 from logging import getLogger
 from copy import copy
 from datetime import datetime, timedelta
@@ -6,7 +7,6 @@ from typing import Union
 
 import requests
 import requests_cache
-
 from ws_sdk import ws_utilities
 from ws_sdk.ws_errors import *
 from ws_sdk.ws_constants import *
@@ -110,7 +110,10 @@ class WS:
         self.url = ws_utilities.get_full_ws_url(url)
         self.api_url = self.url + API_URL_SUFFIX
         self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
-        self.headers = {**WS_HEADERS, **self.header_tool_details}
+        self.headers = {**WS_HEADERS,
+                        **self.header_tool_details,
+                        'ctxId': uuid.uuid1().__str__()}
+        self.scope_contains = set()
         self.scope_contains = set()
         # if not ws_utilities.is_token(self.token): # Org token can be 32 chars seperate by 4 hyphens.
         #     raise WsSdkTokenError(self.token)
@@ -424,14 +427,16 @@ class WS:
         return self.get_scope_by_token(token)['name']
 
     def get_scope_by_token(self,
-                           token: str) -> dict:
+                           token: str,
+                           token_type: str = None) -> dict:
         """
         Method to return the scope of a token, if not found, raise exception.
         :param token: the searched token
+        :param token_type: Ability to pass token type for performance
         :return: dictionary of scope
         :rtype: dict
         """
-        ret = self.get_scopes(token=token)
+        ret = self.get_scopes(token=token, scope_type=token_type)
 
         if ret:
             return ret[0]
