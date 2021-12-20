@@ -199,7 +199,7 @@ class WS:
             raise
 
         if resp.status_code > 299:
-            logger.error(f"API {body['requestType']} call on {body[token[-1]]} failed: {resp.text}")
+            logger.error(f"API '{body['requestType']}' call on '{body.get(token)}' failed with error code: {resp.status_code}.\nError Body: '{resp.text}'")
             raise requests.exceptions.RequestException
         elif "errorCode" in resp.text:
             logger.debug(f"API returned errorCode {body['requestType']} call on {body[token]} message: {resp.text}")
