@@ -22,7 +22,6 @@ class WS:
             def decorator(function):
                 def wrapper(*args, **kwargs):
                     if len(args) == 2 and args[1] in ReportsMetaData.REPORTS_META_DATA:
-                        logger.debug(f"Accessing report metadata: '{args[1]}'")
                         return kwargs_metadata.get(args[1])
                     else:
                         return function.__call__(*args, **kwargs)

@@ -161,7 +161,8 @@ class ReportsMetaData(NamedTuple):
 
     REPORT_BIN_TYPE = "report_bin_type"
     REPORT_SCOPE = "report_scope_types"
-    REPORTS_META_DATA = [REPORT_BIN_TYPE, REPORT_SCOPE]
+    COLUMN_NAMES = "report_scope_column_names"
+    REPORTS_META_DATA = [REPORT_BIN_TYPE, REPORT_SCOPE, COLUMN_NAMES]
 
 
 class UAArchiveFiles:
