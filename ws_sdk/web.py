@@ -2,11 +2,10 @@ import json
 import uuid
 from logging import getLogger
 from copy import copy
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Union
 
 import requests
-import requests_cache
 from ws_sdk import ws_utilities
 from ws_sdk.ws_errors import *
 from ws_sdk.ws_constants import *
@@ -103,10 +102,7 @@ class WS:
         self.token_type = token_type
         self.timeout = timeout
         self.resp_format = resp_format
-        self.session = requests_cache.CachedSession(cache_name=self.__class__.__name__,
-                                                    expire_after=timedelta(seconds=CACHE_TIME),
-                                                    allowable_methods=['GET', 'POST'],
-                                                    backend='memory')
+        self.session = requests.session()
         self.url = ws_utilities.get_full_ws_url(url)
         self.api_url = self.url + API_URL_SUFFIX
         self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
@@ -195,17 +191,12 @@ class WS:
 
         token, body = __create_body(request_type, kv_dict)
         logger.debug(f"Calling: {self.api_url} with requestType: {request_type}")
-        self.session.expire_after = timedelta(seconds=CACHE_TIME)
 
         try:
             resp = self.session.post(url=self.api_url, data=json.dumps(body), headers=self.headers, timeout=self.timeout)
         except requests.RequestException:
             logger.exception(f"Received Error on {body[token[-1]]}")
             raise
-
-        if not request_type.startswith(("get", "librarySearch")):
-            logger.debug("Expiring request cache")
-            self.session.expire_after = 0
 
         if resp.status_code > 299:
             logger.error(f"API {body['requestType']} call on {body[token[-1]]} failed: {resp.text}")
