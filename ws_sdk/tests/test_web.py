@@ -31,7 +31,7 @@ class TestWS(TestCase):
     #     with self.assertRaises(WsSdkTokenError):
     #         WS(user_key="", token="INCORRECT")
 
-    @patch('ws_sdk.web.requests_cache.CachedSession.post')
+    @patch('ws_sdk.web.requests.Session.post')
     def test__call_ws_api(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.text = '{"key": "val"}'
@@ -40,7 +40,7 @@ class TestWS(TestCase):
         self.assertIsInstance(res, dict)
 
     @patch('ws_sdk.web.json.loads')
-    @patch('ws_sdk.web.requests_cache.CachedSession.post')
+    @patch('ws_sdk.web.requests.Session.post')
     def test__call_ws_api__bytes(self, mock_post, mock_json_loads):
         mock_post.return_value.status_code = 200
         mock_post.return_value.content = bytes()
@@ -51,7 +51,7 @@ class TestWS(TestCase):
         self.assertIsInstance(res, bytes)
 
     @patch('ws_sdk.web.json.loads')
-    @patch('ws_sdk.web.requests_cache.CachedSession.post')
+    @patch('ws_sdk.web.requests.Session.post')
     def test__call_ws_api__text(self, mock_post, mock_json_loads):
         mock_post.return_value.status_code = 200
         mock_post.return_value.encoding = 'UTF-8'
@@ -61,7 +61,7 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, str)
 
-    @patch('ws_sdk.web.requests_cache.CachedSession.post')
+    @patch('ws_sdk.web.requests.Session.post')
     def test__call_ws_api_timeout_exception(self, mock_post):
         mock_post.side_effect = TimeoutError()
 
