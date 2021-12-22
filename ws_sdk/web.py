@@ -174,6 +174,7 @@ class WS:
             2013 - Invitation was already sent to this user, User name contains not allowed characters
             2015 - Inactive org
             2021 - Invalid option value for property
+            3000 - Invalid request parameters
             3010 - Missing fields: user
             4000 - Unexpected error
             5001 - User is not allowed to perform this action
@@ -622,14 +623,14 @@ class WS:
         Get all organizations under global organization
         :param name: filter by name
         :param token: filter by token
-        :param active: whether to return active only
+        :param active: whether to return active only (CURRENTLY DISABLED)
         :return: list of organization
         :rtype: list
         """
         ret = self.get_scopes(name=name, token=token, scope_type=ScopeTypes.ORGANIZATION)
 
-        if active:
-            ret = [org for org in ret if org.get('active') == active]
+        # if active:   # TODO 'active' doesn't always return. Either rely on WsSdkServerInactiveOrg or find a better way
+        #     ret = [org for org in ret if org.get('active') != active]
 
         return ret
 
@@ -1710,6 +1711,7 @@ class WS:
         """
         TBD: Method to check a lib against policy object
         :param policy_obj: class that represents policy rules on lib (perhaps including alerts)
-        :returns whether there is a match on on which conditions
+        :returns whether there is a match on which conditions
         """
         pass
+
