@@ -1,4 +1,4 @@
 DateTime~=4.3
 requests==2.26.0
-requests_cache~=0.8.1
+
 

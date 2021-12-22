@@ -1,12 +1,12 @@
 import json
+import os
+import uuid
 from logging import getLogger
 from copy import copy
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Union
 
 import requests
-import requests_cache
-
 from ws_sdk import ws_utilities
 from ws_sdk.ws_errors import *
 from ws_sdk.ws_constants import *
@@ -22,7 +22,6 @@ class WS:
             def decorator(function):
                 def wrapper(*args, **kwargs):
                     if len(args) == 2 and args[1] in ReportsMetaData.REPORTS_META_DATA:
-                        logger.debug(f"Accessing report metadata: '{args[1]}'")
                         return kwargs_metadata.get(args[1])
                     else:
                         return function.__call__(*args, **kwargs)
@@ -103,15 +102,15 @@ class WS:
         self.token_type = token_type
         self.timeout = timeout
         self.resp_format = resp_format
-        self.session = requests_cache.CachedSession(cache_name=self.__class__.__name__,
-                                                    expire_after=timedelta(seconds=CACHE_TIME),
-                                                    allowable_methods=['GET', 'POST'],
-                                                    backend='memory')
+        self.session = requests.session()
         self.url = ws_utilities.get_full_ws_url(url)
         self.api_url = self.url + API_URL_SUFFIX
         self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
-        self.headers = {**WS_HEADERS, **self.header_tool_details}
-
+        self.headers = {**WS_HEADERS,
+                        **self.header_tool_details,
+                        'ctxId': uuid.uuid1().__str__()}
+        self.scope_contains = set()
+        self.scope_contains = set()
         # if not ws_utilities.is_token(self.token): # Org token can be 32 chars seperate by 4 hyphens.
         #     raise WsSdkTokenError(self.token)
 
@@ -119,7 +118,7 @@ class WS:
             raise WsSdkTokenError(self.user_key)
 
     def set_token_in_body(self,
-                          token: str = None) -> (str, dict):
+                          token: Union[str, tuple] = None) -> (str, dict):
         """
         Determines the token, its type and add into to the request body
         :param token:
@@ -130,10 +129,14 @@ class WS:
         if token is None:
             token_type = self.token_type
             kv_dict[TOKEN_TYPES_MAPPING[token_type]] = self.token
+        elif isinstance(token, tuple):
+            token_type = token[1]
+            token = token[0]
+            kv_dict[TOKEN_TYPES_MAPPING[token_type]] = token
         else:
             token_type = self.get_scope_type_by_token(token)
             kv_dict[TOKEN_TYPES_MAPPING[token_type]] = token
-            logger.debug(f"Token: {token} is a {token_type}")
+        logger.debug(f"Token: '{token}' is a {token_type}")
 
         return token_type, kv_dict
 
@@ -188,7 +191,6 @@ class WS:
 
         token, body = __create_body(request_type, kv_dict)
         logger.debug(f"Calling: {self.api_url} with requestType: {request_type}")
-        self.session.expire_after = timedelta(seconds=CACHE_TIME)
 
         try:
             resp = self.session.post(url=self.api_url, data=json.dumps(body), headers=self.headers, timeout=self.timeout)
@@ -196,12 +198,8 @@ class WS:
             logger.exception(f"Received Error on {body[token[-1]]}")
             raise
 
-        if not request_type.startswith(("get", "librarySearch")):
-            logger.debug("Expiring request cache")
-            self.session.expire_after = 0
-
         if resp.status_code > 299:
-            logger.error(f"API {body['requestType']} call on {body[token[-1]]} failed: {resp.text}")
+            logger.error(f"API '{body['requestType']}' call on '{body.get(token)}' failed with error code: {resp.status_code}.\nError Body: '{resp.text}'")
             raise requests.exceptions.RequestException
         elif "errorCode" in resp.text:
             logger.debug(f"API returned errorCode {body['requestType']} call on {body[token]} message: {resp.text}")
@@ -420,14 +418,16 @@ class WS:
         return self.get_scope_by_token(token)['name']
 
     def get_scope_by_token(self,
-                           token: str) -> dict:
+                           token: str,
+                           token_type: str = None) -> dict:
         """
         Method to return the scope of a token, if not found, raise exception.
         :param token: the searched token
+        :param token_type: Ability to pass token type for performance
         :return: dictionary of scope
         :rtype: dict
         """
-        ret = self.get_scopes(token=token)
+        ret = self.get_scopes(token=token, scope_type=token_type)
 
         if ret:
             return ret[0]
@@ -450,13 +450,13 @@ class WS:
         :rtype list
         """
         def __enrich_projects__(proj_list: list, prod: dict) -> list:
-            for project in proj_list:
-                project['type'] = ScopeTypes.PROJECT
-                project[TOKEN_TYPES_MAPPING[ScopeTypes.PRODUCT]] = prod.get('token')
-                project['productName'] = prod.get('name')
+            for p in proj_list:
+                p['type'] = ScopeTypes.PROJECT
+                p[TOKEN_TYPES_MAPPING[ScopeTypes.PRODUCT]] = prod.get('token')
+                p['productName'] = prod.get('name')
 
-                if project.get('lastScanComment'):  # in case of comments trying to restore into dict of: k1:v1;k2:v2...
-                    project['project_metadata_d'] = dict([kv.split(':', 1) for kv in project['lastScanComment'].split(';') if ':' in kv])
+                if p.get('lastScanComment'):  # in case of comments trying to restore into dict of: k1:v1;k2:v2...
+                    p['project_metadata_d'] = dict([kv.split(':', 1) for kv in p['lastScanComment'].split(';') if ':' in kv])
 
             return proj_list
 
@@ -477,7 +477,6 @@ class WS:
             return {'type': self.token_type,
                     'token': self.token,
                     'name': self.get_name()}
-        # toDo better handling while using product_token when scope type is org
         scopes = []
         if sort_by is not None and sort_by not in ScopeSorts.SCOPE_SORTS:
             logger.error(f"{sort_by} is not a valid sort option")
@@ -488,36 +487,46 @@ class WS:
             scopes = __enrich_projects__(projects, product)
             scopes.append(product)
         elif self.token_type == ScopeTypes.ORGANIZATION:
-            all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
-            prod_token_exists = False
+            if scope_type == ScopeTypes.PROJECT:
+                scopes = self.__generic_get__(get_type="ProjectVitals")['projectVitals']
+                for project in scopes:
+                    project['type'] = ScopeTypes.PROJECT
+                    project['org_token'] = self.token
+                    if project.get('lastScanComment'):  # in case of comments trying to restore into dict of: k1:v1;k2:v2...
+                        project['project_metadata_d'] = dict([kv.split(':', 1) for kv in project['lastScanComment'].split(';') if ':' in kv])
+                self.scope_contains.add(ScopeTypes.PROJECT)
+            else:
+                all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
+                prod_token_exists = False
 
-            for product in all_products:
-                product['type'] = ScopeTypes.PRODUCT
-                product['org_token'] = self.token
+                for product in all_products:
+                    product['type'] = ScopeTypes.PRODUCT
+                    product['org_token'] = self.token
 
-                if product['token'] == token:
-                    logger.debug(f"Found searched token: {token}")
-                    scopes.append(product)
-                    return scopes                                              # TODO FIX THIS
-                elif product['token'] == product_token:
-                    logger.debug(f"Found searched productToken: {token}")
-                    prod_token_exists = True
-                    break
+                    if product['token'] == token:
+                        logger.debug(f"Found searched token: {token}")
+                        scopes.append(product)
+                        return scopes                                              # TODO FIX THIS
+                    elif product['token'] == product_token:
+                        logger.debug(f"Found searched productToken: {token}")
+                        prod_token_exists = True
+                        break
 
-            if not prod_token_exists and product_token is not None:
-                raise WsSdkServerMissingTokenError(product_token, self.token_type)
+                if not prod_token_exists and product_token is not None:
+                    raise WsSdkServerMissingTokenError(product_token, self.token_type)
+                if scope_type not in [ScopeTypes.ORGANIZATION, ScopeTypes.PRODUCT]:
+                    if product_token:
+                        all_products = [prod for prod in all_products if prod['token'] == product_token]
+                    all_projects = __get_projects_from_product__(all_products)
+                    scopes.extend(all_projects)
+                if scope_type not in [ScopeTypes.ORGANIZATION, ScopeTypes.PROJECT]:
+                    scopes.extend(all_products)
+                if scope_type in [ScopeTypes.ORGANIZATION, None]:
+                    scopes.append(self.get_organization_details())
 
-            if scope_type not in [ScopeTypes.ORGANIZATION, ScopeTypes.PRODUCT]:
-                if product_token:
-                    all_products = [prod for prod in all_products if prod['token'] == product_token]
-                all_projects = __get_projects_from_product__(all_products)
-                scopes.extend(all_projects)
-            if scope_type not in [ScopeTypes.ORGANIZATION, ScopeTypes.PROJECT]:
-                scopes.extend(all_products)
-            if scope_type in [ScopeTypes.ORGANIZATION, None]:
-                scopes.append(self.get_organization_details())
         elif self.token_type == ScopeTypes.GLOBAL:
             organizations = self.__generic_get__(get_type="AllOrganizations", token_type="")['organizations']
+            self.scope_contains.add(ScopeTypes.ORGANIZATION)
             for org in organizations:
                 org['global_token'] = self.token
                 org['token'] = org['orgToken']
@@ -533,6 +542,7 @@ class WS:
                     try:
                         scopes.extend(temp_conn.get_scopes(scope_type=scope_type))
                         org['active'] = True
+                        self.scope_contains.add(scope_type)
                     except WsSdkServerInactiveOrg as e:
                         logger.warning(e.message)
                         org['active'] = False
