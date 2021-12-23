@@ -77,9 +77,9 @@ class TestWS(TestCase):
 
     @patch('ws_sdk.web.WS.get_organization_details')
     @patch('ws_sdk.web.WS.__generic_get__')
-    def test_get_scopes(self, mock_generic_get, mock_get_organization_details):
+    def test_get_scopes_as_org(self, mock_generic_get, mock_get_organization_details):
         mock_generic_get.return_value = {'productVitals': [{'name': "PROD_NAME", 'token': "TOKEN"}]}
-        mock_get_organization_details.return_value = {}
+        mock_get_organization_details.return_value = {'orgName': "ORG_NAME"}
         res = self.ws.get_scopes(token="TOKEN")
 
         self.assertIsInstance(res, list)
@@ -217,16 +217,23 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, list)
 
-    @patch('ws_sdk.web.WS.get_scopes')
-    def test_get_projects(self, mock_get_scopes):
-        mock_get_scopes.return_value = [{'type': PROJECT}]
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_projects(self, mock_generic_get):
+        mock_generic_get.return_value = {'productVitals': []}
         res = self.ws.get_projects()
 
         self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.__generic_get__')
-    def test_get_organization_details(self, mock_call_ws_api):
-        mock_call_ws_api.return_value = {"orgName": "ORG_NAME", "orgToken": "ORG_TOKEN"}
+    def test_get_projects_no_inc(self, mock_generic_get):
+        mock_generic_get.return_value = {'projectVitals': []}
+        res = self.ws.get_projects(include_prod_proj_names=False)
+
+        self.assertIsInstance(res, list)
+
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_organization_details(self, mock_generic_get):
+        mock_generic_get.return_value = {"orgName": "ORG_NAME", "orgToken": "ORG_TOKEN"}
         res = self.ws.get_organization_details()
 
         self.assertIsInstance(res, dict)
@@ -913,4 +920,3 @@ class TestWS(TestCase):
 
 if __name__ == '__main__':
     TestCase.unittest.main()
-
