@@ -583,9 +583,10 @@ class WS:
             products = self.get_products()
             projects = self.get_projects()
 
+            scopes = products + projects + [_create_self_scope()]
+
         if need_filter:
             scopes = self.sort_and_filter_scopes(scopes, token, name, scope_type, product_token, product_name)
-            scopes = products + projects + [_create_self_scope()]
 
         if need_filter:
             scopes = self.sort_and_filter_scopes(scopes, token, name, scope_type, product_token, product_name)
