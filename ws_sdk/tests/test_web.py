@@ -76,9 +76,11 @@ class TestWS(TestCase):
         self.assertIsInstance(res, list)
 
     @patch('ws_sdk.web.WS.get_organization_details')
-    @patch('ws_sdk.web.WS.__generic_get__')
-    def test_get_scopes_as_org(self, mock_generic_get, mock_get_organization_details):
-        mock_generic_get.return_value = {'productVitals': [{'name': "PROD_NAME", 'token': "TOKEN"}]}
+    @patch('ws_sdk.web.WS.get_products')
+    @patch('ws_sdk.web.WS.get_projects')
+    def test_get_scopes_as_org(self, mock_get_projects, mock_get_products, mock_get_organization_details):
+        mock_get_projects.return_value = [{'name': "PROD_NAME", 'token': "TOKEN"}]
+        mock_get_products.return_value = [{'name': "PROJ_NAME", 'token': "TOKEN"}]
         mock_get_organization_details.return_value = {'orgName': "ORG_NAME"}
         res = self.ws.get_scopes(token="TOKEN")
 
@@ -210,9 +212,9 @@ class TestWS(TestCase):
 
         self.assertIs(res, None)
 
-    @patch('ws_sdk.web.WS.get_scopes')
-    def test_get_products(self, mock_get_scopes):
-        mock_get_scopes.return_value = [{'type': PRODUCT}]
+    @patch('ws_sdk.web.WS.__generic_get__')
+    def test_get_products(self, mock_generic_get):
+        mock_generic_get.return_value = {'productVitals': [{'type': PRODUCT}]}
         res = self.ws.get_products()
 
         self.assertIsInstance(res, list)
@@ -339,9 +341,11 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, list) and self.assertDictEqual(res[0], {'name': "NAME", 'token': "TOKEN"})
 
-    @patch('ws_sdk.web.WS.get_scopes')
-    def test_get_scopes_by_token(self, mock_get_scopes):
-        mock_get_scopes.return_value = [{'token': "TOKEN"}]
+    @patch('ws_sdk.web.WS.get_projects')
+    @patch('ws_sdk.web.WS.get_products')
+    def test_get_scopes_by_token(self, mock_get_products, mock_get_projects):
+        mock_get_projects.return_value = []
+        mock_get_products.return_value = [{'token': "TOKEN"}]
         res = self.ws.get_scope_by_token(token="TOKEN")
 
         self.assertIn('token', res) and self.assertEqual(res['token'], "TOKEN")
@@ -698,11 +702,11 @@ class TestWS(TestCase):
         with self.assertRaises(WsSdkServerMissingTokenError):
             res = self.ws.get_project(token="NOT_FOUND")
 
-    @patch('ws_sdk.web.WS.get_scopes')
-    def test_get_product_of_project(self, mock_get_scopes):
-        mock_get_scopes.return_value = [{'token': "TOKEN",
+    @patch('ws_sdk.web.WS.get_scope_by_token')
+    def test_get_product_of_project(self, mock_get_scope_by_token):
+        mock_get_scope_by_token.return_value = {'token': "TOKEN",
                                          'productToken': "PRODUCTTOKEN",
-                                         'type': PROJECT}]
+                                         'type': PROJECT}
 
         res = self.ws.get_product_of_project(token="TOKEN")
 
