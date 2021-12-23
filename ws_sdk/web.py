@@ -427,12 +427,21 @@ class WS:
         :return: dictionary of scope
         :rtype: dict
         """
-        ret = self.get_scopes(token=token, scope_type=token_type)
+        if token_type == ScopeTypes.PROJECT:
+            ret = self.get_projects(token=token)
+        elif token_type == ScopeTypes.PRODUCT:
+            ret = self.get_products(token=token)
+        else:
+            ret = self.get_products(token=token)
+            if not ret:
+                ret = self.get_projects(token=token)
 
         if ret:
-            return ret[0]
+            ret = ret[0]
         else:
             raise WsSdkServerMissingTokenError(token, self.token_type)
+
+        return ret
 
     @classmethod
     def sort_and_filter_scopes(cls,
@@ -466,6 +475,13 @@ class WS:
                 logger.error(f"{sort_by} is not a valid sort option")
         
         return scopes
+
+    def _enrich_products(self, products):
+        for product in products:
+            product['type'] = ScopeTypes.PRODUCT
+            product['org_token'] = self.token
+
+        return products
 
     def get_scopes(self,
                    name: str = None,
@@ -513,15 +529,13 @@ class WS:
         elif self.token_type == ScopeTypes.ORGANIZATION and scope_type == ScopeTypes.PRODUCT:
             all_products = self.__generic_get__(get_type="ProductVitals")['productVitals']
             prod_token_exists = False
+            all_products = self._enrich_products(all_products)
 
-            for product in all_products:
-                product['type'] = ScopeTypes.PRODUCT
-                product['org_token'] = self.token
-
+            for product in all_products:                                    # TODO CHANGE THIS
                 if product['token'] == token:
                     logger.debug(f"Found searched token: {token}")
                     scopes.append(product)
-                    return scopes                                              # TODO FIX THIS
+                    return scopes
                 elif product['token'] == product_token:
                     logger.debug(f"Found searched productToken: {token}")
                     prod_token_exists = True
@@ -538,7 +552,6 @@ class WS:
                 scopes.extend(all_products)
             if scope_type in [ScopeTypes.ORGANIZATION, None]:
                 scopes.append(self.get_organization_details())
-
         elif self.token_type == ScopeTypes.GLOBAL:
             organizations = self.__generic_get__(get_type="AllOrganizations", token_type="")['organizations']
             self.scope_contains.add(ScopeTypes.ORGANIZATION)
@@ -564,8 +577,13 @@ class WS:
             else:
                 scopes.extend(organizations)
                 scopes.append(_create_self_scope())
-        else:                                                               # self.token_type == ScopeTypes.PROJECT
+        elif self.token_type == ScopeTypes.PROJECT:
             scopes.append(_create_self_scope())
+        else:
+            products = self.get_products()
+            projects = self.get_projects()
+
+            scopes = products + projects + [_create_self_scope()]
 
         if need_filter:
             scopes = self.sort_and_filter_scopes(scopes, token, name, scope_type, product_token, product_name)
@@ -631,18 +649,27 @@ class WS:
     @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
     def get_products(self,
                      name: str = None,
+                     token: str = None,
                      sort_by: str = None) -> list:
         """
         Retrieved all products of org
         :param name: filter product by name
+        :param token:
         :param sort_by: Sort returned list
         :return: list of products
         :rtype list
         """
-        return self.get_scopes(name=name, scope_type=ScopeTypes.PRODUCT, sort_by=sort_by)
+        products = self.__generic_get__(get_type="ProductVitals")['productVitals']
+        products = self._enrich_products(products)
+        products = self.sort_and_filter_scopes(scopes=products,
+                                               name=name,
+                                               token=token,
+                                               sort_by=sort_by)
+        return products
 
     def get_projects(self,
                      name: str = None,
+                     token: str = None,
                      product_token: str = None,
                      product_name: str = None,
                      sort_by: str = None,
@@ -650,6 +677,7 @@ class WS:
         """
         Retrieves products of the calling scope (org or product)
         :param name: filter returned scopes by name
+        :param token:
         :param product_token: if stated retrieves projects of specific product token. If left blank retrieves all the projects in the org
         :param product_name: if stated retrieves projects of specific product name. If left blank retrieves all the projects in the org
         :param sort_by: Sort returned list
@@ -693,9 +721,8 @@ class WS:
                 project['project_metadata_d'] = dict([kv.split(':', 1) for kv in project['lastScanComment'].split(';') if ':' in kv])
 
         projects = self.sort_and_filter_scopes(scopes=projects,
-                                               token=None,
                                                name=name,
-                                               scope_type=None,
+                                               token=token,
                                                product_token=product_token,
                                                product_name=product_name,
                                                sort_by=sort_by)
