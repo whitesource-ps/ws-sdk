@@ -195,7 +195,7 @@ class WS:
         try:
             resp = self.session.post(url=self.api_url, data=json.dumps(body), headers=self.headers, timeout=self.timeout)
         except requests.RequestException:
-            logger.exception(f"Received Error on {body[token[-1]]}")
+            logger.exception(f"Received Error on {body[token]}")
             raise
 
         if resp.status_code > 299:
@@ -335,6 +335,7 @@ class WS:
 
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_inventory(self,
+                      lib_name: str = None,
                       token: str = None,
                       include_in_house_data: bool = True,
                       as_dependency_tree: bool = False,
@@ -355,6 +356,7 @@ class WS:
             main_list.append(library)
 
         """
+        :param name: filter libs by name (only in JSON)
         :param as_dependency_tree: Include library dependency (Project Hierarchy)
         :param token: The token that the request will be created on
         :param include_in_house_data:
@@ -381,6 +383,9 @@ class WS:
             kv_dict["format"] = "xlsx" if report else "json"
             logger.debug(f"Running {token_type} {name} Report")
             ret = self.__generic_get__(get_type="InventoryReport", token_type=token_type, kv_dict=kv_dict)
+
+        if lib_name and not report:
+            ret = [lib for lib in ret['libraries'] if lib['name'] == lib_name]
 
         return ret['libraries'] if isinstance(ret, dict) else ret
 
@@ -469,11 +474,11 @@ class WS:
                 if sort_by is not ScopeSorts.NAME:
                     for s in scopes:
                         s[sort_by] = ws_utilities.convert_to_time_obj(s[sort_by.rstrip("_obj")])
-    
+
                 scopes = sorted(scopes, key=lambda d: d[sort_by])
             else:
                 logger.error(f"{sort_by} is not a valid sort option")
-        
+
         return scopes
 
     def _enrich_products(self, products):
@@ -506,6 +511,15 @@ class WS:
             return {'type': self.token_type,
                     'token': self.token,
                     'name': self.get_name()}
+
+        def enrich_orgs(orgs) -> list:
+            for o in orgs:
+                o['global_token'] = self.token
+                o['name'] = o['orgName']
+                o['token'] = o['orgToken']
+                o['type'] = ScopeTypes.ORGANIZATION
+
+            return orgs
 
         scopes = []
         need_filter = True
@@ -555,10 +569,7 @@ class WS:
         elif self.token_type == ScopeTypes.GLOBAL:
             organizations = self.__generic_get__(get_type="AllOrganizations", token_type="")['organizations']
             self.scope_contains.add(ScopeTypes.ORGANIZATION)
-            for org in organizations:
-                org['global_token'] = self.token
-                org['token'] = org['orgToken']
-                org['type'] = ScopeTypes.ORGANIZATION
+            organizations = enrich_orgs(organizations)
 
             scopes = []
             if scope_type in [ScopeTypes.PROJECT, ScopeTypes.PRODUCT]:
@@ -1254,7 +1265,7 @@ class WS:
             kv_dict['licenseReferenceTextPlacement'] = license_reference_text_placement
             kv_dict['includeVersions'] = str(include_versions)
             logger.debug(f"Running {token_type} {name}")
-            
+
             ret = self.__generic_get__(get_type='AttributionReport', token_type=token_type, kv_dict=kv_dict)
 
         return ret
@@ -1675,9 +1686,11 @@ class WS:
         else:
             logger.debug(f"Assigning user's Email: {user_email} to Group: {group_name}")
             token_type, kv_dict = self.set_token_in_body()
-            kv_dict['assignedUsers'] = [[{'name': group_name},
-                                         [{"email": user_email}]
-                                         ]]
+            kv_dict['assignedUsers'] = [
+                [{'name': group_name},
+                 [{"email": user_email}]
+                 ]
+            ]
 
             return self.call_ws_api(request_type='addUsersToGroups', kv_dict=kv_dict)
 
