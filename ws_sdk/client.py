@@ -1,5 +1,5 @@
 import copy
-from logging import getLogger
+import dataclasses
 import logging
 import os
 import json
@@ -84,7 +84,7 @@ class WSClient:
         switches = f"-Djava.io.tmpdir={self.java_temp_dir} -jar {self.ua_jar_f_with_path} {options} -noConfig True"  #-noConfig True => configFilePath=DEFAULT
         env = ws_utilities.generate_conf_ev(ua_conf)
         orig_path = os.getcwd()
-        os.chdir(self.ua_path)                                                  # TODO CONSIDER PUTTING ON CONSTRUCTOR
+        os.chdir(self.ua_path)                                                  # CONSIDER PUTTING ON CONSTRUCTOR
         output = ws_utilities.execute_command(command=command, switches=switches, env=env)
         os.chdir(orig_path)
         _handle_ws_client_errors()
@@ -102,6 +102,42 @@ class WSClient:
             ret = ",".join(e_dirs)
 
         return ret
+
+    class WsDestScope:
+        project_type: str = None
+        project_val: str = None
+        product_type: str = None
+        product_val: str = None
+
+        def __init__(self,
+                     project_t: str = None,
+                     project_n: str = None,
+                     product_t: str = None,
+                     product_n: str = None):
+
+            if project_t:
+                self.project_type = "projectToken"
+                self.project_val = project_t
+            elif project_n:
+                self.project_type = "project"
+                self.project_val = project_n
+
+            if product_t:
+                self.product_type = "productToken"
+                self.product_val = product_t
+            elif product_n:
+                self.product_type = "product"
+                self.product_val = product_n
+
+        def __repr__(self):
+            return f"{self.product_type}: '{self.product_val}' {self.project_type}: '{self.project_val}'"
+
+        def to_execute(self):
+            return f"-{self.product_type} {self.product_val} -{self.project_type} {self.project_val}"
+
+        @property
+        def scope_is_full(self):
+            return self.project_val and self.product_val
 
     def scan(self,
              scan_dir: Union[list, str],
@@ -126,17 +162,17 @@ class WSClient:
         """
 
         existing_dirs = self.get_existing_paths(scan_dir)
-        target = self.get_target(project_token, product_token, product_name)
+        dest_scope = self.WsDestScope(project_token, project_name, product_token, product_name)
 
         ret = None
         if not existing_dirs:
             logger.error(f"No valid directories were found in: {scan_dir}")
-        elif not (project_token or project_name):
-            logger.error("Project name or token must be passed")
-        elif not target:
-            logger.error("At least one value should be configured: productName, productToken or projectToken")
-        elif target and existing_dirs:
-            logger.info(f"Scanning Dir(s): {existing_dirs} to {target[0]}: {target[1]}")
+        elif not dest_scope.scope_is_full:
+            logger.error(f"Missing scope details: {dest_scope}")
+        elif not dest_scope.product_val:
+            logger.error("product_name or product_token must be configured")
+        elif existing_dirs:
+            logger.info(f"Scanning Dir(s): {existing_dirs} to: {dest_scope}")
             local_ua_all_conf = copy.copy(self.ua_conf)
             self.add_scan_comment(key="comment", value=comment, ua_conf=local_ua_all_conf)
 
@@ -146,7 +182,7 @@ class WSClient:
             if include:
                 local_ua_all_conf.set_include_suffices_to_scan(include)
 
-            ret = self._execute_ua(f"-d {existing_dirs} -{target[0]} {target[1]}", local_ua_all_conf)
+            ret = self._execute_ua(f"-d {existing_dirs} {dest_scope.to_execute()}", local_ua_all_conf)
         else:
             logger.warning("Nothing was scanned")
 
@@ -159,8 +195,8 @@ class WSClient:
                     offline: bool = False,
                     comment: str = None,
                     include: list = None) -> tuple:
-        target = self.get_target(None, product_token, product_name)
-        if not target:
+        dest_scope = self.WsDestScope(product_t=product_token, product_n=product_name)
+        if not dest_scope:
             logger.error("Docker scan mode is set but no product token of name passed")
 
         logger.debug("Docker scan mode. Only docker image will be scanned")
@@ -181,26 +217,28 @@ class WSClient:
         if include:
             local_ua_all_conf.set_include_suffices_to_scan(include)
 
-        ret = self._execute_ua(f"-d {self.ua_path} -{target[0]} {target[1]}", local_ua_all_conf)
+        ret = self._execute_ua(f"-d {self.ua_path} {dest_scope.to_execute()}", local_ua_all_conf)
 
         return ret
 
     def upload_offline_request(self,
                                offline_request: Union[dict, str],
                                project_token: str = None,
+                               project_name: str = None,
                                product_token: str = None,
                                product_name: str = None):
         """
         Method to upload an offline request to WS
         :param offline_request: can accept full path to update file of dict
         :param project_token: target project token
+        :param project_name:  target project name
         :param product_token: target product token
         :param product_name: target project name
         """
         ret = None
-        target = self.get_target(project_token, product_token, product_name)
-        if target:
-            logger.info(f"Uploading offline request to {target[0]} - {target[1]}")
+        dest_scope = self.WsDestScope(project_token, project_name, product_token, product_name)
+        if dest_scope.scope_is_full:
+            logger.info(f"Uploading offline request to {dest_scope}")
             if isinstance(offline_request, dict):
                 file_path = os.path.join(self.ua_path, "update_request_tmp.json")
                 with open(file_path, 'w') as fp:
@@ -208,9 +246,9 @@ class WSClient:
             else:
                 file_path = offline_request
 
-            ret = self._execute_ua(f"-requestFiles \"{file_path}\" -{target[0]} {target[1]}", self.ua_conf)
+            ret = self._execute_ua(f"-requestFiles \"{file_path}\" {dest_scope.to_execute()}", self.ua_conf)
         else:
-            logger.error("No target was found")
+            logger.error(f"Invalid target configuration: {dest_scope}")
 
         return ret
 
@@ -259,17 +297,3 @@ class WSClient:
 
         ua_conf.scanComment += f"{key}:{value}"
 
-    @classmethod
-    def get_target(cls,
-                   project_t: str,
-                   product_t: str,
-                   product_n: str) -> tuple:
-        target = None
-        if project_t:
-            target = ("projectToken", project_t)
-        elif product_t:
-            target = ("productToken", product_t)
-        elif product_n:
-            target = ("product", product_n)
-
-        return target
