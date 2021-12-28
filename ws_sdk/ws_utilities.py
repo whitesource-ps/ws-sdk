@@ -302,5 +302,7 @@ def get_latest_ua_release_url() -> dict:
 
     return json.loads(res.text)
 
+
 def convert_to_time_obj(time: str):
     return datetime.strptime(time, '%Y-%m-%d %H:%M:%S %z')
+
