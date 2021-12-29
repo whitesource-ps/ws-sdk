@@ -188,6 +188,10 @@ class WS:
                 raise WsSdkServerInsufficientPermissions(body[token])
             elif error_dict['errorCode'] == 2013:
                 logger.warning(error_dict['errorMessage'])
+            elif error_dict['errorCode'] in [2001, 2010]:
+                logger.warning(error_dict['errorMessage'])
+                scope = body['requestType'].lstrip("create")
+                raise WsSdkServerScopeExists(scope_type=scope, scope_name=body[f"{scope.lower()}Name"])
             else:
                 raise WsSdkServerGenericError(body[token], error)
 
