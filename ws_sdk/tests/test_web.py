@@ -846,8 +846,38 @@ class TestWS(TestCase):
 
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws.create_user(name="NAME", email="EMAIL@ADDRESS.COM", inviter_email="INVITER@ADDRESS.COM")
+
             self.assertEqual(cm.output, ["DEBUG:ws_sdk.web:Token: 'None' is a organization",
                                          "DEBUG:ws_sdk.web:Creating User: NAME email : EMAIL@ADDRESS.COM with Inviter email: INVITER@ADDRESS.COM"])
+
+    @patch('ws_sdk.web.WS.call_ws_api')
+    def test_create_product(self, mock_call_ws_api):
+        mock_call_ws_api.return_value = {}
+
+        ret = self.ws.create_product(name="NEW_PRODUCT")
+
+        self.assertEqual(ret, {})
+
+    @patch('ws_sdk.web.WS.set_token_in_body')
+    @patch('ws_sdk.web.WS.call_ws_api')
+    def test_create_project(self, mock_call_ws_api, mock_set_token_in_body):
+        mock_set_token_in_body.return_value = (PRODUCT, {})
+        mock_call_ws_api.return_value = {}
+        ret = self.ws.create_project(name="NEW_PROJECT", product_token="PROD_TOKEN")
+
+        self.assertEqual(ret, {})
+
+    def test_create_project_prod_token_and_name(self):
+        with self.assertLogs(level='DEBUG') as cm:
+            ret = self.ws.create_project(name="NEW_PROJECT", product_token="TOKEN", product_name="NAME")
+
+            self.assertEqual(cm.output, ["ERROR:ws_sdk.web:Unable to create project: 'NEW_PROJECT'. Only project token or project name is allowed"])
+
+    def test_create_project_no_prod_token(self):
+        with self.assertLogs(level='DEBUG') as cm:
+            ret = self.ws.create_project(name="NEW_PROJECT")
+
+            self.assertEqual(cm.output, ["ERROR:ws_sdk.web:Unable to create project: 'NEW_PROJECT'. Missing product value"])
 
     @patch('ws_sdk.web.WS.call_ws_api')
     @patch('ws_sdk.web.WS.get_users')
