@@ -246,7 +246,6 @@ def get_java_version(java_bin: str =  JAVA_BIN) -> str:
 def execute_command(command: str,
                     switches: str = None,
                     env = None) -> tuple:
-    output = None
     full_command_l = [command] + switches if isinstance(switches, list) else [command] + switches.split()
     logger.debug(f"Executing command: {full_command_l}")
     ret = (-1, None)

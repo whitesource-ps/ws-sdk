@@ -15,3 +15,4 @@
 /ws_sdk/tests/whitesource/
 /sdk.egg-info/
 /.coverage
+ws_sdk/tests/__pycache__/
