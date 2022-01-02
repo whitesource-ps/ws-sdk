@@ -167,8 +167,10 @@ class WS:
                 return json.loads(err)
 
             """
+            2001 - Product name occupied
             2007 - User is not in Organization
             2008 - Group does not exist
+            2010 - Project name occupied
             2011 - User doesn't exist
             2013 - Invitation was already sent to this user, User name contains not allowed characters
             2015 - Inactive org
@@ -186,6 +188,10 @@ class WS:
                 raise WsSdkServerInsufficientPermissions(body[token])
             elif error_dict['errorCode'] == 2013:
                 logger.warning(error_dict['errorMessage'])
+            elif error_dict['errorCode'] in [2001, 2010]:
+                logger.warning(error_dict['errorMessage'])
+                scope = body['requestType'].lstrip("create")
+                raise WsSdkServerScopeExists(scope_type=scope, scope_name=body[f"{scope.lower()}Name"])
             else:
                 raise WsSdkServerGenericError(body[token], error)
 
@@ -628,17 +634,21 @@ class WS:
         else:
             return self.get_tags()[0]['name']
 
-    def get_scopes_from_name(self, name) -> list:
+    def get_scopes_from_name(self,
+                             name: str,
+                             token_type: str = None) -> list:
         """
         Method to return scope list of dictionaries from name
         :param name: the name of scope to return
+        :param token_type: if stated will get scopes of specific types only
         :return: list of dictionaries
         """
-        return self.get_scopes(name=name)
+        return self.get_scopes(name=name, scope_type=token_type)
 
     def get_tokens_from_name(self,
-                             scope_name: str) -> list:
-        scopes = self.get_scopes_from_name(scope_name)
+                             scope_name: str,
+                             token_type: str = None) -> list:
+        scopes = self.get_scopes_from_name(scope_name, token_type=token_type)
         ret = []
         for scope in scopes:
             ret.append(scope['token'])
@@ -884,7 +894,8 @@ class WS:
                     lic['spdxName'] = "0BSD"
                 elif lic.get('name') == "Unlicense":
                     lic['spdxName'] = "Unlicense"
-
+                elif lic.get('name') == "Tcl-Tk":
+                    lic['spdxName'] = "TCL"
                 if lic.get('spdxName'):
                     logger.info(f"Fixed spdxName of {lic['name']} to {lic['spdxName']}")
                 else:
@@ -975,8 +986,10 @@ class WS:
         :param email:  filter list by user email
         :return: list of users
         """
-        logger.debug(f"Getting users of the organization ")
+        logger.debug(f"Getting users of the organization")
         ret = self.__generic_get__(get_type='AllUsers', token_type="")['users']
+        for user in ret:
+            user['org_token'] = self.token
 
         if name:
             ret = [user for user in ret if user.get('name') == name]
@@ -1006,12 +1019,21 @@ class WS:
 
     @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
     def get_group(self,
-                  name: str) -> dict:
-        ret = self.get_groups(name=name)
+                  group_name: str) -> dict:
+        ret = self.get_groups(name=group_name)
         if ret:
             return ret[0]
         else:
-            raise WsSdkServerMissingGroupError(name)
+            raise WsSdkServerMissingGroupError(group_name)
+
+    @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
+    def get_users_in_group(self,
+                           group_name: str) -> dict:
+        ret = self.get_group(group_name=group_name)['users']
+        for user in ret:
+            user['org_token'] = self.token
+
+        return ret
 
     @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
     def get_groups(self,
@@ -1670,6 +1692,34 @@ class WS:
         else:
             logger.debug(f"Creating Group: {name}")
             ret = self.call_ws_api(request_type='createGroup', kv_dict=kv_dict)
+
+        return ret
+
+    @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
+    def create_product(self,
+                       name: str):
+
+        return self.call_ws_api(request_type="createProduct", kv_dict={"productName": name})
+
+    @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION, ScopeTypes.PRODUCT])
+    def create_project(self,
+                       name: str,
+                       product_token: str = None,
+                       product_name: str = None):
+        ret = None
+        if product_token and product_name:
+            logger.error(f"Unable to create project: '{name}'. Only project token or project name is allowed")
+        elif ScopeTypes.ORGANIZATION and (product_token is None and product_name is None):
+            logger.error(f"Unable to create project: '{name}'. Missing product value")
+        else:
+            if product_name:
+                product_token = self.get_tokens_from_name(product_name, token_type=ScopeTypes.PRODUCT)
+            if product_token:
+                token_type, kv_dict = self.set_token_in_body(product_token[0])
+                kv_dict['projectName'] = name
+                ret = self.call_ws_api(request_type="createProject", kv_dict=kv_dict)
+            else:
+                logger.error(f"Unable to create project: '{name}'. Product name: '{product_name}' was not found")
 
         return ret
 

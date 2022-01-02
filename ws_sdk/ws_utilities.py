@@ -265,6 +265,7 @@ def execute_command(command: str,
 
     return ret
 
+
 def is_ua_exists(ua_jar_f_with_path):
     return os.path.exists(ua_jar_f_with_path)
 
