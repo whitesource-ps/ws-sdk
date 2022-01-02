@@ -894,7 +894,8 @@ class WS:
                     lic['spdxName'] = "0BSD"
                 elif lic.get('name') == "Unlicense":
                     lic['spdxName'] = "Unlicense"
-
+                elif lic.get('name') == "Tcl-Tk":
+                    lic['spdxName'] = "TCL"
                 if lic.get('spdxName'):
                     logger.info(f"Fixed spdxName of {lic['name']} to {lic['spdxName']}")
                 else:
@@ -985,8 +986,10 @@ class WS:
         :param email:  filter list by user email
         :return: list of users
         """
-        logger.debug(f"Getting users of the organization ")
+        logger.debug(f"Getting users of the organization")
         ret = self.__generic_get__(get_type='AllUsers', token_type="")['users']
+        for user in ret:
+            user['org_token'] = self.token
 
         if name:
             ret = [user for user in ret if user.get('name') == name]
@@ -1016,12 +1019,21 @@ class WS:
 
     @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
     def get_group(self,
-                  name: str) -> dict:
-        ret = self.get_groups(name=name)
+                  group_name: str) -> dict:
+        ret = self.get_groups(name=group_name)
         if ret:
             return ret[0]
         else:
-            raise WsSdkServerMissingGroupError(name)
+            raise WsSdkServerMissingGroupError(group_name)
+
+    @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
+    def get_users_in_group(self,
+                           group_name: str) -> dict:
+        ret = self.get_group(group_name=group_name)['users']
+        for user in ret:
+            user['org_token'] = self.token
+
+        return ret
 
     @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
     def get_groups(self,
