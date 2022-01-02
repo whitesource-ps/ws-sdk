@@ -50,6 +50,12 @@ class WsSdkServerInsufficientPermissions(WsSdkServerError):
         super().__init__(self.message)
 
 
+class WsSdkServerScopeExists(WsSdkServerError):
+    def __init__(self, scope_type, scope_name):
+        self.message = f"{scope_type}: '{scope_name}' already exists"
+        super().__init__(self.message)
+
+
 # Client
 class WsSdkClientError(WsSdkError):
     """Parent Exception Class for WS Client errors"""
