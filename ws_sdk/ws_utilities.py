@@ -73,11 +73,11 @@ def convert_dict_list_to_dict(lst: list,
 
 
 def get_all_req_schemas(ws_conn) -> dict:
-    supported_requests = ws_conn.__generic_get__(get_type="SupportedRequests", token_type="")['supportedRequests']
+    supported_requests = ws_conn._generic_get(get_type="SupportedRequests", token_type="")['supportedRequests']
     req_schema_list = {}
     for req in supported_requests:
         logger.info(f"Calling on {req}")
-        req_schema = ws_conn.__generic_get__(get_type="RequestSchema", token_type="", kv_dict={"request": req})
+        req_schema = ws_conn._generic_get(get_type="RequestSchema", token_type="", kv_dict={"request": req})
         req_schema_list[req] = req_schema
 
     return req_schema_list
