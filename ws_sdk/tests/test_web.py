@@ -951,6 +951,12 @@ class TestWS(TestCase):
 
         self.assertEqual(ret, self.valid_token)
 
+    @patch('ws_sdk.web.WS._generic_get')
+    def test_get_last_scan_process_status(self, mock_generic_get):
+        mock_generic_get.return_value = {'requestState': "FINISHED"}
+        ret = self.ws.get_last_scan_process_status(request_token="abcdedefghijklmnopqrstuvwxyz")
+        self.assertEqual(ret, "FINISHED")
+
 
 if __name__ == '__main__':
     TestCase.unittest.main()

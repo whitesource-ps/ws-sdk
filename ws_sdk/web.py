@@ -155,7 +155,7 @@ class WS:
                 for ent in kv_d:
                     ret_dict[ent] = kv_d[ent]
 
-            toks = [k for k in ret_dict.keys() if 'Token' in k]  # If scope token already configured
+            toks = [k for k in ret_dict.keys() if k in TOKEN_TYPES_MAPPING.values()]  # If scope token already configured
             if toks:
                 tok = toks[0]
             else:
@@ -1842,6 +1842,16 @@ class WS:
             logger.error(f"Invalid Integration Type: '{integration_type}'")
 
         return ret
+
+    @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
+    def get_last_scan_process_status(self, request_token) -> str:
+        """
+        Returns the status of the last UA scan.
+        :param request_token: value returned from the UA scan output
+        :return: Possible Statuses: "UNKNOWN", "IN_PROGRESS", "UPDATED", "FINISHED", "FAILED", "SKIPPED"
+        :returns: str
+        """
+        return self._generic_get(get_type="RequestState", token_type="", kv_dict={'requestToken': request_token})['requestState']
 
     @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
     def match_policy(self, policy_obj):     # TODO TBD
