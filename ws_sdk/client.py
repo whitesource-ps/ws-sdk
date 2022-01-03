@@ -71,6 +71,7 @@ class WSClient:
                 raise ws_errors.WsSdkClientPolicyViolation(output)
             else:
                 raise ws_errors.WsSdkClientGenericError(output)
+
         """
         Executes the UA
         :param options: The options to pass the UA (that are not pass as env vars)
@@ -139,6 +140,16 @@ class WSClient:
         def scope_is_full(self):
             return self.project_val and self.product_val
 
+    @classmethod
+    def extract_support_token(cls, out: str) -> str:
+        req_tok = None
+        for line in out.splitlines():
+            if "Support Token:" in line:
+                req_tok = line.split()[-1]
+                break
+
+        return req_tok
+
     def scan(self,
              scan_dir: Union[list, str],
              project_token: str = None,
@@ -183,10 +194,11 @@ class WSClient:
                 local_ua_all_conf.set_include_suffices_to_scan(include)
 
             ret = self._execute_ua(f"-d {existing_dirs} {dest_scope.to_execute()}", local_ua_all_conf)
+            request_token = self.extract_support_token(ret[1])
         else:
             logger.warning("Nothing was scanned")
 
-        return ret
+        return ret + (request_token,)
 
     def scan_docker(self,
                     product_name: str = None,
@@ -218,8 +230,9 @@ class WSClient:
             local_ua_all_conf.set_include_suffices_to_scan(include)
 
         ret = self._execute_ua(f"-d {self.ua_path} {dest_scope.to_execute()}", local_ua_all_conf)
+        request_token = self.extract_support_token(ret[1])
 
-        return ret
+        return ret + (request_token,)
 
     def upload_offline_request(self,
                                offline_request: Union[dict, str],
