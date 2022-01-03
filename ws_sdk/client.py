@@ -1,14 +1,14 @@
 import copy
-import dataclasses
+import json
 import logging
 import os
-import json
 from typing import Union
+
 from pkg_resources import parse_version
 
 from ws_sdk import ws_utilities, ws_errors
-from ws_sdk.ws_constants import *
 from ws_sdk._version import __version__, __tool_name__
+from ws_sdk.ws_constants import *
 
 logger = logging.getLogger(__name__)
 

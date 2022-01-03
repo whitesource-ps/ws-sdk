@@ -4,7 +4,6 @@ from copy import copy
 from datetime import datetime
 from logging import getLogger
 from typing import Union
-
 import requests
 
 from ws_sdk import ws_utilities
@@ -202,14 +201,15 @@ class WS:
 
         try:
             resp = self.session.post(url=self.api_url, data=json.dumps(body), headers=self.headers, timeout=self.timeout)
+            resp.raise_for_status()
+        except requests.HTTPError:
+            logger.exception(f"API '{body['requestType']}' call on '{body.get(token)}' failed with error code: {resp.status_code}.\nError Body: '{resp.text}'")
+            raise
         except requests.RequestException:
-            logger.exception(f"Received Error on {body[token]}")
+            logger.exception("Error generating request")
             raise
 
-        if resp.status_code > 299:
-            logger.error(f"API '{body['requestType']}' call on '{body.get(token)}' failed with error code: {resp.status_code}.\nError Body: '{resp.text}'")
-            raise requests.exceptions.RequestException
-        elif "errorCode" in resp.text:
+        if "errorCode" in resp.text:
             logger.debug(f"API returned errorCode {body['requestType']} call on {body[token]} message: {resp.text}")
             __handle_ws_server_errors(resp.text)
         else:
@@ -1853,12 +1853,11 @@ class WS:
         """
         return self._generic_get(get_type="RequestState", token_type="", kv_dict={'requestToken': request_token})['requestState']
 
-    @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
-    def match_policy(self, policy_obj):     # TODO TBD
-        """
-        TBD: Method to check a lib against policy object
-        :param policy_obj: class that represents policy rules on lib (perhaps including alerts)
-        :returns whether there is a match on which conditions
-        """
-        pass
-
+    # @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
+    # def match_policy(self, policy_obj):     # TODO TBD
+    #     """
+    #     TBD: Method to check a lib against policy object
+    #     :param policy_obj: class that represents policy rules on lib (perhaps including alerts)
+    #     :returns whether there is a match on which conditions
+    #     """
+    #     pass
