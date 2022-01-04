@@ -2,6 +2,7 @@ import sys
 from typing import NamedTuple
 
 # General
+from enum import Enum
 CACHE_TIME = 300
 CONN_TIMEOUT = 3600
 API_URL_SUFFIX = '/api/v1.3'
@@ -24,6 +25,15 @@ UA_CONF_T = (UA_CONF_F_N, LATEST_UA_CONF_F_U)
 LATEST_UA_URL = "https://api.github.com/repos/whitesource/unified-agent-distribution/releases/latest"
 GH_HEADERS = {"Accept": "application / vnd.github.v3 + json"}
 MANDATORY_VALS = ['TBD']
+
+
+class CVS31Severity(Enum):
+    CRITICAL = 9.0
+    HIGH = 7.0
+    MEDIUM = 4.0
+    LOW = 0.0
+
+    SEVERITIES = [CRITICAL, HIGH, MEDIUM, LOW]
 
 
 class AlertStatus:

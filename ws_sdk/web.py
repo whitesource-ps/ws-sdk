@@ -764,6 +764,15 @@ class WS:
                           report: bool = False,
                           token: str = None,
                           vulnerability_names: Union[str, list] = None) -> Union[list, bytes]:
+        def get_cvss31(cvss3_score: str):
+            cvss31_severity = None
+            for severity in CVS31Severity.SEVERITIES.value:
+                if cvss3_score and float(cvss3_score) > severity:
+                    cvss31_severity = CVS31Severity(severity).name
+                    break
+
+            return cvss31_severity
+
         name = "Vulnerability Report"
         """
         Retrieves scope vulnerabilities. Default is "Open" If status not not set.   
@@ -803,6 +812,8 @@ class WS:
 
         if isinstance(ret, dict):
             vulnerabilities = ret.get('vulnerabilities')
+            for vul in vulnerabilities:
+                vul['cvss31_severity'] = get_cvss31(vul.get('cvss3_score'))
             if isinstance(vulnerability_names, str):
                 vulnerability_names = [vulnerability_names]
             if vulnerability_names:
