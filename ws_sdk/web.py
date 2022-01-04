@@ -767,7 +767,7 @@ class WS:
         def get_cvss31(cvss3_score: str):
             cvss31_severity = None
             for severity in CVS31Severity.SEVERITIES.value:
-                if cvss3_score and float(cvss3_score) > severity:
+                if cvss3_score and float(cvss3_score) >= severity:
                     cvss31_severity = CVS31Severity(severity).name
                     break
 
