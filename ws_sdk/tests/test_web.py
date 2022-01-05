@@ -31,6 +31,17 @@ class TestWS(TestCase):
     #     with self.assertRaises(WsSdkTokenError):
     #         WS(user_key="", token="INCORRECT")
 
+    def test_report_metadata(self):
+        bin_type_ret = WS.get_container_vulnerability(WS, ReportsMetaData.REPORT_BIN_TYPE)
+        scope_type_ret = WS.get_container_vulnerability(WS, ReportsMetaData.REPORT_SCOPE)
+
+        self.assertEqual(bin_type_ret, "xlsx") and self.assertEqual(scope_type_ret, [ScopeTypes.ORGANIZATION])
+
+    def test_get_reports_meta_data(self):
+        ret = WS.get_reports_meta_data()
+
+        self.assertGreaterEqual(len(ret), 19)
+
     @patch('ws_sdk.web.requests.Session.post')
     def test__call_ws_api(self, mock_post):
         mock_post.return_value.status_code = 200

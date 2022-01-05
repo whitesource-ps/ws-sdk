@@ -1,15 +1,24 @@
 import sys
 from typing import NamedTuple
+from requests.packages.urllib3.util.retry import Retry
 
 # General
-CACHE_TIME = 300
-CONN_TIMEOUT = 3600
+from enum import Enum
+CONN_TIMEOUT = 900
 API_URL_SUFFIX = '/api/v1.3'
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 WS_HEADERS = {'content-type': 'application/json'}
 DEFAULT_REMOTE_URL = ""
 INVALID_FS_CHARS = [':', '*', '\\', '<', '>', '/', '"', '?', '|']
 JAVA_BIN = "java"
+
+retry_strategy = Retry(
+    total=3,
+    status_forcelist=[429, 500, 502, 503, 504],
+    method_whitelist=["HEAD", "GET", "POST", "OPTIONS"],
+    backoff_factor=10
+)
+
 
 # UA
 DEFAULT_UA_PATH = "c:\\tmp\\ua" if sys.platform.startswith("win") else "/tmp/ua"
@@ -24,6 +33,15 @@ UA_CONF_T = (UA_CONF_F_N, LATEST_UA_CONF_F_U)
 LATEST_UA_URL = "https://api.github.com/repos/whitesource/unified-agent-distribution/releases/latest"
 GH_HEADERS = {"Accept": "application / vnd.github.v3 + json"}
 MANDATORY_VALS = ['TBD']
+
+
+class CVS31Severity(Enum):
+    CRITICAL = 9.0
+    HIGH = 7.0
+    MEDIUM = 4.0
+    LOW = 0.0
+
+    SEVERITIES = [CRITICAL, HIGH, MEDIUM, LOW]
 
 
 class AlertStatus:
