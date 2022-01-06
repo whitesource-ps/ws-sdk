@@ -3,13 +3,16 @@ import uuid
 from copy import copy
 from datetime import datetime
 from logging import getLogger
+from time import sleep
 from typing import Union
 import requests
+from requests.adapters import HTTPAdapter
 
 from ws_sdk import ws_utilities
 from ws_sdk._version import __version__, __tool_name__
 from ws_sdk.ws_constants import *
 from ws_sdk.ws_errors import *
+
 
 logger = getLogger(__name__)
 
@@ -57,14 +60,13 @@ class WS:
         """
         Function to return report functions based on metadata on the function
         :param cls:
-        :param scope: Whether to filter based on scope
+        :param scope: Whether to filter reports based on scope (i.e. which reports can run on project level)
         :return: list of NamedTuples containing function name and function.
         """
         report_funcs = list()
         class_dict = dict(cls.__dict__)
         for f in class_dict.items():
-            if cls.Decorators.report_metadata.__name__ in str(f[1]) and (
-                    not scope or scope in f[1](None, ReportsMetaData.REPORT_SCOPE)):
+            if cls.Decorators.report_metadata.__name__ in str(f[1]) and (not scope or scope in f[1](None, ReportsMetaData.REPORT_SCOPE)):
                 report_funcs.append(
                     ReportsMetaData(name=f[0].replace('get_', ''), bin_sfx=f[1](None, ReportsMetaData.REPORT_BIN_TYPE), func=f[1]))
 
@@ -102,8 +104,8 @@ class WS:
         self.timeout = timeout
         self.resp_format = resp_format
         self.session = requests.session()
-        adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
-        self.session.mount('https://', adapter)
+        adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100, max_retries=retry_strategy)
+        self.session.mount(prefix='https://', adapter=adapter)
         self.url = ws_utilities.get_full_ws_url(url)
         self.api_url = self.url + API_URL_SUFFIX
         self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
@@ -199,15 +201,24 @@ class WS:
         token, body = __create_body(request_type, kv_dict)
         logger.debug(f"Calling: {self.api_url} with requestType: {request_type}")
 
-        try:
-            resp = self.session.post(url=self.api_url, data=json.dumps(body), headers=self.headers, timeout=self.timeout)
-            resp.raise_for_status()
-        except requests.HTTPError:
-            logger.exception(f"API '{body['requestType']}' call on '{body.get(token)}' failed with error code: {resp.status_code}.\nError Body: '{resp.text}'")
-            raise
-        except requests.RequestException:
-            logger.exception("Error generating request")
-            raise
+        tries_left = retry_strategy.total
+        is_success = False
+        while tries_left and not is_success:
+            tries_left -= 1
+            try:
+                resp = self.session.post(url=self.api_url, data=json.dumps(body), headers=self.headers, timeout=self.timeout)
+                resp.raise_for_status()
+                is_success = True
+            except requests.exceptions.RequestException as e:
+                if isinstance(e, requests.HTTPError):
+                    logger.exception(f"API '{body['requestType']}' call on '{body.get(token)}' failed with error code: {resp.status_code}.\nError Body: '{resp.text}'. {tries_left} tries left")
+                else:
+                    logger.exception(f"Error generating request: '{body['requestType']}' on '{body.get(token)}'. {tries_left} tries left")
+
+                if tries_left == 0:
+                    raise
+                else:
+                    sleep(5)
 
         if "errorCode" in resp.text:
             logger.debug(f"API returned errorCode {body['requestType']} call on {body[token]} message: {resp.text}")
@@ -767,7 +778,7 @@ class WS:
         def get_cvss31(cvss3_score: str):
             cvss31_severity = None
             for severity in CVS31Severity.SEVERITIES.value:
-                if cvss3_score and float(cvss3_score) > severity:
+                if cvss3_score and float(cvss3_score) >= severity:
                     cvss31_severity = CVS31Severity(severity).name
                     break
 
@@ -811,15 +822,15 @@ class WS:
             ret = self._generic_get(get_type='VulnerabilityReport', token_type=token_type, kv_dict=kv_dict)
 
         if isinstance(ret, dict):
-            vulnerabilities = ret.get('vulnerabilities')
-            for vul in vulnerabilities:
+            ret = ret.get('vulnerabilities')
+            for vul in ret:
                 vul['cvss31_severity'] = get_cvss31(vul.get('cvss3_score'))
             if isinstance(vulnerability_names, str):
                 vulnerability_names = [vulnerability_names]
             if vulnerability_names:
-                ret = [x for x in vulnerabilities if x['name'] in vulnerability_names]
+                ret = [x for x in ret if x['name'] in vulnerability_names]
 
-        return ret['vulnerabilities'] if isinstance(ret, dict) else ret
+        return ret
 
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.ORGANIZATION])
     def get_container_vulnerability(self,
@@ -953,8 +964,12 @@ class WS:
             kv_dict["format"] = "json"
             logger.debug(f"Running {token_type} Inventory")
         ret = self._generic_get(get_type='SourceFileInventoryReport', token_type=token_type, kv_dict=kv_dict)
+        if isinstance(ret, dict):
+            ret = ret['sourceFiles']
+            for src_file in ret:
+                src_file['lib_version'] = ws_utilities.parse_filename_to_gav(src_file['library'].get('version'))
 
-        return ret['sourceFiles'] if isinstance(ret, dict) else ret
+        return ret
 
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_source_file_inventory(self,

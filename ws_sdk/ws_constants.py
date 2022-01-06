@@ -1,16 +1,24 @@
 import sys
 from typing import NamedTuple
+from requests.packages.urllib3.util.retry import Retry
 
 # General
 from enum import Enum
-CACHE_TIME = 300
-CONN_TIMEOUT = 3600
+CONN_TIMEOUT = 1800
 API_URL_SUFFIX = '/api/v1.3'
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 WS_HEADERS = {'content-type': 'application/json'}
 DEFAULT_REMOTE_URL = ""
 INVALID_FS_CHARS = [':', '*', '\\', '<', '>', '/', '"', '?', '|']
 JAVA_BIN = "java"
+
+retry_strategy = Retry(
+    total=3,
+    status_forcelist=[429, 500, 502, 503, 504],
+    method_whitelist=["HEAD", "GET", "POST", "OPTIONS"],
+    backoff_factor=10
+)
+
 
 # UA
 DEFAULT_UA_PATH = "c:\\tmp\\ua" if sys.platform.startswith("win") else "/tmp/ua"

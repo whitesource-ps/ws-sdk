@@ -104,11 +104,15 @@ def get_package_managers_by_language(language: str) -> list:
     return lang_md.package_manager if lang_md else None
 
 
-def break_filename(filename: str) -> tuple:
+def parse_filename_to_gav(file_string: str) -> tuple:
     import re
-    return {"suffix": re.search(r'.([a-zA-z0-9]+$)', filename).group(1),
-            'name': re.search(r'(^[a-zA-Z0-9-]+)(?=-)', filename).group(1),
-            'version': re.search(r'-((?!.*-).+)(?=\.)', filename).group(1)}
+    suffix = re.search(r'.([a-zA-z]+$)', file_string)
+    name = re.search(r'(^[a-zA-Z0-9-]+)(?=-)', file_string)
+    version = re.search(r'-((?!.*-).+)(?=\.)', file_string)
+
+    return {"suffix": suffix.group(1) if suffix else None,
+            'name': name.group(1) if name else None,
+            'version': version.group(1) if version else None}
 
 
 def get_full_ws_url(url) -> str:
