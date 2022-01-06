@@ -4,7 +4,7 @@ from requests.packages.urllib3.util.retry import Retry
 
 # General
 from enum import Enum
-CONN_TIMEOUT = 900
+CONN_TIMEOUT = 1800
 API_URL_SUFFIX = '/api/v1.3'
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 WS_HEADERS = {'content-type': 'application/json'}
