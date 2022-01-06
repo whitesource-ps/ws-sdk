@@ -210,12 +210,16 @@ class WS:
                 resp.raise_for_status()
                 logger.debug(f"Successfully generated request: '{body['requestType']}' on '{body.get(token)}'") # TODO FOR DEBUG
                 is_success = True
-            except ConnectionError or requests.RequestException or requests.ChunkedEncodingError:
-                logger.exception(f"Error generating request: '{body['requestType']}' on '{body.get(token)}'. {tries_left} tries left")
+            except requests.exceptions.RequestException as e:
+                if isinstance(e, requests.HTTPError):
+                    logger.exception(f"API '{body['requestType']}' call on '{body.get(token)}' failed with error code: {resp.status_code}.\nError Body: '{resp.text}'. {tries_left} tries left")
+                else:
+                    logger.exception(f"Error generating request: '{body['requestType']}' on '{body.get(token)}'. {tries_left} tries left")
+
                 if tries_left == 0:
                     raise
                 else:
-                    sleep(10)
+                    sleep(5)
 
         if "errorCode" in resp.text:
             logger.debug(f"API returned errorCode {body['requestType']} call on {body[token]} message: {resp.text}")

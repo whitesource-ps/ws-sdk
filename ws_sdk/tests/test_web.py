@@ -21,7 +21,7 @@ class TestWS(TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.DEBUG)
         self.ws = WS(url="app", user_key=self.valid_token,
-                     token=self.valid_token, token_type=ORGANIZATION)
+                     token=self.valid_token, token_type=ScopeTypes.ORGANIZATION)
 
     def test_ws_constructor_invalid_user_key(self):
         with self.assertRaises(WsSdkTokenError):
@@ -31,7 +31,24 @@ class TestWS(TestCase):
     #     with self.assertRaises(WsSdkTokenError):
     #         WS(user_key="", token="INCORRECT")
 
-    def test_report_metadata(self):
+    def test_set_token_in_body(self):
+        ret = self.ws.set_token_in_body()
+
+        self.assertEqual(ret[0], ScopeTypes.ORGANIZATION)
+
+    @patch('ws_sdk.web.WS.get_scope_type_by_token')
+    def test_set_token_in_body_with_token(self, mock_get_scope_type_by_token):
+        mock_get_scope_type_by_token.return_value = ScopeTypes.ORGANIZATION
+        ret = self.ws.set_token_in_body(token="TOKEN")
+
+        self.assertEqual(ret[0], ScopeTypes.ORGANIZATION)
+
+    def test_set_token_in_body_with_tuple(self):
+        ret = self.ws.set_token_in_body(token=(self.ws.token, ScopeTypes.ORGANIZATION))
+
+        self.assertEqual(ret[0], ScopeTypes.ORGANIZATION)
+
+    def test_report_metadata_decorator(self):
         bin_type_ret = WS.get_container_vulnerability(WS, ReportsMetaData.REPORT_BIN_TYPE)
         scope_type_ret = WS.get_container_vulnerability(WS, ReportsMetaData.REPORT_SCOPE)
 
@@ -40,7 +57,12 @@ class TestWS(TestCase):
     def test_get_reports_meta_data(self):
         ret = WS.get_reports_meta_data()
 
-        self.assertGreaterEqual(len(ret), 19)
+        self.assertIsInstance(ret, list) and self.assertGreaterEqual(len(ret), 20)
+
+    def test_get_report_types_with_filter(self):
+        ret = WS.get_report_types(scope=ScopeTypes.ORGANIZATION)
+
+        self.assertIsInstance(ret, list) and self.assertGreaterEqual(len(ret), 17)
 
     @patch('ws_sdk.web.requests.Session.post')
     def test__call_ws_api(self, mock_post):
@@ -307,6 +329,34 @@ class TestWS(TestCase):
         res = self.ws.get_inventory()
 
         self.assertIsInstance(res, list)
+
+    @patch('ws_sdk.web.WS.set_token_in_body')
+    @patch('ws_sdk.web.WS._generic_get')
+    def test_get_inventory_with_filter(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = {'libraries': [{'name': "FILTERED_LIB"}]}
+        mock_set_token_in_body.return_value = (self.ws.token_type, {})
+        res = self.ws.get_inventory(lib_name="FILTERED_LIB")
+
+        self.assertIsInstance(res, list) and self.assertEqual(len(res), 1)
+
+    @patch('ws_sdk.web.WS.set_token_in_body')
+    @patch('ws_sdk.web.WS._generic_get')
+    def test_get_inventory_inc_in_house(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = {'libraries': []}
+        mock_set_token_in_body.return_value = (self.ws.token_type, {})
+        res = self.ws.get_inventory(include_in_house_data=True)
+
+        self.assertIsInstance(res, list)
+
+    @patch('ws_sdk.web.WS.set_token_in_body')
+    @patch('ws_sdk.web.WS._generic_get')
+    def test_get_inventory_with_deps(self, mock_generic_get, mock_set_token_in_body):
+        mock_generic_get.return_value = {'libraries': [{'dependencies': [{'filename': 'DEP_FILENAME-1.2.3.jar'}],
+                                                        'filename': 'FILENAME-4.5.6.jar'}]}
+        mock_set_token_in_body.return_value = (self.ws.token_type, {})
+        res = self.ws.get_inventory(with_dependencies=True)
+
+        self.assertIsInstance(res, list) and self.assertEqual(len(res), 2)
 
     @patch('ws_sdk.web.WS.set_token_in_body')
     @patch('ws_sdk.web.WS._generic_get')
