@@ -208,7 +208,6 @@ class WS:
             try:
                 resp = self.session.post(url=self.api_url, data=json.dumps(body), headers=self.headers, timeout=self.timeout)
                 resp.raise_for_status()
-                logger.debug(f"Successfully generated request: '{body['requestType']}' on '{body.get(token)}'") # TODO FOR DEBUG
                 is_success = True
             except requests.exceptions.RequestException as e:
                 if isinstance(e, requests.HTTPError):
