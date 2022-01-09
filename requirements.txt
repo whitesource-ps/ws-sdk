@@ -1,2 +1,2 @@
 DateTime~=4.5
-requests~=2.27.1            # Do not BUMP
+requests~=2.28.1            # Do not BUMP

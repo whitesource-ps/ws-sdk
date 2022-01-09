@@ -10,7 +10,7 @@ setuptools.setup(
     url='https://github.com/whitesource-ps/ws-sdk',
     license='LICENSE',
     packages=setuptools.find_packages(),
-    python_requires='>=3.7',
+    python_requires='>=3.9',
     install_requires=[line.strip() for line in open("requirements.txt").readlines()],
     extras_require={
         "spdx": ["spdx-tools"]
@@ -18,9 +18,9 @@ setuptools.setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     classifiers=[
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],
