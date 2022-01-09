@@ -1,2 +1,2 @@
 DateTime~=4.3
-requests==2.27.0
+requests~=2.27.0
