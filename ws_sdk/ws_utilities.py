@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 from datetime import datetime
+from functools import lru_cache
 from logging import getLogger
 
 import requests
@@ -12,6 +13,21 @@ import requests
 from ws_sdk.ws_constants import *
 
 logger = getLogger(__name__)
+
+
+@lru_cache()
+def get_spdx_license_dict() -> dict:
+    try:
+        from spdx.config import _licenses
+        with open(_licenses, "r") as fp:
+            spdx_licenses = json.loads(fp.read())
+        logger.debug(f"License List Version: {spdx_licenses['licenseListVersion']}")
+        spdx_lic_dict = convert_dict_list_to_dict(lst=spdx_licenses['licenses'], key_desc='licenseId')
+    except ImportError:
+        logger.error("Error loading module")
+        raise
+
+    return spdx_lic_dict
 
 
 def is_token(token: str) -> bool:
