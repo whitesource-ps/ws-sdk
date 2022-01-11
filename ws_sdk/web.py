@@ -113,11 +113,13 @@ class WS:
                         **self.header_tool_details,
                         'ctxId': uuid.uuid1().__str__()}
         self.scope_contains = set()
-        # if not ws_utilities.is_token(self.token): # Org token can be 32 chars seperate by 4 hyphens.
-        #     raise WsSdkTokenError(self.token)
 
         if not ws_utilities.is_token(self.user_key):
             raise WsSdkTokenError(self.user_key)
+
+    @property
+    def spdx_lic_dict(self):
+        return ws_utilities.get_spdx_license_dict()
 
     def set_token_in_body(self,
                           token: Union[str, tuple] = None) -> (str, dict):
@@ -894,19 +896,6 @@ class WS:
         :param full_spdx: Whether to enrich SPDX data with full license name and URL (requires spdx-tools package)
         :return: list
         """
-        def __get_spdx_license_dict__() -> dict:
-            logger.debug("Enriching license data with SPDX information")
-            try:
-                from spdx.config import _licenses
-                with open(_licenses, "r") as fp:
-                    spdx_licenses = json.loads(fp.read())
-                logger.debug(f"License List Version: {spdx_licenses['licenseListVersion']}")
-                licenses_dict = ws_utilities.convert_dict_list_to_dict(lst=spdx_licenses['licenses'], key_desc='licenseId')
-            except ImportError:
-                logger.error("Error loading module")
-                raise
-
-            return licenses_dict
 
         def __fix_spdx_license__(lic: dict) -> None:
             if not lic.get('spdxName'):
@@ -925,7 +914,7 @@ class WS:
                 else:
                     logger.warning(f"Unable to fix spdxName of {lic['name']}")
 
-        def __enrich_lib__(library: dict, spdx: dict):
+        def _enrich_lib(library: dict, spdx: dict):
             for lic in library.get('licenses'):
                 __fix_spdx_license__(lic)                                        # Manually fixing this license
                 try:
@@ -945,9 +934,8 @@ class WS:
             ret = self._generic_get(get_type='Licenses', token_type=token_type, kv_dict=kv_dict)['libraries']
 
             if full_spdx:
-                spdx_dict = __get_spdx_license_dict__()
                 for lib in ret:
-                    __enrich_lib__(lib, spdx_dict)
+                    _enrich_lib(lib, self.spdx_lic_dict)
 
         return ret
 

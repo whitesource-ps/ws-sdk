@@ -5,6 +5,7 @@ from mock import patch
 import logging
 
 import ws_sdk.web
+from ws_sdk import ws_utilities
 from ws_sdk.ws_constants import *
 from ws_sdk.web import WS
 from ws_sdk.ws_errors import *
@@ -27,14 +28,15 @@ class TestWS(TestCase):
         with self.assertRaises(WsSdkTokenError):
             WS(user_key="INCORRECT", token=self.valid_token)
 
-    # def test_ws_constructor_invalid_token(self):
-    #     with self.assertRaises(WsSdkTokenError):
-    #         WS(user_key="", token="INCORRECT")
-
     def test_set_token_in_body(self):
         ret = self.ws.set_token_in_body()
 
         self.assertEqual(ret[0], ScopeTypes.ORGANIZATION)
+
+    def test_spdx_lic_dict(self):
+        ret = self.ws.spdx_lic_dict
+
+        self.assertEqual(ret, ws_utilities.get_spdx_license_dict())
 
     @patch('ws_sdk.web.WS.get_scope_type_by_token')
     def test_set_token_in_body_with_token(self, mock_get_scope_type_by_token):
