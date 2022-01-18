@@ -1,4 +1,5 @@
 import copy
+import dataclasses
 import json
 import logging
 import os
@@ -112,36 +113,50 @@ class WSClient:
         project_val: str = None
         product_type: str = None
         product_val: str = None
+        project_per_folder: bool
 
         def __init__(self,
                      project_t: str = None,
                      project_n: str = None,
                      product_t: str = None,
-                     product_n: str = None):
+                     product_n: str = None,
+                     project_per_folder: bool = False):
+
+            self.project_per_folder = project_per_folder
 
             if project_t:
                 self.project_type = "projectToken"
                 self.project_val = project_t
             elif project_n:
-                self.project_type = "project"
+                self.project_type = ScopeTypes.PROJECT
                 self.project_val = project_n
 
             if product_t:
                 self.product_type = "productToken"
                 self.product_val = product_t
             elif product_n:
-                self.product_type = "product"
+                self.product_type = ScopeTypes.PRODUCT
                 self.product_val = product_n
 
         def __repr__(self):
-            return f"{self.product_type}: '{self.product_val}' {self.project_type}: '{self.project_val}'"
+            ret = f"{self.product_type}: '{self.product_val}'"
+            if self.project_type:
+                ret += f" {self.project_type}: '{self.project_val}'"
+
+            return ret
 
         def to_execute(self):
-            return f"-{self.product_type} {self.product_val} -{self.project_type} {self.project_val}"
+            ret = f"-{self.product_type} {self.product_val}"
+            if self.project_type:
+                ret += f" -{self.project_type} {self.project_val}"
+            elif self.project_per_folder:
+                ret += f" -{ScopeTypes.PROJECT} IRRELEVANT"
+
+            return ret
 
         @property
         def scope_is_full(self):
-            return self.project_val and self.product_val
+            return (self.project_val or self.project_per_folder) and self.product_val
 
     @classmethod
     def extract_support_token(cls, out: str) -> str:
@@ -176,7 +191,7 @@ class WSClient:
         """
 
         existing_dirs = self.get_existing_paths(scan_dir)
-        dest_scope = self.WsDestScope(project_token, project_name, product_token, product_name)
+        dest_scope = self.WsDestScope(project_token, project_name, product_token, product_name, self.ua_conf.projectPerFolder)
 
         ret = None
         if not existing_dirs:
@@ -186,7 +201,7 @@ class WSClient:
         elif not dest_scope.product_val:
             logger.error("product_name or product_token must be configured")
         elif existing_dirs:
-            logger.info(f"Scanning Dir(s): {existing_dirs} to: {dest_scope}")
+            logger.info(f"Scanning Dir(s): {existing_dirs} to {dest_scope}")
             local_ua_all_conf = copy.copy(self.ua_conf)
             self.add_scan_comment(key="comment", value=comment, ua_conf=local_ua_all_conf)
 
@@ -198,10 +213,11 @@ class WSClient:
 
             ret = self._execute_ua(f"-d {existing_dirs} {dest_scope.to_execute()}", local_ua_all_conf)
             request_token = self.extract_support_token(ret[1])
+            ret += (request_token,)
         else:
             logger.warning("Nothing was scanned")
 
-        return ret + (request_token,)
+        return ret
 
     def scan_docker(self,
                     product_name: str = None,
@@ -210,7 +226,7 @@ class WSClient:
                     offline: bool = False,
                     comment: str = None,
                     include: list = None) -> tuple:
-        dest_scope = self.WsDestScope(product_t=product_token, product_n=product_name)
+        dest_scope = self.WsDestScope(product_t=product_token, product_n=product_name, project_per_folder=True)
         if not dest_scope:
             logger.error("Docker scan mode is set but no product token of name passed")
 
@@ -221,7 +237,6 @@ class WSClient:
         self.ua_conf.disable_runprestep()
         local_ua_all_conf.docker_scanImages = True
         local_ua_all_conf.projectTag = "scan_type:Docker"
-        local_ua_all_conf.projectName = "IRRELEVANT"
 
         if docker_images:
             local_ua_all_conf.docker_includes = docker_images if isinstance(docker_images, (set, list)) else [docker_images]
