@@ -7,6 +7,7 @@ logger = getLogger(__name__)
 
 
 class WS(WSApp, WSClient):
+
     def __init__(self, **kwargs):
-        WSApp.__init__(self, **kwargs)
-        WSClient.__init__(self, **kwargs)
+        self.ws_app = WSApp.__init__(self, **kwargs)
+        self.ws_client = WSClient.__init__(self, **kwargs)

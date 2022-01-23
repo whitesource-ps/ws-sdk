@@ -28,7 +28,7 @@ The SDK contains the following modules:
 ## Execution
 
 ```python
-# Unified (can do both WSApp and WSClient
+# Unified (can do both WSApp and WSClient)
 from ws_sdk.web import WS
 ws = WS(api_url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
 
