@@ -57,7 +57,7 @@ class WSClient:
                 self.ua_conf.log_files_level = "Off"        # Generate logs in files
 
             is_ua_exists = ws_utilities.is_ua_exists(self.ua_jar_f_with_path)
-            if not is_ua_exists:
+            if not is_ua_exists:                                                # TODO SINGLETON + LAZY INITIATION
                 logger.warning(f"White Source Unified Agent does not exist in path: '{self.ua_jar_f_with_path}'")
             if skip_ua_download or (is_ua_exists and self.is_latest_ua_semver()):
                 logger.debug("Skipping WhiteSource Unified Agent update")
