@@ -8,7 +8,7 @@ from typing import Union
 import requests
 from requests.adapters import HTTPAdapter
 
-from external_search.search import ExtSearch
+# from external_search.search import ExtSearch
 from ws_sdk import ws_utilities
 from ws_sdk._version import __version__, __tool_name__
 from ws_sdk.ws_constants import *
@@ -379,14 +379,14 @@ class WSApp:
 
             main_list.append(library)
 
-        def get_libs_publish_date(libs):
-            for lib in libs:
-                try:
-                    lib['publish_date'] = ExtSearch.get_lib_publish_date(**lib)
-                except (ValueError, NotImplementedError):
-                    continue
-
-            return libs
+        # def get_libs_publish_date(libs):
+        #     for lib in libs:
+        #         try:
+        #             lib['publish_date'] = ExtSearch.get_lib_publish_date(**lib)
+        #         except (ValueError, NotImplementedError):
+        #             continue
+        #
+        #     return libs
         """
         :param name: filter libs by name (only in JSON)
         :param as_dependency_tree: Include library dependency (Project Hierarchy)
@@ -419,8 +419,8 @@ class WSApp:
                 ret = main_l
             if lib_name:
                 ret = [lib for lib in ret if lib['name'] == lib_name]
-            # if inc_publish_date:
-            #     ret = get_libs_publish_date(ret)
+            if inc_publish_date:
+                ret = get_libs_publish_date(ret)
 
         return ret
 
