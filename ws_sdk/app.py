@@ -8,6 +8,7 @@ from typing import Union
 import requests
 from requests.adapters import HTTPAdapter
 
+from external_search.search import ExtSearch
 from ws_sdk import ws_utilities
 from ws_sdk._version import __version__, __tool_name__
 from ws_sdk.ws_constants import *
@@ -64,7 +65,7 @@ class WSApp:
         :return: list of NamedTuples containing function name and function.
         """
         report_funcs = list()
-        class_dict = dict(cls.__dict__)
+        class_dict = dict(WSApp.__dict__)
         for f in class_dict.items():
             if cls.Decorators.report_metadata.__name__ in str(f[1]) and (not scope or scope in f[1](None, ReportsMetaData.REPORT_SCOPE)):
                 report_funcs.append(
@@ -363,7 +364,7 @@ class WSApp:
                       as_dependency_tree: bool = False,
                       with_dependencies: bool = False,
                       report: bool = False,
-                      ) -> Union[list, bytes]:
+                      inc_publish_date: bool = False) -> Union[list, bytes]:
         def get_deps(library: dict, parent_lib: dict, main_list: list):
             deps = library.get('dependencies')
             if deps:
@@ -378,6 +379,14 @@ class WSApp:
 
             main_list.append(library)
 
+        def get_libs_publish_date(libs):
+            for lib in libs:
+                try:
+                    lib['publish_date'] = ExtSearch.get_lib_publish_date(**lib)
+                except (ValueError, NotImplementedError):
+                    continue
+
+            return libs
         """
         :param name: filter libs by name (only in JSON)
         :param as_dependency_tree: Include library dependency (Project Hierarchy)
@@ -395,22 +404,25 @@ class WSApp:
             logger.debug(f"Running {token_type} {name}")
             ret = self._generic_get('Inventory', token_type=token_type, kv_dict=kv_dict)
         elif token_type == ScopeTypes.PROJECT and as_dependency_tree or with_dependencies:
+            logger.debug(f"Running {token_type} Hierarchy")
             ret = self._generic_get(get_type="Hierarchy", token_type=token_type, kv_dict=kv_dict)
-            if with_dependencies:
-                m_l = []
-                [get_deps(lib, None, m_l) in lib for lib in ret['libraries']]
-                ret = m_l
-            else:
-                logger.debug(f"Running {token_type} Hierarchy")
         else:
             kv_dict["format"] = "xlsx" if report else "json"
             logger.debug(f"Running {token_type} {name} Report")
             ret = self._generic_get(get_type="InventoryReport", token_type=token_type, kv_dict=kv_dict)
 
-        if lib_name and not report:
-            ret = [lib for lib in ret['libraries'] if lib['name'] == lib_name]
+        if not report:
+            ret = ret['libraries']
+            if with_dependencies:
+                main_l = []
+                [get_deps(lib, None, main_l) in lib for lib in ret]
+                ret = main_l
+            if lib_name:
+                ret = [lib for lib in ret if lib['name'] == lib_name]
+            # if inc_publish_date:
+            #     ret = get_libs_publish_date(ret)
 
-        return ret['libraries'] if isinstance(ret, dict) else ret
+        return ret
 
     @Decorators.report_metadata(report_scope_types=[ScopeTypes.PROJECT])
     def get_lib_dependencies(self,
