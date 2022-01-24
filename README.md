@@ -28,10 +28,13 @@ The SDK contains the following modules:
 ## Execution
 
 ```python
-# Web (WhiteSource Application)
+# Unified (can do both WSApp and WSClient)
 from ws_sdk.web import WS
-
 ws = WS(api_url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
+
+# Web (WhiteSource Application)
+from ws_sdk.app import WSApp
+ws = WSApp(api_url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
 # Get alerts 
 all_alerts = ws.get_alerts()
 # Get vulnerabilities report in XLSX format
@@ -48,7 +51,7 @@ ws_client = WSClient(api_url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN", u
 # Download latest UA jar and conf file
 ws_client.download_ua()
 # Execute scan into defined project token
-out = ws_client.scan(scan_dir="/PATH/TO/DIR", project_token="PROJ_TOKEN")
+out = ws_client.scan(scan_dir="/PATH/TO/DIR", project_token="PROJ_TOKEN", product_token="POROD_TOKEN")
 # Read scan artifcat's policy rejection summary 
 pol_rej = ws_client.get_policy_rejection_summary()
 ```
