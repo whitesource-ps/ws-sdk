@@ -1,6 +1,8 @@
 import json
 import uuid
 from copy import copy
+from cachetools import cached, TTLCache, keys
+
 from datetime import datetime
 from logging import getLogger
 from time import sleep
@@ -16,6 +18,15 @@ from ws_sdk.ws_errors import *
 
 
 logger = getLogger(__name__)
+
+
+def hashable_key(*args, **kwargs):
+    for k, v in kwargs.items():
+        if isinstance(v, (list, dict)):
+            kwargs[k] = str(v)
+            logger.debug(f"Key: {k} is un-hashable")
+
+    return keys.hashkey(*args, **kwargs)
 
 
 class WSApp:
@@ -246,6 +257,7 @@ class WSApp:
 
         return ret
 
+    @cached(cache=TTLCache(maxsize=CACHE_SIZE, ttl=CACHE_TTL), key=hashable_key)
     def _generic_get(self,
                      get_type: str,
                      token_type: str = None,
