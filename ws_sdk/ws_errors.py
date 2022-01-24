@@ -56,6 +56,18 @@ class WsSdkServerScopeExists(WsSdkServerError):
         super().__init__(self.message)
 
 
+class WsSdkServerInvalidLibUuid(WsSdkServerError):
+    def __init__(self, token, lib_uuid):
+        self.message = f"Invalid library UUID: '{lib_uuid}' in Organization: '{token}'"
+        super().__init__(self.message)
+
+
+class WsSdkServerInvalidLibName(WsSdkServerError):
+    def __init__(self, token, lib_name):
+        self.message = f"Invalid library Name: '{lib_name}' in Organization: '{token}'"
+        super().__init__(self.message)
+
+
 # Client
 class WsSdkClientError(WsSdkError):
     """Parent Exception Class for WS Client errors"""

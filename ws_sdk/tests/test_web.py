@@ -340,6 +340,28 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, list) and self.assertEqual(len(res), 1)
 
+    @patch('ws_sdk.app.WSApp.get_inventory')
+    def test_get_lib(self, mock_get_inventory):
+        ret_d = {'keyUuid': "LIB_UUID"}
+        mock_get_inventory.return_value = [ret_d]
+
+        ret = self.ws_app.get_lib(name="LIB_UUID")
+
+        self.assertEqual(ret, ret_d)
+
+    @patch('ws_sdk.app.WSApp.get_inventory')
+    def test_get_lib_not_found(self, mock_get_inventory):
+        mock_get_inventory.return_value = []
+        with self.assertRaises(WsSdkServerInvalidLibName):
+            self.ws_app.get_lib(name="LIB_UUID")
+
+    @patch('ws_sdk.app.WSApp.get_lib')
+    def test_get_lib_uuid(self, mock_get_lib):
+        mock_get_lib.return_value = {'keyUuid': "LIB_UUID"}
+        ret = self.ws_app.get_lib_uuid(name="LIB_UUID")
+
+        self.assertEqual(ret, "LIB_UUID")
+
     @patch('ws_sdk.app.WSApp.set_token_in_body')
     @patch('ws_sdk.app.WSApp._generic_get')
     def test_get_inventory_inc_in_house(self, mock_generic_get, mock_set_token_in_body):
@@ -1018,6 +1040,14 @@ class TestWS(TestCase):
         mock_generic_get.return_value = {'requestState': "FINISHED"}
         ret = self.ws_app.get_last_scan_process_status(request_token="abcdedefghijklmnopqrstuvwxyz")
         self.assertEqual(ret, "FINISHED")
+
+    @patch('ws_sdk.app.WSApp.call_ws_api')
+    @patch('ws_sdk.app.WSApp.set_token_in_body')
+    def test_change_origin_of_source_lib(self, mock_set_token_in_body, mock_call_api):
+        mock_set_token_in_body.return_value = (self.ws_app.token_type, {})
+        with self.assertLogs(level='DEBUG') as cm:
+            res = self.ws_app.change_origin_of_source_lib(lib_uuid="LIB_UUID", source_files_sha1=["SHA1_1", "SHA1_2"])
+            self.assertEqual(cm.output, ["DEBUG:ws_sdk.app:Changing original of source library: 'LIB_UUID'"])
 
 
 if __name__ == '__main__':

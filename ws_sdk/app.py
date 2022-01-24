@@ -186,6 +186,7 @@ class WSApp:
             3010 - Missing fields: user
             4000 - Unexpected error
             5001 - User is not allowed to perform this action
+            8000 - Invalid key UUID
             :param error:
             """
             error_dict = extract_error_message(error)
@@ -199,6 +200,8 @@ class WSApp:
                 logger.warning(error_dict['errorMessage'])
                 scope = body['requestType'].lstrip("create")
                 raise WsSdkServerScopeExists(scope_type=scope, scope_name=body[f"{scope.lower()}Name"])
+            elif error_dict['errorCode'] == 8000:
+                raise WsSdkServerInvalidLibUuid(body[token], body['targetKeyUuid'])
             else:
                 raise WsSdkServerGenericError(body[token], error)
 
@@ -448,6 +451,17 @@ class WSApp:
             logger.error(f"Method is only supported with organization token")
 
         return ret
+
+    def get_lib(self, name: str):
+        ret = self.get_inventory(lib_name=name)
+
+        if ret:
+            return ret[0]
+        else:
+            raise WsSdkServerInvalidLibName(self.token, name)
+
+    def get_lib_uuid(self, name: str):
+        return self.get_lib(name=name)['keyUuid']
 
     def get_scope_type_by_token(self,
                                 token: str) -> str:
@@ -1892,3 +1906,32 @@ class WSApp:
     #     :returns whether there is a match on which conditions
     #     """
     #     pass
+
+    def change_origin_of_source_lib(self,
+                                    lib_uuid: str = None,
+                                    lib_name: str = None,
+                                    source_files_sha1: list = [],
+                                    user_comments: str = None):
+        """
+        Method to change source files association to a source library
+        :param lib_uuid: UUID of the source library
+        :param lib_name: Name of the source library
+        :param source_files_sha1: list of sha1 of source files to change
+        :param user_comments: Optional comments
+        """
+        if not source_files_sha1:
+            logger.error("At least one source file sha1 is required")
+        elif not (lib_uuid or lib_name):
+            logger.error(f"Library UUID or Library name is required")
+        else:
+            if lib_name:
+                lib_uuid = self.get_lib_uuid(name=lib_name)
+                logger.info(f"Found library UUID: '{lib_uuid}' of library: '{lib_name}'")
+
+            token_type, kv_dict = self.set_token_in_body()
+            kv_dict['targetKeyUuid'] = lib_uuid
+            kv_dict['sourceFiles'] = source_files_sha1
+            kv_dict['userComments'] = user_comments
+            logger.debug(f"Changing original of source library: '{lib_uuid}'")
+
+        self.call_ws_api(request_type="changeOriginLibrary", kv_dict=kv_dict)
