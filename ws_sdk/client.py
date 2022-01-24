@@ -1,5 +1,4 @@
 import copy
-import dataclasses
 import json
 import logging
 import os
@@ -27,7 +26,8 @@ class WSClient:
                  java_bin: str = JAVA_BIN,
                  ua_path: str = f"c:/tmp/ws-{__tool_name__}" if sys.platform == "win32" else f"/tmp/{__tool_name__}",
                  skip_ua_download: bool = False,
-                 tool_details: tuple = ("ps-sdk", __version__)
+                 tool_details: tuple = ("ps-sdk", __version__),
+                 **kwargs
                  ):
         if token_type is ORGANIZATION:
             self.ua_path = ua_path
@@ -36,11 +36,12 @@ class WSClient:
             self.ua_jar_f_with_path = os.path.join(ua_path, UA_JAR_F_N)
             # UA configuration
             self.ua_conf = ws_utilities.WsConfiguration()
+            self.ua_conf.projectPerFolder = False
             self.ua_conf.apiKey = token
             self.ua_conf.userKey = user_key
             self.ws_url = f"{ws_utilities.get_full_ws_url(url)}"
             self.java_bin = java_bin if bool(java_bin) else JAVA_BIN
-            self.ua_conf.wss_url = self.get_client_api_url(self.ws_url)
+            self.ua_conf.wss_url = WSClient.get_client_api_url(self.ws_url)
             self.ua_conf.log_files_path = self.ua_path
             self.ua_conf.whiteSourceFolderPath = self.ua_path
             self.ua_conf.checkPolicies = False
@@ -55,7 +56,7 @@ class WSClient:
                 self.ua_conf.log_files_level = "Off"        # Generate logs in files
 
             is_ua_exists = ws_utilities.is_ua_exists(self.ua_jar_f_with_path)
-            if not is_ua_exists:
+            if not is_ua_exists:                                                # TODO SINGLETON + LAZY INITIATION WHEN INIT IS WS
                 logger.warning(f"White Source Unified Agent does not exist in path: '{self.ua_jar_f_with_path}'")
             if skip_ua_download or (is_ua_exists and self.is_latest_ua_semver()):
                 logger.debug("Skipping WhiteSource Unified Agent update")

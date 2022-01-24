@@ -149,27 +149,27 @@ class LibTypes:
                  LIB_T_ALPINE, LIB_T_DEBIAN, LIB_T_DOCKER, LIB_T_DOTNET, LIB_T_DOCKER_LAYER, LIB_T_ERLANG, LIB_T_JAVA,
                  LIB_T_HASKELL, LIB_T_PYTHON, LIB_T_JS_BOWER , LIB_T_JS_NPM, LIB_T_OCAML, LIB_T_PHP]
 
-    type_to_lib_t = {"Java": LIB_T_JAVA,
-                    "Python": LIB_T_PYTHON,
+    type_to_lib_t = {"java": LIB_T_JAVA,
+                    "python": LIB_T_PYTHON,
                     "Source Library": LIB_T_GO,
                     "UNKNOWN": LIB_T_DOCKER,
-                    ".NET": LIB_T_DOTNET,
+                    ".net": LIB_T_DOTNET,
                     "UNKNOWN": LIB_T_ACTIONSCRIPT,
-                    "Alpine": LIB_T_ALPINE,
-                    "Debian": LIB_T_DEBIAN,
+                    "alpine": LIB_T_ALPINE,
+                    "debian": LIB_T_DEBIAN,
                     "UNKNOWN": LIB_T_DOCKER_LAYER,
                     "Source Library": LIB_T_ERLANG,
                     "UNKNOWN": LIB_T_HASKELL,
                     "UNKNOWN": LIB_T_JS_BOWER,
-                    "javascript/Node.js": LIB_T_JS_NPM,
+                    "javascript/node.js": LIB_T_JS_NPM,
                     "UNKNOWN": LIB_T_OCAML,
                     "Source Library": LIB_T_PHP,
-                    "R": LIB_T_R,
-                    "RPM": LIB_T_RPM,
-                    "Ruby": LIB_T_RUBY,
+                    "r": LIB_T_R,
+                    "rpm": LIB_T_RPM,
+                    "ruby": LIB_T_RUBY,
                     "Source Library": LIB_T_RUST,
-                    "CocoaPods": LIB_T_OBJC,
-                    "Nuget": LIB_T_NUGET}  # YES?
+                    "cocoapods": LIB_T_OBJC,
+                    "nuget": LIB_T_NUGET}  # YES?
 
 
 class ReportsMetaData(NamedTuple):

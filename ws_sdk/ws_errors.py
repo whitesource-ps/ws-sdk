@@ -16,43 +16,55 @@ class WsSdkServerError(WsSdkError):
 class WsSdkServerMissingTokenError(WsSdkServerError):
     """Raised when token is missing"""
     def __init__(self, token, token_type):
-        self.message = f"Token {token} does not exist in this {token_type}"
+        self.message = f"Token '{token}' does not exist in this {token_type} (or insufficient permissions to access this token)"
         super().__init__(self.message)
 
 
 class WsSdkServerTokenTypeError(WsSdkServerError):
     def __init__(self, token):
-        self.message = f"Unable to discover Token Type of token {token}"
+        self.message = f"Unable to discover Token Type of token '{token}'"
         super().__init__(self.message)
 
 
 class WsSdkServerMissingGroupError(WsSdkServerError):
     def __init__(self, name):
-        self.message = f"Group {name} does not exist"
+        self.message = f"Group '{name}' does not exist"
         super().__init__(self.message)
 
 
 class WsSdkServerInactiveOrg(WsSdkServerError):
     def __init__(self, token):
-        self.message = f"Organization {token} is inactive"
+        self.message = f"Organization '{token}' is inactive"
         super().__init__(self.message)
 
 
 class WsSdkServerGenericError(WsSdkServerError):
     def __init__(self, token, error):
-        self.message = f"Generic error on token: {token}. Error: {error}"
+        self.message = f"Generic error on token: '{token}'. Error: {error}"
         super().__init__(self.message)
 
 
 class WsSdkServerInsufficientPermissions(WsSdkServerError):
     def __init__(self, token):
-        self.message = f"User token: {token} has insufficient permissions"
+        self.message = f"User token: '{token}' has insufficient permissions"
         super().__init__(self.message)
 
 
 class WsSdkServerScopeExists(WsSdkServerError):
     def __init__(self, scope_type, scope_name):
         self.message = f"{scope_type}: '{scope_name}' already exists"
+        super().__init__(self.message)
+
+
+class WsSdkServerInvalidLibUuid(WsSdkServerError):
+    def __init__(self, token, lib_uuid):
+        self.message = f"Invalid library UUID: '{lib_uuid}' in Organization: '{token}'"
+        super().__init__(self.message)
+
+
+class WsSdkServerInvalidLibName(WsSdkServerError):
+    def __init__(self, token, lib_name):
+        self.message = f"Invalid library Name: '{lib_name}' in Organization: '{token}'"
         super().__init__(self.message)
 
 
