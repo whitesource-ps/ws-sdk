@@ -86,7 +86,7 @@ class WSClient:
         """
         if ua_conf is None:
             ua_conf = self.ua_conf
-        command = f"{self.java_bin}"
+        command = f"{self.java_bin}"        # TODO CONVERT TO FULL PATH
         switches = f"-Djava.io.tmpdir={self.java_temp_dir} -jar {self.ua_jar_f_with_path} {options} -noConfig True"  #-noConfig True => configFilePath=DEFAULT
         env = ws_utilities.generate_conf_ev(ua_conf)
         orig_path = os.getcwd()
@@ -212,7 +212,7 @@ class WSClient:
             if include:
                 local_ua_all_conf.set_include_suffices_to_scan(include)
 
-            ret = self._execute_ua(f"-d {existing_dirs} {dest_scope.to_execute()}", local_ua_all_conf)
+            ret = self._execute_ua(options=f"-d {existing_dirs} {dest_scope.to_execute()}", ua_conf=local_ua_all_conf)
             request_token = self.extract_support_token(ret[1])
             ret += (request_token,)
         else:
