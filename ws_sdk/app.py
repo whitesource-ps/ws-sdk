@@ -1,6 +1,7 @@
 import json
 import uuid
 from copy import copy
+
 from datetime import datetime
 from logging import getLogger
 from time import sleep
@@ -8,7 +9,6 @@ from typing import Union
 import requests
 from requests.adapters import HTTPAdapter
 
-# from external_search.search import ExtSearch
 from ws_sdk import ws_utilities
 from ws_sdk._version import __version__, __tool_name__
 from ws_sdk.ws_constants import *
@@ -366,8 +366,7 @@ class WSApp:
                       include_in_house_data: bool = True,
                       as_dependency_tree: bool = False,
                       with_dependencies: bool = False,
-                      report: bool = False,
-                      inc_publish_date: bool = False) -> Union[list, bytes]:
+                      report: bool = False) -> Union[list, bytes]:
         def get_deps(library: dict, parent_lib: dict, main_list: list):
             deps = library.get('dependencies')
             if deps:
@@ -382,14 +381,6 @@ class WSApp:
 
             main_list.append(library)
 
-        # def get_libs_publish_date(libs):
-        #     for lib in libs:
-        #         try:
-        #             lib['publish_date'] = ExtSearch.get_lib_publish_date(**lib)
-        #         except (ValueError, NotImplementedError):
-        #             continue
-        #
-        #     return libs
         """
         :param name: filter libs by name (only in JSON)
         :param as_dependency_tree: Include library dependency (Project Hierarchy)
@@ -415,15 +406,13 @@ class WSApp:
             ret = self._generic_get(get_type="InventoryReport", token_type=token_type, kv_dict=kv_dict)
 
         if not report:
-            ret = ret['libraries']
+            ret = ret.get('libraries', [])
             if with_dependencies:
                 main_l = []
                 [get_deps(lib, None, main_l) in lib for lib in ret]
                 ret = main_l
             if lib_name:
                 ret = [lib for lib in ret if lib['name'] == lib_name]
-            if inc_publish_date:
-                ret = get_libs_publish_date(ret)
 
         return ret
 
