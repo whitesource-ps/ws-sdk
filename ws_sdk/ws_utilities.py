@@ -265,15 +265,32 @@ def get_java_version(java_bin: str =  JAVA_BIN) -> str:
 
 def execute_command(command: str,
                     switches: str = None,
-                    env = None) -> tuple:
-    full_command_l = [command] + switches if isinstance(switches, list) else [command] + switches.split()
+                    env: dict = None) -> tuple:
+    def split_switches(sw: str) -> list:
+        new_l = []
+        val = ""
+        for s in sw.split():
+            if s.startswith('-'):
+                if val:
+                    new_l.append(val.strip())
+                    val = ""
+                new_l.append(s)
+            else:
+                val = val + s + " "
+
+        if val.strip():
+            new_l.append(val)
+
+        return new_l
+
+    full_command_l = [command] + switches if isinstance(switches, list) else [command] + split_switches(switches)
     logger.debug(f"Executing command: {full_command_l}")
     ret = (-1, None)
     try:
         if env:
-            output = subprocess.run(full_command_l, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            output = subprocess.run(args=full_command_l, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         else:
-            output = subprocess.run(full_command_l, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            output = subprocess.run(args=full_command_l, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         ret = (output.returncode, output.stdout.decode("utf-8"))
     except FileNotFoundError:
         logger.error(f"'{command}' not found")
