@@ -2,7 +2,7 @@ import copy
 import json
 import logging
 import os
-from typing import Union
+from typing import Union, Tuple
 
 from pkg_resources import parse_version
 
@@ -177,7 +177,7 @@ class WSClient:
              product_name: str = None,
              offline: bool = None,
              comment: str = None,
-             include: list = None) -> tuple:
+             include: list = None) -> Tuple[int, str, int]:
         """
         Execute scan on dir(s)
         :param scan_dir: the dir(s) to scan (comma seperated if multiple)

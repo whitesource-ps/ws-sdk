@@ -269,8 +269,9 @@ def execute_command(command: str,
     def split_switches(sw: str) -> list:
         new_l = []
         val = ""
+        regex = re.compile(r'^-[a-z].*')
         for s in sw.split():
-            if s.startswith('-'):
+            if re.match(regex, s):
                 if val:
                     new_l.append(val.strip())
                     val = ""
