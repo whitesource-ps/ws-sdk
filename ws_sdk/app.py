@@ -1924,3 +1924,4 @@ class WSApp:
             logger.debug(f"Changing original of source library: '{lib_uuid}'")
 
         self.call_ws_api(request_type="changeOriginLibrary", kv_dict=kv_dict)
+
