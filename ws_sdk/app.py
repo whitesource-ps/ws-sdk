@@ -5,7 +5,7 @@ from copy import copy
 from datetime import datetime
 from logging import getLogger
 from time import sleep
-from typing import Union
+from typing import Union, List
 import requests
 from requests.adapters import HTTPAdapter
 
@@ -366,7 +366,7 @@ class WSApp:
                       include_in_house_data: bool = True,
                       as_dependency_tree: bool = False,
                       with_dependencies: bool = False,
-                      report: bool = False) -> Union[list, bytes]:
+                      report: bool = False) -> Union[List[dict], bytes]:
         def get_deps(library: dict, parent_lib: dict, main_list: list):
             deps = library.get('dependencies')
             if deps:
@@ -406,7 +406,7 @@ class WSApp:
             ret = self._generic_get(get_type="InventoryReport", token_type=token_type, kv_dict=kv_dict)
 
         if not report:
-            ret = ret.get('libraries', [])
+            ret = ret.get('libraries', []) if isinstance(ret, dict) else []
             if with_dependencies:
                 main_l = []
                 [get_deps(lib, None, main_l) in lib for lib in ret]
