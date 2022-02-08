@@ -1,7 +1,6 @@
 import json
 import uuid
 from copy import copy
-
 from datetime import datetime
 from logging import getLogger
 from time import sleep
@@ -9,6 +8,7 @@ from typing import Union, List
 import requests
 from requests.adapters import HTTPAdapter
 
+from external_search.search import ExtSearch
 from ws_sdk import ws_utilities
 from ws_sdk._version import __version__, __tool_name__
 from ws_sdk.ws_constants import *
@@ -100,6 +100,7 @@ class WSApp:
         :token_type: Scope Type (organization, product, project)
         :tool_details Tool name and version to include in Body and Header of API requests
         """
+        self._ext_search = None
         self.user_key = user_key
         self.token = token
         self.token_type = token_type
@@ -122,6 +123,13 @@ class WSApp:
     @property
     def spdx_lic_dict(self):
         return ws_utilities.get_spdx_license_dict()
+
+    @property
+    def ext_search(self):
+        if self._ext_search is None:
+            self._ext_search = ExtSearch()
+
+        return self._ext_search
 
     def set_token_in_body(self,
                           token: Union[str, tuple] = None) -> (str, dict):
@@ -366,7 +374,8 @@ class WSApp:
                       include_in_house_data: bool = True,
                       as_dependency_tree: bool = False,
                       with_dependencies: bool = False,
-                      report: bool = False) -> Union[List[dict], bytes]:
+                      report: bool = False,
+                      inc_publish_date: bool = False) -> Union[List[dict], bytes]:
         def get_deps(library: dict, parent_lib: dict, main_list: list):
             deps = library.get('dependencies')
             if deps:
@@ -381,6 +390,14 @@ class WSApp:
 
             main_list.append(library)
 
+        def get_libs_publish_date(libs):
+            for lib in libs:
+                try:
+                    lib['publish_date'] = self.ext_search.get_lib_publish_date(**lib)
+                except (ValueError, NotImplementedError):
+                    continue
+
+            return libs
         """
         :param name: filter libs by name (only in JSON)
         :param as_dependency_tree: Include library dependency (Project Hierarchy)
@@ -413,6 +430,8 @@ class WSApp:
                 ret = main_l
             if lib_name:
                 ret = [lib for lib in ret if lib['name'] == lib_name]
+            if inc_publish_date:
+                ret = get_libs_publish_date(ret)
 
         return ret
 
