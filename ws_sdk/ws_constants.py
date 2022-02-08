@@ -147,7 +147,7 @@ class LibTypes:
 
     LIB_TYPES = [LIB_T_NUGET, LIB_T_OBJC, LIB_T_R, LIB_T_GO, LIB_T_RUST, LIB_T_RUBY, LIB_T_RPM, LIB_T_ACTIONSCRIPT,
                  LIB_T_ALPINE, LIB_T_DEBIAN, LIB_T_DOCKER, LIB_T_DOTNET, LIB_T_DOCKER_LAYER, LIB_T_ERLANG, LIB_T_JAVA,
-                 LIB_T_HASKELL, LIB_T_PYTHON, LIB_T_JS_BOWER , LIB_T_JS_NPM, LIB_T_OCAML, LIB_T_PHP]
+                 LIB_T_HASKELL, LIB_T_PYTHON, LIB_T_JS_BOWER, LIB_T_JS_NPM, LIB_T_OCAML, LIB_T_PHP]
 
     type_to_lib_t = {"java": LIB_T_JAVA,
                     "python": LIB_T_PYTHON,
@@ -193,10 +193,11 @@ class LibMetaData:
         language: str
         package_manager: list
         file_suffices: list
+        registry_name: str = None
 
-    L_TYPES = [LibMetadata(language='java', package_manager=['maven', 'gradle', 'ant'], file_suffices=['jar']),
-               LibMetadata(language='python', package_manager=['pip'], file_suffices=['py']),
-               LibMetadata(language='javascript', package_manager=['npm', 'bower', 'nuget'], file_suffices=['js']),
+    L_TYPES = [LibMetadata(language='java', package_manager=['maven', 'gradle', 'ant'], file_suffices=['jar'], registry_name="Maven"),
+               LibMetadata(language='python', package_manager=['pip'], file_suffices=['py'], registry_name="PyPi"),
+               LibMetadata(language='javascript', package_manager=['npm', 'bower', 'nuget'], file_suffices=['js'], registry_name="npm"),
                LibMetadata(language='ruby', package_manager=['rubygems'], file_suffices=['rb']),
                LibMetadata(language='.net', package_manager=['nuget'], file_suffices=['cs']),
                LibMetadata(language='rust', package_manager=['cargo'], file_suffices=['rs', 'rlib']),
@@ -204,6 +205,14 @@ class LibMetaData:
                LibMetadata(language='r', package_manager=[], file_suffices=['r']),
                LibMetadata(language='objc', package_manager=['cocoapods'], file_suffices=['.h', '.m', '.mm', '.M']),
                ]
+
+    LANG_TO_L_TYPE = {}
+    PKG_MAN_TO_REGISTRY = {}
+    for l_type in L_TYPES:
+        LANG_TO_L_TYPE[l_type.language] = l_type
+
+        for p in l_type.package_manager:
+            PKG_MAN_TO_REGISTRY[p] = l_type.registry_name
 
     class LangSuffix:
         C_SRC = ["**/*.c", "**/*.h"]
