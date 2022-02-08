@@ -13,13 +13,6 @@ __tool_name__ = "WSG"
 __description__ = "WhiteSource Runner"
 
 is_debug = logging.DEBUG if bool(os.environ.get("DEBUG", 0)) else logging.INFO
-# logger = logging.getLogger(__tool_name__)
-# formatter = logging.Formatter('%(levelname)s %(asctime)s %(thread)d %(name)s: %(message)s')
-# s_handler = logging.StreamHandler()
-# s_handler.setFormatter(formatter)
-# s_handler.setLevel(is_debug)
-# logger.addHandler(s_handler)
-
 logging.basicConfig(stream=sys.stdout, level=is_debug, format='%(levelname)s %(asctime)s %(thread)d %(name)s: %(message)s')
 
 conf = None

@@ -8,7 +8,7 @@ from typing import Union, List
 import requests
 from requests.adapters import HTTPAdapter
 
-from external_search.search import ExtSearch
+from ws_sdk.external_search.search import ExtSearch
 from ws_sdk import ws_utilities
 from ws_sdk._version import __version__, __tool_name__
 from ws_sdk.ws_constants import *
