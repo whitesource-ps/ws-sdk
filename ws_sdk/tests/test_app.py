@@ -428,8 +428,23 @@ class TestWS(TestCase):
     @patch('ws_sdk.app.WSApp.get_projects')
     @patch('ws_sdk.app.WSApp.get_products')
     def test_get_scopes_by_token(self, mock_get_products, mock_get_projects):
-        mock_get_projects.return_value = []
+        mock_get_projects.return_value = [{'token': "TOKEN"}]
+        mock_get_products.return_value = []
+        res = self.ws_app.get_scope_by_token(token="TOKEN")
+
+        self.assertIn('token', res) and self.assertEqual(res['token'], "TOKEN")
+
+    @patch('ws_sdk.app.WSApp.get_products')
+    def test_get_scopes_by_token_of_product(self, mock_get_products):
         mock_get_products.return_value = [{'token': "TOKEN"}]
+        res = self.ws_app.get_scope_by_token(token="TOKEN", token_type=ScopeTypes.PRODUCT)
+
+        self.assertIn('token', res) and self.assertEqual(res['token'], "TOKEN")
+
+    @patch('ws_sdk.app.WSApp.get_projects')
+    def test_get_scopes_by_token_as_product(self, mock_get_projects):
+        self.ws_app.token_type = ScopeTypes.PRODUCT
+        mock_get_projects.return_value = [{'token': "TOKEN"}]
         res = self.ws_app.get_scope_by_token(token="TOKEN")
 
         self.assertIn('token', res) and self.assertEqual(res['token'], "TOKEN")
