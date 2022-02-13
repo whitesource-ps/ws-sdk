@@ -470,11 +470,15 @@ class WSApp:
         :return: dictionary of scope
         :rtype: dict
         """
+        ret = None
+        if token_type is None and self.token_type == ScopeTypes.PRODUCT:
+            token_type = ScopeTypes.PROJECT
+
         if token_type == ScopeTypes.PROJECT:
             ret = self.get_projects(token=token)
         elif token_type == ScopeTypes.PRODUCT:
             ret = self.get_products(token=token)
-        else:
+        elif self.token_type == ScopeTypes.ORGANIZATION:
             ret = self.get_products(token=token)
             if not ret:
                 ret = self.get_projects(token=token)
