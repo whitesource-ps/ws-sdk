@@ -1,7 +1,7 @@
 ---
 name: Contribution Request
 about: Discuss potential changes you wish to contribute
-title: "[CR] [ws-tool-name] Contribution Request Topic"
+title: "[CR] [ws-sdk] Contribution Request Topic"
 labels: enhancement
 assignees: ''
 

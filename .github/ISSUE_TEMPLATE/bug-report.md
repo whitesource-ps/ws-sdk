@@ -1,7 +1,7 @@
 ---
 name: Bug Report
 about: Create a report to help us improve
-title: "[BUG] [ws-tool-name] Issue Short Description"
+title: "[BUG] [ws-sdk] Issue Short Description"
 labels: bug
 assignees: ''
 
