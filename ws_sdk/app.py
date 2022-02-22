@@ -297,7 +297,7 @@ class WSApp:
         :param alert_type: Allows filtering alerts by a single type from ALERT_TYPES
         :param from_date: Allows filtering of alerts by start date. Works together with to_date
         :param to_date: Allows filtering of alerts by end date. Works together with from_date
-        :param tags: filter by tags in form of of Key:Value dict. only 1 is allowed.
+        :param tags: filter by tags in form of Key:Value dict. only 1 is allowed.
         :param ignored: Should output include ignored reports
         :param resolved: Should output include resolved reports
         :param report: Create xlsx report type
@@ -712,7 +712,7 @@ class WSApp:
                      token: str = None,
                      sort_by: str = None) -> list:
         """
-        Retrieved all products of org
+        Retrieves all products of org
         :param name: filter product by name
         :param token:
         :param sort_by: Sort returned list
