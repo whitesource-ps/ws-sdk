@@ -1654,7 +1654,7 @@ class WSApp:
                      include_parent_policy: bool = True) -> list:
         """
         Retrieves policies from scope
-        :param token: Optional to to get policies of another token
+        :param token: Optional to get policies of another token
         :param include_parent_policy: Should inherited policies be presented (default: true)
         :return: list of policies
         :rtype: list
