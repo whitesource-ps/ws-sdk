@@ -102,7 +102,7 @@ def get_all_req_schemas(ws_conn) -> dict:
 
 def get_lib_metadata_by_name(language: str) -> LibMetaData.LibMetadata:
     """
-    Method that Returns matadata on a language
+    Method that Returns metadata on a language
     :type language: language to return metadata on
     :rtype: NamedTuple
     """
