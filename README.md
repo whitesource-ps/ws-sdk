@@ -51,7 +51,7 @@ ws_client = WSClient(api_url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN", u
 # Download latest UA jar and conf file
 ws_client.download_ua()
 # Execute scan into defined project token
-out = ws_client.scan(scan_dir="/PATH/TO/DIR", project_token="PROJ_TOKEN", product_token="POROD_TOKEN")
-# Read scan artifcat's policy rejection summary 
+out = ws_client.scan(scan_dir="/PATH/TO/DIR", project_token="PROJ_TOKEN", product_token="PROD_TOKEN")
+# Read scan artifact's policy rejection summary 
 pol_rej = ws_client.get_policy_rejection_summary()
 ```

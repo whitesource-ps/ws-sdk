@@ -44,6 +44,7 @@ def convert_dict_list_to_dict(lst: list,
     :param should_replace_f: function that receives a and b dictionaries and returns true if a should replace b
     :return: dict with key according to key description and the dictionary value
     """
+
     def create_key(key_desc: str or tuple,
                    dct: dict) -> str or tuple:
         ret = None
@@ -226,16 +227,18 @@ def convert_ua_conf_f_to_vars(filename: str) -> WsConfiguration:
 
     return ws_configuration
 
+
 def generate_conf_ev(ws_configuration: WsConfiguration) -> dict:
     def to_str(t):
-        return  ",".join(t) if isinstance(t, (set, list)) else str(t)
+        return ",".join(t) if isinstance(t, (set, list)) else str(t)
 
     """
     Convert WsConfiguration into UA env vars dictionary
     :param ws_configuration:
     :return: dictionary of env vars
     """
-    return {**os.environ, **{f"WS_" + k.upper(): to_str(v) for k, v in ws_configuration.__dict__.items() if v is not None}}
+    return {**os.environ,
+            **{f"WS_" + k.upper(): to_str(v) for k, v in ws_configuration.__dict__.items() if v is not None}}
 
 
 def init_ua(path: str):
@@ -246,7 +249,7 @@ def is_java_exists(java_bin: str = JAVA_BIN) -> bool:
     return True if get_java_version(java_bin) else False
 
 
-def get_java_version(java_bin: str =  JAVA_BIN) -> str:
+def get_java_version(java_bin: str = JAVA_BIN) -> str:
     ret = None
     output = execute_command(command=java_bin, switches="-version")
     if output[1]:
