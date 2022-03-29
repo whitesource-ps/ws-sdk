@@ -377,7 +377,10 @@ class WSApp:
                 logger.debug(f"Library '{library['filename']}' is a dependency of library '{parent_lib['filename']}'")
                 library['is_dependency_of'] = parent_lib
             else:
-                library_debug = library['name'] or library['filename']
+                if library.get('filename') is not None:
+                    library_debug = library.get('filename')
+                else:
+                    library_debug = library.get('name')
                 logger.debug(f"Library '{library_debug}' is a direct dependency")        # THIS MAY NOT BE ALWAYS TRUE
 
             main_list.append(library)
