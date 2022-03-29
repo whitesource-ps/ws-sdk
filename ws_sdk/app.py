@@ -377,7 +377,11 @@ class WSApp:
                 logger.debug(f"Library '{library['filename']}' is a dependency of library '{parent_lib['filename']}'")
                 library['is_dependency_of'] = parent_lib
             else:
-                logger.debug(f"Library '{library['filename']}' is a direct dependency")        # THIS MAY NOT BE ALWAYS TRUE
+                if library.get('filename') is not None:
+                    library_debug = library.get('filename')
+                else:
+                    library_debug = library.get('name')
+                logger.debug(f"Library '{library_debug}' is a direct dependency")        # THIS MAY NOT BE ALWAYS TRUE
 
             main_list.append(library)
 
@@ -397,7 +401,7 @@ class WSApp:
             kv_dict["includeInHouseData"] = include_in_house_data
             logger.debug(f"Running {token_type} {name}")
             ret = self._generic_get('Inventory', token_type=token_type, kv_dict=kv_dict)
-        elif token_type == ScopeTypes.PROJECT and as_dependency_tree or with_dependencies:
+        elif token_type == ScopeTypes.PROJECT and (as_dependency_tree or with_dependencies):
             logger.debug(f"Running {token_type} Hierarchy")
             ret = self._generic_get(get_type="Hierarchy", token_type=token_type, kv_dict=kv_dict)
         else:
