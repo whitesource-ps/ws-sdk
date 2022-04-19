@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import pathlib
 import re
@@ -346,3 +347,34 @@ def get_latest_ua_release_url() -> dict:
 
 def convert_to_time_obj(time: str):
     return datetime.strptime(time, '%Y-%m-%d %H:%M:%S %z')
+
+
+class PathType(object):
+    def __init__(self, checked_type):
+
+        """When running argparse with argument type=dir/file --> check if exists
+        Inspired from https://mail.python.org/pipermail/stdlib-sig/2015-July/000990.html
+        type: file, dir, symlink, None, or a function returning True for valid paths None: don't care"""
+
+        if checked_type in ('file', 'dir', 'symlink', None):
+            self._type = checked_type
+
+    def __call__(self, string):
+        e = os.path.exists(string)
+        if not e:
+            raise logging.error("path does not exist: '%s'" % string)
+        if self._type is None:
+            pass
+        elif self._type == 'file':
+            if not os.path.isfile(string):
+                raise logging.error("path is not a file: '%s'" % string)
+        elif self._type == 'symlink':
+            if not os.path.islink(string):
+                raise logging.error("path is not a symlink: '%s'" % string)
+        elif self._type == 'dir':
+            if not os.path.isdir(string):
+                raise logging.error("path is not a directory: '%s'" % string)
+        elif not self._type(string):
+            raise logging.error("path not valid: '%s'" % string)
+
+        return string
