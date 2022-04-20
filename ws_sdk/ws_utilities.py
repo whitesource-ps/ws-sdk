@@ -238,8 +238,17 @@ def generate_conf_ev(ws_configuration: WsConfiguration) -> dict:
     :param ws_configuration:
     :return: dictionary of env vars
     """
-    return {**os.environ,
-            **{f"WS_" + k.upper(): to_str(v) for k, v in ws_configuration.__dict__.items() if v is not None}}
+    ws_env_vars = {}
+
+    for k, v in ws_configuration.__dict__.items():
+        k = f"WS_" + k.upper()
+        if not os.environ.get(k):
+            if v is not None:
+                ws_env_vars.update({k: to_str(v)})
+    return {**os.environ, **ws_env_vars}
+
+    # return {**os.environ,
+    #         **{f"WS_" + k.upper(): to_str(v) for k, v in ws_configuration.__dict__.items() if v is not None}}
 
 
 def init_ua(path: str):
