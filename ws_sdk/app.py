@@ -656,7 +656,7 @@ class WSApp:
     def get_organization_details(self) -> dict:
         org_details = self._generic_get(get_type='Details')
         org_details['name'] = org_details.get('orgName')
-        org_details['token'] = org_details.get('orgToken')
+        org_details['token'] = self.token
         org_details['type'] = ScopeTypes.ORGANIZATION
 
         return org_details
