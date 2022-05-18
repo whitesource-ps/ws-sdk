@@ -831,7 +831,7 @@ class WSApp:
         ret = None
 
         if report and vulnerability_names:
-            logger.error(f"Unable to filter by vulnerability in {name} when running as report")
+            logger.error(f"Unable to filter by the vulnerability in {name} while running with Excel output. Please use JSON output")
         elif container:
             if token_type == ScopeTypes.ORGANIZATION:
                 logger.debug(f"Running Container {name}")
