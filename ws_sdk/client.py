@@ -29,7 +29,7 @@ class WSClient:
                  tool_details: tuple = ("ps-sdk", __version__),
                  **kwargs
                  ):
-        if token_type is ORGANIZATION:
+        if token_type == ORGANIZATION:
             self.ua_path = ua_path
             self.ua_path_whitesource = os.path.join(self.ua_path, "whitesource")
             self.java_temp_dir = ua_path
