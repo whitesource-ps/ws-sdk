@@ -926,8 +926,46 @@ class WSApp:
             if not lic.get('spdxName'):
                 if lic.get('name') == "Public Domain":
                     lic['spdxName'] = "CC-PDDC"
-                elif lic.get('name') == "AGPL":
-                    lic['spdxName'] = "AGPL-1.0"
+                elif lic.get('name').find("AGPL-1.0") > -1 :
+                    if lic.get('name') == "AGPL-1.0":
+                        lic['spdxName'] = "AGPL-1.0-only"
+                    else:
+                        lic['spdxName'] = "AGPL-1.0-or-later"
+                elif lic.get('name').find("AGPL-3.0") > -1 :
+                    if lic.get('name') == "AGPL-3.0":
+                        lic.get('name') == "AGPL-3.0-only"
+                    else:
+                        lic['spdxName'] = "AGPL-3.0-or-later"
+                elif lic.get('name').find("GPL-1.0") > -1 :
+                    if lic.get('name') == "GPL-1.0":
+                        lic['spdxName'] = "GPL-1.0-only"
+                    else:
+                        lic['spdxName'] = "GPL-1.0-or-later"
+                elif lic.get('name').find("GPL-2.0") > -1 :
+                    if lic.get('name') == "GPL-2.0":
+                        lic['spdxName'] = "GPL-2.0-only"
+                    else:
+                        lic['spdxName'] = "GPL-2.0-or-later"
+                elif lic.get('name').find("GPL-3.0") > -1 :
+                    if lic.get('name') == "GPL-3.0":
+                        lic['spdxName'] = "GPL-3.0-only"
+                    else:
+                        lic['spdxName'] = "GPL-3.0-or-later"
+                elif lic.get('name').find("LGPL-1.0") > -1 :
+                    if lic.get('name') == "LGPL-1.0":
+                        lic['spdxName'] = "LGPL-1.0-only"
+                    else:
+                        lic['spdxName'] = "LGPL-1.0-or-later"
+                elif lic.get('name').find("LGPL-2.0") > -1 :
+                    if lic.get('name') == "LGPL-2.0":
+                        lic['spdxName'] = "LGPL-2.0-only"
+                    else:
+                        lic['spdxName'] = "LGPL-2.0-or-later"
+                elif lic.get('name').find("LGPL-3.0") > -1 :
+                    if lic.get('name') == "LGPL-3.0":
+                        lic['spdxName'] = "LGPL-3.0-only"
+                    else:
+                        lic['spdxName'] = "LGPL-3.0-or-later"
                 elif lic.get('name') == "BSD Zero":
                     lic['spdxName'] = "0BSD"
                 elif lic.get('name') == "Unlicense":
