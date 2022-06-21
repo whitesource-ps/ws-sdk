@@ -13,7 +13,10 @@ from ws_sdk import ws_utilities
 from ws_sdk._version import __version__, __tool_name__
 from ws_sdk.ws_constants import *
 from ws_sdk.ws_errors import *
-
+import time
+import pandas as pd
+import io
+import zipfile
 
 logger = getLogger(__name__)
 
@@ -800,6 +803,7 @@ class WSApp:
                           container: bool = False,
                           cluster: bool = False,
                           report: bool = False,
+                          asyncr: bool = False,
                           token: str = None,
                           vulnerability_names: Union[str, list] = None) -> Union[list, bytes]:
         def get_cvss31(cvss3_score: str):
@@ -844,6 +848,35 @@ class WSApp:
                 ret = self._generic_get(get_type='ClusterVulnerabilityReportRequest', token_type="", kv_dict=kv_dict)
             else:
                 logger.error(f"Cluster {name} is unsupported on {token_type}")
+        elif asyncr:
+            self.token_type = token_type
+            kv_dict['reportType'] = f"{token_type.capitalize()}VulnerabilityReport"
+            ret = self.call_ws_api(request_type=f"generate{token_type.capitalize()}ReportAsync", kv_dict=kv_dict)
+            report_status_uuid = ret.get('asyncProcessStatus').get('uuid')
+            request_status = ''
+            kv_dict_org = {}
+            time_sleeped = 0
+            while 'IN_PROGRESS' or '' or 'PENDING' in request_status:
+                time.sleep(3)
+                time_sleeped += 1
+                self.token_type = ScopeTypes.ORGANIZATION
+                kv_dict_org.update({'uuid': report_status_uuid})
+                ret = self.call_ws_api(request_type=f"getAsyncProcessStatus", kv_dict=kv_dict_org)
+                request_status = ret.get('asyncProcessStatus').get('status')
+                if 'SUCCESS' in request_status:
+                    kv_dict_org.update({'reportStatusUUID': report_status_uuid})
+                    print(f"Starting download Async report, report status id : {report_status_uuid}")
+
+                    response = self.call_ws_api(request_type=f"downloadAsyncReport", kv_dict=kv_dict_org)
+                    zfile = zipfile.ZipFile(io.BytesIO(response))
+                    data_frame = pd.read_json(zfile.open(f'{zfile.namelist()[-1]}'))
+
+                    ret = data_frame.to_dict(orient='list')
+                    break
+                elif 'FALILED' in request_status or time_sleeped >= 5:
+                    ret = ["Failed"]
+                    print(f"Report is too big on: {token}. Try to pull manually with the report status id: {report_status_uuid}")
+                    break
         else:
             logger.debug(f"Running {name}")
             ret = self._generic_get(get_type='VulnerabilityReport', token_type=token_type, kv_dict=kv_dict)
