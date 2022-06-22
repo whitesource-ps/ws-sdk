@@ -33,7 +33,7 @@ def get_spdx_license_dict() -> dict:
                         spdx_el['licenseId'] = "AGPL-1.0-or-later"
                 elif spdx_el['licenseId'].find("AGPL-3.0") > -1 :
                     if spdx_el['licenseId'] == "AGPL-3.0":
-                        spdx_el['licenseId'] == "AGPL-3.0-only"
+                        spdx_el['licenseId'] = "AGPL-3.0-only"
                     else:
                         spdx_el['licenseId'] = "AGPL-3.0-or-later"
                 elif spdx_el['licenseId'].find("GPL-1.0") > -1 :
