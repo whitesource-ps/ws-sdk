@@ -961,6 +961,11 @@ class WSApp:
                         lic['spdxName'] = "LGPL-2.0-only"
                     else:
                         lic['spdxName'] = "LGPL-2.0-or-later"
+                elif lic.get('name').find("LGPL-2.1") > -1:
+                    if lic.get('name') == "LGPL-2.1":
+                        lic['spdxName'] = "LGPL-2.1-only"
+                    else:
+                        lic['spdxName'] = "LGPL-2.1-or-later"
                 elif lic.get('name').find("LGPL-3.0") > -1 :
                     if lic.get('name') == "LGPL-3.0":
                         lic['spdxName'] = "LGPL-3.0-only"
