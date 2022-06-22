@@ -61,6 +61,11 @@ def get_spdx_license_dict() -> dict:
                         spdx_el['licenseId'] = "LGPL-2.0-only"
                     else:
                         spdx_el['licenseId'] = "LGPL-2.0-or-later"
+                elif spdx_el['licenseId'].find("LGPL-2.1") > -1:
+                    if spdx_el['licenseId'] == "LGPL-2.1":
+                        spdx_el['licenseId'] = "LGPL-2.1-only"
+                    else:
+                        spdx_el['licenseId'] = "LGPL-2.1-or-later"
                 elif spdx_el['licenseId'].find("LGPL-3.0") > -1 :
                     if spdx_el['licenseId'] == "LGPL-3.0":
                         spdx_el['licenseId'] = "LGPL-3.0-only"
