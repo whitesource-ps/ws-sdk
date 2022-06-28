@@ -193,7 +193,7 @@ class WSApp:
             if error_dict['errorCode'] == 2015:
                 raise WsSdkServerInactiveOrg(body[token])
             elif error_dict['errorCode'] == 5001:
-                raise WsSdkServerInsufficientPermissions(body[token])
+                raise WsSdkServerInsufficientPermissions(body['userKey'])
             elif error_dict['errorCode'] == 2013:
                 logger.warning(error_dict['errorMessage'])
             elif error_dict['errorCode'] in [2001, 2010]:
@@ -933,7 +933,7 @@ class WSApp:
                         lic['spdxName'] = "AGPL-1.0-or-later"
                 elif lic.get('name').find("AGPL-3.0") > -1 :
                     if lic.get('name') == "AGPL-3.0":
-                        lic.get('name') == "AGPL-3.0-only"
+                        lic['spdxName'] = "AGPL-3.0-only"
                     else:
                         lic['spdxName'] = "AGPL-3.0-or-later"
                 elif lic.get('name').find("GPL-1.0") > -1 :
