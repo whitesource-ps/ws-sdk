@@ -26,51 +26,31 @@ def get_spdx_license_dict() -> dict:
 
         for spdx_el in spdx_licenses['licenses']:
             if spdx_el['isDeprecatedLicenseId']:
-                if spdx_el['licenseId'].find("AGPL-1.0") > -1 :
-                    if spdx_el['licenseId'] == "AGPL-1.0":
-                        spdx_el['licenseId'] = "AGPL-1.0-only"
-                    else:
-                        spdx_el['licenseId'] = "AGPL-1.0-or-later"
-                elif spdx_el['licenseId'].find("AGPL-3.0") > -1 :
-                    if spdx_el['licenseId'] == "AGPL-3.0":
-                        spdx_el['licenseId'] = "AGPL-3.0-only"
-                    else:
-                        spdx_el['licenseId'] = "AGPL-3.0-or-later"
-                elif spdx_el['licenseId'].find("GPL-1.0") > -1 :
-                    if spdx_el['licenseId'] == "GPL-1.0":
-                        spdx_el['licenseId'] = "GPL-1.0-only"
-                    else:
-                        spdx_el['licenseId'] = "GPL-1.0-or-later"
-                elif spdx_el['licenseId'].find("GPL-2.0") > -1 :
-                    if spdx_el['licenseId'] == "GPL-2.0":
-                        spdx_el['licenseId'] = "GPL-2.0-only"
-                    else:
-                        spdx_el['licenseId'] = "GPL-2.0-or-later"
-                elif spdx_el['licenseId'].find("GPL-3.0") > -1 :
-                    if spdx_el['licenseId'] == "GPL-3.0":
-                        spdx_el['licenseId'] = "GPL-3.0-only"
-                    else:
-                        spdx_el['licenseId'] = "GPL-3.0-or-later"
-                elif spdx_el['licenseId'].find("LGPL-1.0") > -1 :
-                    if spdx_el['licenseId'] == "LGPL-1.0":
-                        spdx_el['licenseId'] = "LGPL-1.0-only"
-                    else:
-                        spdx_el['licenseId'] = "LGPL-1.0-or-later"
-                elif spdx_el['licenseId'].find("LGPL-2.0") > -1 :
-                    if spdx_el['licenseId'] == "LGPL-2.0":
-                        spdx_el['licenseId'] = "LGPL-2.0-only"
-                    else:
-                        spdx_el['licenseId'] = "LGPL-2.0-or-later"
-                elif spdx_el['licenseId'].find("LGPL-2.1") > -1:
-                    if spdx_el['licenseId'] == "LGPL-2.1":
-                        spdx_el['licenseId'] = "LGPL-2.1-only"
-                    else:
-                        spdx_el['licenseId'] = "LGPL-2.1-or-later"
-                elif spdx_el['licenseId'].find("LGPL-3.0") > -1 :
-                    if spdx_el['licenseId'] == "LGPL-3.0":
-                        spdx_el['licenseId'] = "LGPL-3.0-only"
-                    else:
-                        spdx_el['licenseId'] = "LGPL-3.0-or-later"
+                if spdx_el['isDeprecatedLicenseId']:
+                    if spdx_el['licenseId'].find("AGPL-1.0") > -1:
+                        spdx_el['licenseId'] = "AGPL-1.0-only" if spdx_el['licenseId'] == "AGPL-1.0" else "AGPL-1.0-or-later"
+                    elif spdx_el['licenseId'].find("AGPL-3.0") > -1:
+                        spdx_el['licenseId'] = "AGPL-3.0-only" if spdx_el['licenseId'] == "AGPL-3.0" else "AGPL-3.0-or-later"
+                    elif spdx_el['licenseId'].find("GPL-1.0") > -1:
+                        spdx_el['licenseId'] = "GPL-1.0-only" if spdx_el['licenseId'] == "GPL-1.0" else "GPL-1.0-or-later"
+                    elif spdx_el['licenseId'].find("GPL-2.0") > -1:
+                        spdx_el['licenseId'] = "GPL-2.0-only" if spdx_el['licenseId'] == "GPL-2.0" else "GPL-2.0-or-later"
+                    elif spdx_el['licenseId'].find("GPL-3.0") > -1:
+                        spdx_el['licenseId'] = "GPL-3.0-only" if spdx_el['licenseId'] == "GPL-3.0" else "GPL-3.0-or-later"
+                    elif spdx_el['licenseId'].find("LGPL-1.0") > -1:
+                        spdx_el['licenseId'] = "LGPL-1.0-only" if spdx_el['licenseId'] == "LGPL-1.0" else "LGPL-1.0-or-later"
+                    elif spdx_el['licenseId'].find("LGPL-2.0") > -1:
+                        spdx_el['licenseId'] = "LGPL-2.0-only" if spdx_el['licenseId'] == "LGPL-2.0" else "LGPL-2.0-or-later"
+                    elif spdx_el['licenseId'].find("LGPL-2.1") > -1:
+                        spdx_el['licenseId'] = "LGPL-2.1-only" if spdx_el['licenseId'] == "LGPL-2.1" else "LGPL-2.1-or-later"
+                    elif spdx_el['licenseId'].find("LGPL-3.0") > -1:
+                        spdx_el['licenseId'] = "LGPL-3.0-only" if spdx_el['licenseId'] == "LGPL-3.0" else "LGPL-3.0-or-later"
+                    elif spdx_el['licenseId'].find("GFDL-1.1") > -1:
+                        spdx_el['licenseId'] = "GFDL-1.1-only" if spdx_el['licenseId'] == "GFDL-1.1" else "GFDL-1.1-or-later"
+                    elif spdx_el['licenseId'].find("GFDL-1.2") > -1:
+                        spdx_el['licenseId'] = "GFDL-1.2-only" if spdx_el['licenseId'] == "GFDL-1.2" else "GFDL-1.2-or-later"
+                    elif spdx_el['licenseId'].find("GFDL-1.3") > -1:
+                        spdx_el['licenseId'] = "GFDL-1.3-only" if spdx_el['licenseId'] == "GFDL-1.3" else "GFDL-1.3-or-later"
 
         spdx_lic_dict = convert_dict_list_to_dict(lst=spdx_licenses['licenses'], key_desc='licenseId')
 
