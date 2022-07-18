@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  #install:
+    #If you use the Ubuntu standard image 2.0 or later, you must specify runtime-versions.
+    #If you specify runtime-versions and use an image other than Ubuntu standard image 2.0, the build fails.
+    #runtime-versions:
+      # name: version
+      # name: version
+    #commands:
+      # - command
+      # - command
+  pre_build:
+    commands:
+      curl -LJO https://github.com/Mend/unified-agent-distribution/raw/master/standAlone/wss_agent.sh
+  post_build:
+    commands:
+      bash wss_agent.sh -apiKey $ws_api_key -project my-project -d . -wss.url https://saas.whitesourcesoftware.com/agent
+  artifacts:
+    files:
+      - '**/*'
