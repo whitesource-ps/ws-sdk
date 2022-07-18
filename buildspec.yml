@@ -12,10 +12,10 @@ phases:
       # - command
   pre_build:
     commands:
-      - curl -LJO https://github.com/Mend/unified-agent-distribution/raw/master/standAlone/wss_agent.sh
+      - curl -LJO https://github.com/whitesource/unified-agent-distribution/raw/master/standAlone/wss_agent.sh
   post_build:
     commands:
-      - bash wss_agent.sh -apiKey $ws_api_key -project my-project -d .
+      - bash wss_agent.sh -apiKey $ws_api_key -project CodeBuild-test-project -d .
 artifacts:
   files:
     - '**/*'
