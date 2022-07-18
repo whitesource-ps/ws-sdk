@@ -15,7 +15,7 @@ phases:
       curl -LJO https://github.com/Mend/unified-agent-distribution/raw/master/standAlone/wss_agent.sh
   post_build:
     commands:
-      bash wss_agent.sh -apiKey $ws_api_key -project my-project -d . -wss.url https://saas.whitesourcesoftware.com/agent
+      bash wss_agent.sh -apiKey $ws_api_key -project my-project -d .
 artifacts:
   files:
     - '**/*'
