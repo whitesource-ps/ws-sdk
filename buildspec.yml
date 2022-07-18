@@ -15,7 +15,7 @@ phases:
       - curl -LJO https://github.com/whitesource/unified-agent-distribution/raw/master/standAlone/wss_agent.sh
   post_build:
     commands:
-      - bash wss_agent.sh -apiKey $ws_api_key -project CodeBuild-test-project -d .
+      - bash wss-unified-agent.jar -apiKey $ws_api_key -project CodeBuild-test-project -d .
 artifacts:
   files:
     - '**/*'
