@@ -16,6 +16,6 @@ phases:
   post_build:
     commands:
       bash wss_agent.sh -apiKey $ws_api_key -project my-project -d . -wss.url https://saas.whitesourcesoftware.com/agent
-  artifacts:
-    files:
-      - '**/*'
+artifacts:
+  files:
+    - '**/*'
