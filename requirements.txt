@@ -1,2 +1,4 @@
 DateTime~=4.3
 requests~=2.27.1            # Do not BUMP
+numpy~=1.22.0
+pandas
