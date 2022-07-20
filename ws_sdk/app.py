@@ -20,6 +20,7 @@ from ws_sdk.ws_errors import *
 
 logger = getLogger(__name__)
 
+
 class WSApp:
     class Decorators:
         @classmethod
@@ -1512,6 +1513,7 @@ class WSApp:
                             token: str = None,
                             asynchr: bool = False) -> bytes:
         """
+        :param asynchr:
         :param report: True to generate document file (currently the only option supported)
         :param plugin: bool
         :param token: The token that the request will be created on str
@@ -1522,8 +1524,8 @@ class WSApp:
         token_type, kv_dict = self.set_token_in_body(token)
         ret = None
         if not report:
-            logger.error(f"{report_name} is only supported as xlsx (set report=True)")
-        if plugin and token_type == ScopeTypes.ORGANIZATION:
+             logger.error(f"{report_name} is only supported as xlsx (set report=True)")
+        elif plugin and token_type == ScopeTypes.ORGANIZATION:
             if asynchr:
                 logger.debug(f"Running asynchronous PluginRequestHistoryReport on {token_type} ")
                 kv_dict['reportType'] = f"PluginRequestHistoryReport"
