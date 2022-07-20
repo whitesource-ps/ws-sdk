@@ -446,7 +446,7 @@ class WSApp:
                         lst[1] = enriched_report
                         value = tuple(lst)
             else:
-                ret = enrich_dependency(ret)
+                ret = enrich_dependency(ret, with_dependencies, lib_name)
 
         return ret
 
