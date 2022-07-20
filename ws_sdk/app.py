@@ -1531,7 +1531,7 @@ class WSApp:
                 kv_dict['reportType'] = f"PluginRequestHistoryReport"
                 ret = self.async_report_generation(token_type, kv_dict, report)
             else:
-                ret = self.call_ws_api(request_type='getPluginRequestHistoryReport', kv_dict=kv_dict)
+                ret = self._generic_get(get_type='PluginRequestHistoryReport', token_type=token_type, kv_dict=kv_dict)
         elif plugin:
             logger.error(f"Plugin {report_name} is unsupported for {token_type}")
         elif asynchr:
