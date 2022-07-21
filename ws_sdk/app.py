@@ -126,6 +126,26 @@ class WSApp:
     def spdx_lic_dict(self):
         return ws_utilities.get_spdx_license_dict()
 
+    def get_scope_type_bytoken(self, token : str):
+        token_type = "project"
+        try:
+            rt = self.call_ws_api(request_type="getProjectVitals",
+                                kv_dict={"projectToken": token})
+        except:
+            token_type = "product"
+            try:
+                rt = self.call_ws_api(request_type="getProductVitals",
+                                      kv_dict={"productToken": token})
+            except:
+                token_type = "organization"
+                try:
+                    rt = self.call_ws_api(request_type="getOrganizationProjectVitals",
+                                          kv_dict={"orgToken": token})
+                except:
+                    token_type = None
+
+        return token_type
+
     def set_token_in_body(self,
                           token: Union[str, tuple] = None) -> (str, dict):
         """
@@ -143,7 +163,8 @@ class WSApp:
             token = token[0]
             kv_dict[TOKEN_TYPES_MAPPING[token_type]] = token
         else:
-            token_type = self.get_scope_type_by_token(token)
+            #token_type = self.get_scope_type_by_token(token)
+            token_type = self.get_scope_type_bytoken(token)  # For getting token_type need just fast checking
             kv_dict[TOKEN_TYPES_MAPPING[token_type]] = token
         logger.debug(f"Token: '{token}' is a {token_type}")
 
