@@ -142,7 +142,7 @@ class WSApp:
                     rt = self.call_ws_api(request_type="getOrganizationProjectVitals",
                                           kv_dict={"orgToken": token})
                 except:
-                    token_type = None
+                    token_type = self.token_type
 
         return token_type
 
