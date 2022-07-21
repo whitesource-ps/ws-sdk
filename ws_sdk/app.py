@@ -8,12 +8,15 @@ from time import sleep
 from typing import Union, List
 import requests
 from requests.adapters import HTTPAdapter
+import time
+import pandas as pd
+import io
+import zipfile
 
 from ws_sdk import ws_utilities
 from ws_sdk._version import __version__, __tool_name__
 from ws_sdk.ws_constants import *
 from ws_sdk.ws_errors import *
-
 
 logger = getLogger(__name__)
 
@@ -290,7 +293,8 @@ class WSApp:
                    tags: dict = None,
                    ignored: bool = False,
                    resolved: bool = False,
-                   report: bool = False) -> Union[list, bytes, None]:
+                   report: bool = False,
+                   asynchr: bool = False) -> Union[list, bytes, None]:
         """
         Retrieves open alerts of all types
         :param token: The token that the request will be created on
@@ -324,7 +328,11 @@ class WSApp:
         elif report:
             logger.debug(f"Running {name} Report")
             kv_dict["format"] = "xlsx"
-            ret = self._generic_get(get_type='SecurityAlertsByVulnerabilityReport', token_type=token_type, kv_dict=kv_dict)
+            if asynchr:
+                kv_dict['reportType'] = f"{token_type.capitalize()}SecurityAlertsReport"
+                ret = self.async_report_generation(token_type, kv_dict, report)
+            else:
+                ret = self._generic_get(get_type='SecurityAlertsByVulnerabilityReport', token_type=token_type, kv_dict=kv_dict)
         elif resolved:
             logger.error(f"Resolved {name} is only available in xlsx format(set report=True)")
         elif ignored:
@@ -343,7 +351,12 @@ class WSApp:
             ret = self._generic_get(get_type='AlertsByType', token_type=token_type, kv_dict=kv_dict)
         else:
             logger.debug("Running Alerts")
-            ret = self._generic_get(get_type='Alerts', token_type=token_type, kv_dict=kv_dict)
+            if asynchr:
+                kv_dict["format"] = "json"
+                kv_dict['reportType'] = f"{token_type.capitalize()}SecurityAlertsReport"
+                ret = self.async_report_generation(token_type, kv_dict, report)
+            else:
+                ret = self._generic_get(get_type='Alerts', token_type=token_type, kv_dict=kv_dict)
 
         return ret.get('alerts') if isinstance(ret, dict) else ret
 
@@ -366,7 +379,19 @@ class WSApp:
                       include_in_house_data: bool = True,
                       as_dependency_tree: bool = False,
                       with_dependencies: bool = False,
-                      report: bool = False) -> Union[List[dict], bytes]:
+                      report: bool = False,
+                      asynchr: bool = False) -> Union[List[dict], bytes]:
+
+        def enrich_dependency(ret, with_dependencies, lib_name):
+            ret = ret.get('libraries', []) if isinstance(ret, dict) else []
+            if with_dependencies:
+                main_l = []
+                [get_deps(lib, None, main_l) in lib for lib in ret]
+                ret = main_l
+            if lib_name:
+                ret = [lib for lib in ret if lib['name'] == lib_name]
+            return ret
+
         def get_deps(library: dict, parent_lib: dict, main_list: list):
             deps = library.get('dependencies')
             if deps:
@@ -397,6 +422,7 @@ class WSApp:
         """
         token_type, kv_dict = self.set_token_in_body(token)
         name = 'Inventory'
+        kv_dict["format"] = "xlsx" if report else "json"
         if token_type == ScopeTypes.PROJECT and not include_in_house_data:
             kv_dict["includeInHouseData"] = include_in_house_data
             logger.debug(f"Running {token_type} {name}")
@@ -405,18 +431,23 @@ class WSApp:
             logger.debug(f"Running {token_type} Hierarchy")
             ret = self._generic_get(get_type="Hierarchy", token_type=token_type, kv_dict=kv_dict)
         else:
-            kv_dict["format"] = "xlsx" if report else "json"
-            logger.debug(f"Running {token_type} {name} Report")
-            ret = self._generic_get(get_type="InventoryReport", token_type=token_type, kv_dict=kv_dict)
+            if asynchr:
+                kv_dict['reportType'] = f"{token_type.capitalize()}InventoryReport"
+                ret = self.async_report_generation(token_type, kv_dict, report)
+            else:
+                logger.debug(f"Running {token_type} {name} Report")
+                ret = self._generic_get(get_type="InventoryReport", token_type=token_type, kv_dict=kv_dict)
 
         if not report:
-            ret = ret.get('libraries', []) if isinstance(ret, dict) else []
-            if with_dependencies:
-                main_l = []
-                [get_deps(lib, None, main_l) in lib for lib in ret]
-                ret = main_l
-            if lib_name:
-                ret = [lib for lib in ret if lib['name'] == lib_name]
+            if ret and isinstance(ret, list):
+                for value in ret:
+                    if isinstance(value, tuple):
+                        enriched_report = enrich_dependency(value[1], with_dependencies, lib_name)
+                        lst = list(value)
+                        lst[1] = enriched_report
+                        value = tuple(lst)
+            else:
+                ret = enrich_dependency(ret, with_dependencies, lib_name)
 
         return ret
 
@@ -636,14 +667,13 @@ class WSApp:
                 scopes.append(_create_self_scope())
         elif self.token_type == ScopeTypes.PROJECT:
             scopes.append(_create_self_scope())
+        elif self.token_type == ScopeTypes.ORGANIZATION and scope_type == ScopeTypes.ORGANIZATION:
+            scopes.append(_create_self_scope())
         else:
             products = self.get_products()
             projects = self.get_projects()
 
             scopes = products + projects + [_create_self_scope()]
-
-        if need_filter:
-            scopes = self.sort_and_filter_scopes(scopes, token, name, scope_type, product_token, product_name)
 
         if need_filter:
             scopes = self.sort_and_filter_scopes(scopes, token, name, scope_type, product_token, product_name)
@@ -801,6 +831,7 @@ class WSApp:
                           cluster: bool = False,
                           report: bool = False,
                           token: str = None,
+                          asynchr: bool = False,
                           vulnerability_names: Union[str, list] = None) -> Union[list, bytes]:
         def get_cvss31(cvss3_score: str):
             cvss31_severity = None
@@ -810,6 +841,18 @@ class WSApp:
                     break
 
             return cvss31_severity
+
+        def enrich_report(ret, vulnerability_names):
+            if ret and isinstance(ret, dict):
+                ret = ret.get('vulnerabilities')
+                for vul in ret:
+                    vul['cvss31_severity'] = get_cvss31(vul.get('cvss3_score'))
+                if isinstance(vulnerability_names, str):
+                    vulnerability_names = [vulnerability_names]
+                if vulnerability_names:
+                    ret = [x for x in ret if x['name'] in vulnerability_names]
+
+            return ret
 
         name = "Vulnerability Report"
         """
@@ -844,20 +887,65 @@ class WSApp:
                 ret = self._generic_get(get_type='ClusterVulnerabilityReportRequest', token_type="", kv_dict=kv_dict)
             else:
                 logger.error(f"Cluster {name} is unsupported on {token_type}")
+        elif asynchr:
+            kv_dict['reportType'] = f"{token_type.capitalize()}VulnerabilityReport"
+            ret = self.async_report_generation(token_type, kv_dict, report)
         else:
             logger.debug(f"Running {name}")
             ret = self._generic_get(get_type='VulnerabilityReport', token_type=token_type, kv_dict=kv_dict)
 
-        if isinstance(ret, dict):
-            ret = ret.get('vulnerabilities')
-            for vul in ret:
-                vul['cvss31_severity'] = get_cvss31(vul.get('cvss3_score'))
-            if isinstance(vulnerability_names, str):
-                vulnerability_names = [vulnerability_names]
-            if vulnerability_names:
-                ret = [x for x in ret if x['name'] in vulnerability_names]
+        if ret and isinstance(ret, list):
+            for value in ret:
+                if isinstance(value, tuple):
+                    value[1]['vulnerabilities'] = enrich_report(value[1], vulnerability_names)
+        else:
+            ret = enrich_report(ret, vulnerability_names)
 
         return ret
+
+    def async_report_generation(self, token_type, kv_dict, report):
+        self.token_type = token_type
+        kv_dict["format"] = "xlsx" if report else "json"
+        ret = self.call_ws_api(request_type=f"generate{token_type.capitalize()}ReportAsync", kv_dict=kv_dict)
+        report_status_uuid = ret.get('asyncProcessStatus').get('uuid')
+        request_status = None
+        kv_dict_org = {}
+        time_sleeped = 0
+        list_ret = []
+        while 'IN_PROGRESS' or None or 'PENDING' in request_status:
+            time.sleep(2)
+            time_sleeped += 1
+            self.token_type = ScopeTypes.ORGANIZATION
+            kv_dict_org['orgToken'] = self.token
+            kv_dict_org.update({'uuid': report_status_uuid})
+            ret = self.call_ws_api(request_type=f"getAsyncProcessStatus", kv_dict=kv_dict_org)
+            request_status = ret.get('asyncProcessStatus').get('status')
+            if 'SUCCESS' in request_status:
+                kv_dict_org.update({'reportStatusUUID': report_status_uuid})
+                logger.info(f"Downloading Async report, report status id : {report_status_uuid}")
+                response = self.call_ws_api(request_type=f"downloadAsyncReport", kv_dict=kv_dict_org)
+                try:
+                    zfile = zipfile.ZipFile(io.BytesIO(response))
+                    for file in zfile.filelist:
+                        if file.filename.endswith(("json")):
+                            data_frame = pd.read_json(zfile.open(file.filename))
+                            ret = data_frame.to_dict(orient='list')
+                        if file.filename.endswith("xlsx"):
+                            ret = zfile.read(file.filename)
+                        list_ret.append((file.filename, ret))
+                except Exception as e:
+                    list_ret = {'Falied': f'report status id : {report_status_uuid}'}
+                    print(e)
+                    break
+                break
+            elif 'FALILED' in request_status or time_sleeped >= 180:
+                list_ret = ["Failed"]
+                print(f"Report is too big on: {self.token}. Try to pull manually with the report status id: {report_status_uuid}")
+                break
+            else:
+                continue
+
+        return list_ret
 
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.ORGANIZATION])
     def get_container_vulnerability(self,
@@ -1422,8 +1510,10 @@ class WSApp:
     def get_request_history(self,
                             plugin: bool = False,
                             report: bool = True,
-                            token: str = None) -> bytes:
+                            token: str = None,
+                            asynchr: bool = False) -> bytes:
         """
+        :param asynchr:
         :param report: True to generate document file (currently the only option supported)
         :param plugin: bool
         :param token: The token that the request will be created on str
@@ -1434,11 +1524,18 @@ class WSApp:
         token_type, kv_dict = self.set_token_in_body(token)
         ret = None
         if not report:
-            logger.error(f"{report_name} is only supported as xlsx (set report=True")
+             logger.error(f"{report_name} is only supported as xlsx (set report=True)")
         elif plugin and token_type == ScopeTypes.ORGANIZATION:
-            ret = self._generic_get(get_type='PluginRequestHistoryReport', token_type=token_type, kv_dict=kv_dict)
+            if asynchr:
+                logger.debug(f"Running asynchronous PluginRequestHistoryReport on {token_type} ")
+                kv_dict['reportType'] = f"PluginRequestHistoryReport"
+                ret = self.async_report_generation(token_type, kv_dict, report)
+            else:
+                ret = self._generic_get(get_type='PluginRequestHistoryReport', token_type=token_type, kv_dict=kv_dict)
         elif plugin:
-            logger.error(f"Plugin {report_name} unsupported for {token_type}")
+            logger.error(f"Plugin {report_name} is unsupported for {token_type}")
+        elif asynchr:
+            logger.error(f"Asynchronous {report_name} is unsupported")
         else:
             logger.debug(f"Running {token_type} {report_name}")
             ret = self._generic_get(get_type='RequestHistoryReport', token_type=token_type, kv_dict=kv_dict)
