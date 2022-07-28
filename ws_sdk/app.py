@@ -382,14 +382,16 @@ class WSApp:
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_ignored_alerts(self,
                            token: str = None,
-                           report: bool = False) -> Union[list, bytes]:
-        return self.get_alerts(token=token, report=report, ignored=True)
+                           report: bool = False,
+                           asyncr: bool = False) -> Union[list, bytes]:
+        return self.get_alerts(token=token, report=report, ignored=True, asyncr=False)
 
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_resolved_alerts(self,
                             token: str = None,
-                            report: bool = False) -> Union[list, bytes]:
-        return self.get_alerts(token=token, report=report, resolved=True)
+                            report: bool = False,
+                            asyncr: bool = False) -> Union[list, bytes]:
+        return self.get_alerts(token=token, report=report, resolved=True, asyncr=False)
 
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_inventory(self,
@@ -470,7 +472,8 @@ class WSApp:
     def get_lib_dependencies(self,
                              key_uuid: str,
                              report: bool = False,
-                             token: str = None) -> list:
+                             token: str = None,
+                             asyncr: bool = False,) -> list:
         """
         Method to get lib dependencies (and dependencies of dependencies...) by  keyUuid
         :param key_uuid:
@@ -966,7 +969,8 @@ class WSApp:
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.ORGANIZATION])
     def get_container_vulnerability(self,
                                     report: bool = False,
-                                    token: str = None) -> bytes:
+                                    token: str = None,
+                                    asyncr: bool = False) -> bytes:
         return self.get_vulnerability(container=True, report=report, token=token)
 
     def get_vulnerabilities_per_lib(self,
@@ -1114,7 +1118,8 @@ class WSApp:
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_source_files(self,
                          token: str = None,
-                         report: bool = False) -> Union[list, bytes]:
+                         report: bool = False,
+                         asyncr: bool = False) -> Union[list, bytes]:
         report_name = 'Source File Inventory Report'
         token_type, kv_dict = self.set_token_in_body(token)
         if report:
@@ -1134,13 +1139,15 @@ class WSApp:
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_source_file_inventory(self,
                                   report: bool = True,
-                                  token: str = None) -> bytes:
-        return self.get_source_files(token=token, report=report)
+                                  token: str = None,
+                                  asyncr: bool = False) -> bytes:
+        return self.get_source_files(token=token, report=report, asyncr=False)
 
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_in_house_libraries(self,
                                report: bool = False,
-                               token: str = None) -> Union[list, bytes]:
+                               token: str = None,
+                               asyncr: bool = False) -> Union[list, bytes]:
         """
         :param report: get output as xlsx if True
         :param token: The token that the request will be created on
@@ -1161,8 +1168,9 @@ class WSApp:
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_in_house(self,
                      report: bool = True,
-                     token: str = None) -> bytes:
-        return self.get_in_house_libraries(report=report, token=token)
+                     token: str = None,
+                     asyncr: bool = False) -> bytes:
+        return self.get_in_house_libraries(report=report, token=token, asyncr=False)
 
     @Decorators.check_permission(permissions=[ScopeTypes.ORGANIZATION])
     def get_users(self,
@@ -1313,7 +1321,8 @@ class WSApp:
     @Decorators.report_metadata(report_bin_type="pdf", report_scope_types=[ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_risk(self,
                  token: str = None,
-                 report: bool = True) -> bytes:
+                 report: bool = True,
+                 asyncr: bool = False) -> bytes:
         """API for WhiteSource
         :token: Token of scope
         :token_type: Scope Type (organization, product, project)
@@ -1333,7 +1342,8 @@ class WSApp:
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_library_location(self,
                              token: str = None,
-                             report: bool = False) -> Union[list, bytes]:
+                             report: bool = False,
+                             asyncr: bool = False) -> Union[list, bytes]:
         report_name = "Library Location"
         """
         :param token: The token that the request will be created on
@@ -1358,7 +1368,8 @@ class WSApp:
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT])
     def get_license_compatibility(self,
                                   token: str = None,
-                                  report: bool = False) -> bytes:
+                                  report: bool = False,
+                                  asyncr: bool = False) -> bytes:
         report_name = "License Compatibility Report"
         """
         :param token: The token that the request will be created on
@@ -1377,7 +1388,8 @@ class WSApp:
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_due_diligence(self,
                           token: str = None,
-                          report: bool = False) -> Union[list, bytes]:
+                          report: bool = False,
+                          asyncr: bool = False) -> Union[list, bytes]:
         report_name = "Due Diligence Report"
         f""" {report_name}
         :param token: The token that the request will be created on str
@@ -1395,7 +1407,8 @@ class WSApp:
 
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_attributes(self,
-                       token: str = None) -> bytes:
+                       token: str = None,
+                       asyncr: bool = False) -> bytes:
         """
         :param token: The token that the request will be created on
         :return: bytes (xlsx)
@@ -1422,7 +1435,8 @@ class WSApp:
                         export_format: str = "json",
                         license_reference_text_placement: str = "LICENSE_SECTION",
                         custom_attribute: str = None,
-                        include_versions: str = True) -> Union[dict, bytes]:
+                        include_versions: str = True,
+                        asyncr: bool = False) -> Union[dict, bytes]:
         """
         Method that creates Inventory like response with custom attributed and notice text/reference data
         :param reporting_aggregation_mode:
@@ -1483,7 +1497,8 @@ class WSApp:
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_effective_licenses(self,
                                report: bool = True,
-                               token: str = None,) -> bytes:
+                               token: str = None,
+                               asyncr: bool = False) -> bytes:
         """
         :param report:
         :param token: The token that the request will be created on
@@ -1503,7 +1518,8 @@ class WSApp:
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_bugs(self,
                  report: bool = True,
-                 token: str = None) -> bytes:
+                 token: str = None,
+                 asyncr: bool = False) -> bytes:
         """
         :param report: True to generate document file (currently the only option supported)
         :param token: The token that the request will be created on
