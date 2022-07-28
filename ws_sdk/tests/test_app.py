@@ -766,14 +766,14 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, bytes)
 
-    @patch('ws_sdk.app.WSApp.set_token_in_body')
-    @patch('ws_sdk.app.WSApp._generic_get')
-    def test_get_request_history_plugin(self, mock_generic_get, mock_set_token_in_body):
-        mock_generic_get.return_value = bytes()
-        mock_set_token_in_body.return_value = (self.ws_app.token_type, {})
-        res = self.ws_app.get_request_history(plugin=True)
-
-        self.assertIsInstance(res, bytes)
+    # @patch('ws_sdk.app.WSApp.set_token_in_body')
+    # @patch('ws_sdk.app.WSApp._generic_get')
+    # def test_get_request_history_plugin(self, mock_generic_get, mock_set_token_in_body):
+    #     mock_generic_get.return_value = bytes()
+    #     mock_set_token_in_body.return_value = (self.ws_app.token_type, {})
+    #     res = self.ws_app.get_request_history(plugin=True)
+    #
+    #     self.assertIsInstance(res, bytes)
 
     @patch('ws_sdk.app.WSApp.set_token_in_body')
     @patch('ws_sdk.app.WSApp._generic_get')
