@@ -1541,7 +1541,7 @@ class WSApp:
         ret = None
         if not report:
             logger.error(f"{report_name} is only supported as xlsx (set report=True)")
-        if report and plugin and token_type == ScopeTypes.ORGANIZATION:
+        elif report and plugin and token_type == ScopeTypes.ORGANIZATION:
             if asyncr:
                 logger.debug(f"Running asynchronous PluginRequestHistoryReport on {token_type} ")
                 kv_dict['reportType'] = f"PluginRequestHistoryReport"
