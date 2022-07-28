@@ -377,7 +377,7 @@ class WSApp:
             else:
                 ret = self._generic_get(get_type='Alerts', token_type=token_type, kv_dict=kv_dict)
 
-        return ret.get('alerts') if isinstance(ret, dict) and ret.get('alerts') else ret
+        return ret.get('alerts') if isinstance(ret, dict) and 'alerts' in ret else ret
 
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
     def get_ignored_alerts(self,
