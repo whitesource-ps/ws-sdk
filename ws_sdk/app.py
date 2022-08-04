@@ -316,6 +316,7 @@ class WSApp:
                    asyncr: bool = False) -> Union[list, bytes, None]:
         """
         Retrieves open alerts of all types
+        :param asyncr:get output using async API call
         :param token: The token that the request will be created on
         :param alert_type: Allows filtering alerts by a single type from ALERT_TYPES
         :param from_date: Allows filtering of alerts by start date. Works together with to_date
@@ -325,7 +326,7 @@ class WSApp:
         :param resolved: Should output include resolved reports
         :param report: Create xlsx report type
         :return: list with alerts or xlsx if report is True
-        :rtype: list or bytes
+        :rtype: list or bytes or dict
         """
         name = "Alerts"
         token_type, kv_dict = self.set_token_in_body(token)
@@ -370,12 +371,12 @@ class WSApp:
             ret = self._generic_get(get_type='AlertsByType', token_type=token_type, kv_dict=kv_dict)
         else:
             logger.debug("Running Alerts")
+            kv_dict["format"] = "json"
             if asyncr:
-                kv_dict["format"] = "json"
                 kv_dict['reportType'] = f"{token_type.capitalize()}SecurityAlertsReport"
                 ret = self.async_report_generation(token_type, kv_dict, report)
             else:
-                ret = self._generic_get(get_type='Alerts', token_type=token_type, kv_dict=kv_dict)
+                ret = self._generic_get(get_type='SecurityAlertsByVulnerabilityReport', token_type=token_type, kv_dict=kv_dict)
 
         return ret.get('alerts') if isinstance(ret, dict) and 'alerts' in ret else ret
 
@@ -402,7 +403,10 @@ class WSApp:
                       with_dependencies: bool = False,
                       report: bool = False,
                       asyncr: bool = False) -> Union[List[dict], bytes]:
-
+        """
+        : param asyncr:get output using async API call
+        : returns list or bytes or dict
+        """
         def enrich_dependency(ret, with_dependencies, lib_name):
             ret = ret.get('libraries', []) if isinstance(ret, dict) else []
             if with_dependencies:
@@ -862,13 +866,14 @@ class WSApp:
             return cvss31_severity
 
         def enrich_report(ret, vulnerability_names):
-            ret = ret.get('vulnerabilities')
-            for vul in ret:
-                vul['cvss31_severity'] = get_cvss31(vul.get('cvss3_score'))
-            if isinstance(vulnerability_names, str):
-                vulnerability_names = [vulnerability_names]
-            if vulnerability_names:
-                ret = [x for x in ret if x['name'] in vulnerability_names]
+            if isinstance(ret, dict):
+                ret = ret.get('vulnerabilities')
+                for vul in ret:
+                    vul['cvss31_severity'] = get_cvss31(vul.get('cvss3_score'))
+                if isinstance(vulnerability_names, str):
+                    vulnerability_names = [vulnerability_names]
+                if vulnerability_names:
+                    ret = [x for x in ret if x['name'] in vulnerability_names]
 
             return ret
 
@@ -892,7 +897,7 @@ class WSApp:
         ret = None
 
         if report and vulnerability_names:
-            logger.error(f"Unable to filter by the vulnerability in {name} while running with Excel output. Please use JSON output")
+            logger.error(f"Unable to filter by the vulnerability in {name} while running with Excel format. Please use JSON output format")
         elif container:
             if token_type == ScopeTypes.ORGANIZATION:
                 logger.debug(f"Running Container {name}")
@@ -916,7 +921,7 @@ class WSApp:
             for key, value in ret.items():
                 if 'asyncReport' in key:
                     ret[key] = enrich_report(value, vulnerability_names)
-                else:
+                elif 'Failed' not in key:
                     ret = enrich_report(ret, vulnerability_names)
 
         return ret
@@ -960,7 +965,8 @@ class WSApp:
                 break
             elif 'FALILED' in request_status or time_sleeped >= 180:
                 dict_ret['Failed'] = f'report status id : {report_status_uuid}'
-                logger.error(f"Report is too big on: {kv_dict['productToken']}. Try to pull manually with the report status id: {report_status_uuid}")
+                logger.error(f"Report is too big on {token_type} token: {kv_dict['productToken']}."
+                             f"Try to pull manually using your orgToken, userKey and the reportStatusUUID: {report_status_uuid}")
                 break
             else:
                 continue
@@ -1141,6 +1147,13 @@ class WSApp:
                                   report: bool = True,
                                   token: str = None,
                                   asyncr: bool = False) -> bytes:
+        """
+        :param asyncr: get output using async API call
+        :param report: get output as xlsx if True
+        :param token: The token that the request will be created on
+        :return: list or bytes(xlsx) or dict(paginated reports when asyncr)
+        :rtype: list or bytes or dict
+        """
         return self.get_source_files(token=token, report=report, asyncr=False)
 
     @Decorators.report_metadata(report_bin_type="xlsx", report_scope_types=[ScopeTypes.PROJECT, ScopeTypes.PRODUCT, ScopeTypes.ORGANIZATION])
@@ -1149,10 +1162,11 @@ class WSApp:
                                token: str = None,
                                asyncr: bool = False) -> Union[list, bytes]:
         """
+        :param asyncr: get output using async API call
         :param report: get output as xlsx if True
         :param token: The token that the request will be created on
-        :return: list or bytes(xlsx)
-        :rtype: list or bytes
+        :return: list or bytes(xlsx) or dict(paginated reports when asyncr)
+        :rtype: list or bytes or dict
         """
         report_name = 'In-House Libraries'
         token_type, kv_dict = self.set_token_in_body(token)
