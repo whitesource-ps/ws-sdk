@@ -48,8 +48,6 @@ ws.create_user(name='USER_TEST1', email="USER_TEST1@EMAIL.COM", inviter_email="I
 from ws_sdk.client import WSClient
 
 ws_client = WSClient(url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN", ua_path="/UA/WORKING/DIR")
-# Download latest UA jar and conf file
-ws_client.download_ua()
 # Execute scan into defined project token
 out = ws_client.scan(scan_dir="/PATH/TO/DIR", project_token="PROJ_TOKEN", product_token="PROD_TOKEN")
 # Read scan artifact's policy rejection summary 
