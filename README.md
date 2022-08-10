@@ -9,7 +9,7 @@ SDK written in Python to simplify access to WhiteSource resources
 
 The SDK contains the following modules:
 * **web** - Module for accessing WhiteSource Application (reports, administration, etc...).
-* **client** - UA wrapper layer (download UA, execute scan, read UA output files...).  
+* **client** - UA wrapper layer (download UA, execute scan, read UA output files...).
 
 ## Supported Operating Systems
 - **Linux (Bash):**	CentOS, Debian, Ubuntu, RedHat
@@ -30,12 +30,12 @@ The SDK contains the following modules:
 ```python
 # Unified (can do both WSApp and WSClient)
 from ws_sdk.web import WS
-ws = WS(api_url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
+ws = WS(url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
 
 # Web (WhiteSource Application)
 from ws_sdk.app import WSApp
-ws = WSApp(api_url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
-# Get alerts 
+ws = WSApp(url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
+# Get alerts
 all_alerts = ws.get_alerts()
 # Get vulnerabilities report in XLSX format
 vul_report = ws.get_vulnerability(report=True)
@@ -47,11 +47,11 @@ ws.create_user(name='USER_TEST1', email="USER_TEST1@EMAIL.COM", inviter_email="I
 # Client (WhiteSource Unified Agent)
 from ws_sdk.client import WSClient
 
-ws_client = WSClient(api_url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN", ua_path="/UA/WORKING/DIR")
 # Download latest UA jar and conf file
 ws_client.download_ua()
+ws_client = WSClient(url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN", ua_path="/UA/WORKING/DIR")
 # Execute scan into defined project token
 out = ws_client.scan(scan_dir="/PATH/TO/DIR", project_token="PROJ_TOKEN", product_token="PROD_TOKEN")
-# Read scan artifact's policy rejection summary 
+# Read scan artifact's policy rejection summary
 pol_rej = ws_client.get_policy_rejection_summary()
 ```
