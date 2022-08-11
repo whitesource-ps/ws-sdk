@@ -55,3 +55,4 @@ out = ws_client.scan(scan_dir="/PATH/TO/DIR", project_token="PROJ_TOKEN", produc
 # Read scan artifact's policy rejection summary 
 pol_rej = ws_client.get_policy_rejection_summary()
 ```
+#
