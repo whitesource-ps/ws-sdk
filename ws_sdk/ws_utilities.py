@@ -323,7 +323,7 @@ def execute_command(command: str,
                 val = val + s + " "
 
         if val.strip():
-            new_l.append(val)
+            new_l.append(val.strip())
 
         return new_l
 
