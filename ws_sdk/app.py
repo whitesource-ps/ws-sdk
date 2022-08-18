@@ -1639,17 +1639,23 @@ class WSApp:
         return ret
 
     def delete_scope(self,
-                     token: str) -> dict:
+                     token: str,
+                     project: dict = None) -> dict:
         """
+        :param project:
         :param token: token of entity to delete (product or project)
         :return: dict whether succeeded.
         :rtype dict
         """
         token_type, kv_dict = self.set_token_in_body(token)
-        if token_type == ScopeTypes.PROJECT:
+        if not project:
             project = self.get_project(token)
+            project_name = self.get_scope_name_by_token(token)
+        else:
+            project_name = project.get('name')
+        if token_type == ScopeTypes.PROJECT:
             kv_dict[TOKEN_TYPES_MAPPING[ScopeTypes.PRODUCT]] = project[TOKEN_TYPES_MAPPING[ScopeTypes.PRODUCT]]
-        logger.debug(f"Deleting {token_type}: {self.get_scope_name_by_token(token)} Token: {token}")
+        logger.debug(f"Deleting {token_type}: {project_name} Token: {token}")
 
         return self.call_ws_api(request_type=f"delete{token_type.capitalize()}", kv_dict=kv_dict)
 
