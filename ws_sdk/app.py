@@ -1640,8 +1640,9 @@ class WSApp:
 
     def delete_scope(self,
                      token: str,
-                     project: dict) -> dict:
+                     project: dict = None) -> dict:
         """
+        :param project:
         :param token: token of entity to delete (product or project)
         :return: dict whether succeeded.
         :rtype dict
