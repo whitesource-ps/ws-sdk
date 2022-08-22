@@ -467,7 +467,7 @@ class WSApp:
             for key, value in ret.items():
                 if 'asyncReport' in key:
                     ret[key] = enrich_dependency(value, with_dependencies, lib_name)
-                else:
+                elif 'libraries' in key:
                     ret = enrich_dependency(ret, with_dependencies, lib_name)
 
         return ret
