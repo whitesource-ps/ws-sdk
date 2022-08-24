@@ -95,7 +95,7 @@ class WSApp:
                  **kwargs
                  ):
         """WhiteSource Python SDK
-        :api_url: URL for the API to access (e.g. saas.whitesourcesoftware.com)
+        :url: URL for the API to access (e.g. saas.whitesourcesoftware.com)
         :user_key: User Key to use
         :token: Token of scope
         :token_type: Scope Type (organization, product, project)
@@ -132,7 +132,7 @@ class WSApp:
         except:
             token_type = "product"
             try:
-                rt = self.call_ws_api(request_type="getProductVitals",
+                rt = self.call_ws_api(request_type="getProductProjectVitals",
                                       kv_dict={"productToken": token})
             except:
                 token_type = "organization"
