@@ -72,7 +72,7 @@ class WSClient:
         def _handle_ws_client_errors():
             if output[0] == 0:
                 logger.debug(f"UA executed successfully. Return Code {output[0]}. Message: {output[1]}")
-            elif output[0] == -2:
+            elif output[0] == -2 or output[0] == 254:
                 raise ws_errors.WsSdkClientPolicyViolation(output)
             else:
                 raise ws_errors.WsSdkClientGenericError(output)
