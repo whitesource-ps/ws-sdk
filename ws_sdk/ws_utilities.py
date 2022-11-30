@@ -20,7 +20,7 @@ logger = getLogger(__name__)
 def get_spdx_license_dict() -> dict:
     try:
         from spdx.config import _licenses
-        with open(_licenses, "r") as fp:
+        with open(_licenses, "r", encoding="utf-8") as fp:
             spdx_licenses = json.loads(fp.read())
         logger.debug(f"License List Version: {spdx_licenses['licenseListVersion']}")
 
