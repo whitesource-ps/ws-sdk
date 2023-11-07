@@ -1,3 +1,4 @@
+import subprocess
 import json
 import logging
 import os
@@ -174,13 +175,50 @@ def get_full_ws_url(url) -> str:
     return url
 
 
-def call_gh_api(url: str):
-    logger.debug(f"Calling url: {url}")
-    try:
-        res = requests.get(url=url, headers=GH_HEADERS)
-    except requests.RequestException:
-        logger.exception("Error getting last release")
+def analyze_proxy(proxy: str, proxyuser: str = "", proxypsw: str = ""):
+    is_https = "https://" in proxy
+    proxy_ = proxy.replace("https://", "").replace("http://", "")
+    if "@" not in proxy_ and proxyuser and proxypsw:
+        proxy_ = f"{proxyuser}:{proxypsw}@" + proxy_
+    return proxy_, is_https
 
+
+def call_gh_api(url: str, proxies: dict = {}):
+    logger.info(f"Calling url: {url}")
+    res = {}
+    try:
+        res = requests.get(url=url, headers=GH_HEADERS, proxies=proxies)
+    except Exception as err: # requests.RequestException:
+        try:
+            proxy_ = proxies["http"]
+        except:
+            try:
+                proxy_ = proxies["https"]
+            except:
+                proxy_ = ""
+        if proxy_:
+            curl_command = [
+                'curl',
+                '--insecure',
+                '--proxy', f'{proxy_}',
+                url
+            ]
+        else:
+            curl_command = [
+                'curl',
+                '--insecure',
+                url
+            ]
+        try:
+            res = subprocess.run(curl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+            if res.returncode == 0:
+                return res
+            else:
+                logger.info(f"Error code is {res.returncode}")
+                logger.info(proxies)
+                return {}
+        except:
+            logger.exception("Error getting last release")
     return res
 
 
@@ -281,8 +319,8 @@ def generate_conf_ev(ws_configuration: WsConfiguration) -> dict:
     #         **{f"WS_" + k.upper(): to_str(v) for k, v in ws_configuration.__dict__.items() if v is not None}}
 
 
-def init_ua(path: str):
-    download_ua(path)
+def init_ua(path: str, proxies: dict):
+    download_ua(path=path, proxies=proxies)
 
 
 def is_java_exists(java_bin: str = JAVA_BIN) -> bool:
@@ -352,17 +390,43 @@ def is_ua_exists(ua_jar_f_with_path):
 
 def download_ua(path: str,
                 inc_ua_jar_file: bool = True,
-                inc_ua_conf_file: bool = False):
+                inc_ua_conf_file: bool = False,
+                proxies: dict = {}):
     def download_ua_file(f_details: tuple):
         pathlib.Path(path).mkdir(parents=True, exist_ok=True)
         file_p = os.path.join(path, f_details[0])
         if os.path.exists(file_p):
             logger.debug(f"Backing up previous {f_details[0]}")
             shutil.move(file_p, f"{file_p}.bkp")
-        logger.debug(f"Downloading WS Unified Agent (version: {get_latest_ua_release_version()}) to {file_p}")
-        resp = requests.get(url=f_details[1])
-        with open(file_p, 'wb') as f:
-            f.write(resp.content)
+        logger.debug(f"Downloading WS Unified Agent (version: {get_latest_ua_release_version(proxies=proxies)}) to {file_p}")
+        try:
+            resp = requests.get(url=f_details[1], proxies=proxies)
+            with open(file_p, 'wb') as f:
+                f.write(resp.content)
+        except:
+            try:
+                proxy_ = proxies["http"]
+            except:
+                try:
+                    proxy_ = proxies["https"]
+                except:
+                    proxy_ = ""
+            if proxy_:
+                curl_command = [
+                    'curl',
+                    '-Lo', file_p,
+                    '--insecure',
+                    '--proxy', f'{proxy_}',
+                    f_details[1]
+                ]
+            else:
+                curl_command = [
+                    'curl',
+                    '-Lo', file_p,
+                    '--insecure',
+                    f_details[1]
+                ]
+            subprocess.run(curl_command, check=True)
 
     if inc_ua_jar_file:
         download_ua_file(UA_JAR_T)
@@ -371,17 +435,24 @@ def download_ua(path: str,
         download_ua_file(UA_CONF_T)
 
 
-def get_latest_ua_release_version() -> str:
-    ver = get_latest_ua_release_url()['tag_name']
-    logger.debug(f"Latest Unified Agent version: {ver}")
+def get_latest_ua_release_version(proxies : dict = {}) -> str:
+    ver = get_latest_ua_release_url(proxies=proxies)['tag_name']
+    if ver:
+        logger.debug(f"Latest Unified Agent version: {ver}")
+        return ver
+    else:
+        return ""
 
-    return ver
 
-
-def get_latest_ua_release_url() -> dict:
-    res = call_gh_api(url=LATEST_UA_URL)
-
-    return json.loads(res.text)
+def get_latest_ua_release_url(proxies : dict = {}) -> dict:
+    res = call_gh_api(url=LATEST_UA_URL, proxies=proxies)
+    try:
+        return json.loads(res.text)
+    except:
+        try:
+            return json.loads(res.stdout)
+        except:
+            return ""
 
 
 def convert_to_time_obj(time: str):

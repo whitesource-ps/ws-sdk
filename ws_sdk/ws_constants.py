@@ -15,7 +15,7 @@ JAVA_BIN = "java"
 retry_strategy = Retry(
     total=3,
     status_forcelist=[429, 500, 502, 503, 504],
-    method_whitelist=["HEAD", "GET", "POST", "OPTIONS"],
+    allowed_methods=["HEAD", "GET", "POST", "OPTIONS"],
     backoff_factor=10
 )
 
