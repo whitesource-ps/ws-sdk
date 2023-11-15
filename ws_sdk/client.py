@@ -62,7 +62,7 @@ class WSClient:
                 logger.debug("Skipping WhiteSource Unified Agent update")
             else:
                 logger.info("A new WhiteSource Unified Agent exists. Downloading the latest ")
-                ws_utilities.init_ua(self.ua_path, self.proxies)
+                ws_utilities.init_ua(self.ua_path)
         else:
             logger.error("Unsupported organization type. Only Organization type is supported")
 
@@ -291,7 +291,7 @@ class WSClient:
         return local_semver
 
     def is_latest_ua_semver(self) -> bool:
-        return parse_version(self.get_local_ua_semver()) >= parse_version(ws_utilities.get_latest_ua_release_version(proxies=self.proxies))
+        return parse_version(self.get_local_ua_semver()) >= parse_version(ws_utilities.get_latest_ua_release_version())
 
     def _get_ua_output(self, f) -> dict:
         with open(os.path.join(self.ua_path_whitesource, f), 'r') as fp:

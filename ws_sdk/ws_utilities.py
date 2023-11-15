@@ -319,7 +319,9 @@ def generate_conf_ev(ws_configuration: WsConfiguration) -> dict:
     #         **{f"WS_" + k.upper(): to_str(v) for k, v in ws_configuration.__dict__.items() if v is not None}}
 
 
-def init_ua(path: str, proxies: dict):
+def init_ua(path: str, proxies=None):
+    if proxies is None:
+        proxies = {}
     download_ua(path=path, proxies=proxies)
 
 
@@ -391,7 +393,10 @@ def is_ua_exists(ua_jar_f_with_path):
 def download_ua(path: str,
                 inc_ua_jar_file: bool = True,
                 inc_ua_conf_file: bool = False,
-                proxies: dict = {}):
+                proxies=None):
+    if proxies is None:
+        proxies = {}
+
     def download_ua_file(f_details: tuple):
         pathlib.Path(path).mkdir(parents=True, exist_ok=True)
         file_p = os.path.join(path, f_details[0])
@@ -435,7 +440,9 @@ def download_ua(path: str,
         download_ua_file(UA_CONF_T)
 
 
-def get_latest_ua_release_version(proxies : dict = {}) -> str:
+def get_latest_ua_release_version(proxies=None) -> str:
+    if proxies is None:
+        proxies = {}
     ver = get_latest_ua_release_url(proxies=proxies)['tag_name']
     if ver:
         logger.debug(f"Latest Unified Agent version: {ver}")
@@ -444,7 +451,9 @@ def get_latest_ua_release_version(proxies : dict = {}) -> str:
         return ""
 
 
-def get_latest_ua_release_url(proxies : dict = {}) -> dict:
+def get_latest_ua_release_url(proxies=None) -> dict:
+    if proxies is None:
+        proxies = {}
     res = call_gh_api(url=LATEST_UA_URL, proxies=proxies)
     try:
         return json.loads(res.text)
