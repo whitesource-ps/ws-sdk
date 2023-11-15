@@ -187,7 +187,7 @@ def call_gh_api(url: str, proxies: dict = {}):
     logger.info(f"Calling url: {url}")
     res = {}
     try:
-        res = requests.get(url=url, headers=GH_HEADERS, proxies=proxies)
+        res = requests.get(url=url, proxies=proxies)
     except Exception as err: # requests.RequestException:
         try:
             proxy_ = proxies["http"]
@@ -452,7 +452,7 @@ def get_latest_ua_release_url(proxies : dict = {}) -> dict:
         try:
             return json.loads(res.stdout)
         except:
-            return ""
+            return {}
 
 
 def convert_to_time_obj(time: str):
