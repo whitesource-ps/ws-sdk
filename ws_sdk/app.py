@@ -92,6 +92,9 @@ class WSApp:
                  timeout: int = CONN_TIMEOUT,
                  resp_format: str = "json",
                  tool_details: tuple = (f"ps-{__tool_name__.replace('_','-')}", __version__),
+                 proxy_url: str = "",
+                 proxyuser: str = "",
+                 proxypsw: str = "",
                  **kwargs
                  ):
         """WhiteSource Python SDK
@@ -101,6 +104,19 @@ class WSApp:
         :token_type: Scope Type (organization, product, project)
         :tool_details Tool name and version to include in Body and Header of API requests
         """
+        logger.info(f"Proxy url: {proxy_url}")
+        if proxy_url:
+            proxy, is_https = ws_utilities.analyze_proxy(proxy_url, proxyuser, proxypsw)
+        else:
+            proxy = ""
+            is_https = False
+
+        if is_https:
+            proxies = {"https": f"https://{proxy}"} if proxy else {}
+            #proxies = {"https": f"https://{proxy}", "http": f"http://{proxy}"} if proxy else {}
+        else:
+            proxies = {"http": f"http://{proxy}"} if proxy else {}
+        logger.info(proxies)
         self.user_key = user_key
         self.token = token
         self.token_type = token_type
@@ -109,6 +125,7 @@ class WSApp:
         self.session = requests.session()
         adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100, max_retries=retry_strategy)
         self.session.mount(prefix='https://', adapter=adapter)
+        self.session.proxies.update(proxies)  # Update the session's proxy settings
         self.url = ws_utilities.get_full_ws_url(url)
         self.api_url = self.url + API_URL_SUFFIX
         self.header_tool_details = {"agent": tool_details[0], "agentVersion": tool_details[1]}
@@ -235,7 +252,8 @@ class WSApp:
         while tries_left and not is_success:
             tries_left -= 1
             try:
-                resp = self.session.post(url=self.api_url, data=json.dumps(body), headers=self.headers, timeout=self.timeout)
+                resp = self.session.post(url=self.api_url, data=json.dumps(body), headers=self.headers,
+                                             verify=not bool(self.session.proxies), timeout=self.timeout)
                 resp.raise_for_status()
                 is_success = True
             except requests.exceptions.RequestException as e:
