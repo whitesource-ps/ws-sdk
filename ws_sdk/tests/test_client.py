@@ -44,14 +44,6 @@ class TestWS(TestCase):
 
         self.assertEqual(f"{compared_ua_conf.scanComment};key1:value1", self.client.ua_conf.scanComment)
 
-    def test_add_scan_comment(self):
-        key = "key1"
-        value = "value1"
-        compared_ua_conf = copy.copy(self.client.ua_conf)
-        self.client.add_scan_comment(key=key, value=value)
-
-        self.assertEqual(f"{compared_ua_conf.scanComment};key1:value1", self.client.ua_conf.scanComment)
-
 
 if __name__ == '__main__':
     TestCase.unittest.main()

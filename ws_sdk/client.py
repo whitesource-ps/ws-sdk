@@ -26,30 +26,14 @@ class WSClient:
                  java_bin: str = JAVA_BIN,
                  ua_path: str = f"c:/tmp/ws-{__tool_name__}" if sys.platform == "win32" else f"/tmp/{__tool_name__}",
                  skip_ua_download: bool = False,
-                 #proxy_url: str = "",
-                 #proxyuser: str = "",
-                 #proxypsw: str = "",
                  tool_details: tuple = ("ps-sdk", __version__),
                  **kwargs
                  ):
-        '''
-        if proxy_url:
-            proxy, is_https = ws_utilities.analyze_proxy(proxy_url, proxyuser, proxypsw)
-        else:
-            proxy = ""
-            is_https = False
-
-        if is_https:
-            proxies = {"https": f"https://{proxy}", "http": f"http://{proxy}"} if proxy else {}
-        else:
-            proxies = {"http": f"http://{proxy}"} if proxy else {}
-        '''
         if token_type == ORGANIZATION:
             self.ua_path = ua_path
             self.ua_path_whitesource = os.path.join(self.ua_path, "whitesource")
             self.java_temp_dir = ua_path
             self.ua_jar_f_with_path = os.path.join(ua_path, UA_JAR_F_N)
-            self.proxies = self.session.proxies
             # UA configuration
             self.ua_conf = ws_utilities.WsConfiguration()
             self.ua_conf.projectPerFolder = False
