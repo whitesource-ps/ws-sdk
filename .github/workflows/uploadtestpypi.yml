@@ -54,7 +54,7 @@ jobs:
           WS_ORG_TOKEN: ${{ secrets.WS_ORG_TOKEN }}
         run: python -m unittest
       - name: Create Wheel Package
-        run: python setup.py bdist_wheel
+        run: python setup.py bdist_wheel --version=${{ env.VERSION }}
       - name: Install Wheel package
         run: ls -1 dist/*.whl | xargs pip install
       - name: Create Release
