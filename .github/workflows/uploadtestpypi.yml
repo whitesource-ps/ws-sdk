@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Set package version
         run: |
-          export VERSION=$(date +'%Y.%m.0')-fix${{ github.run_number }}
+          export VERSION=$(date +'%Y.%m').post${{ github.run_number }}
           echo "VERSION=$VERSION" >> $GITHUB_ENV 
           echo "Version: $VERSION"
           echo "GitHub Ref: ${{ github.ref }}"
