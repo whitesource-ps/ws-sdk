@@ -56,7 +56,7 @@ jobs:
       - name: Update version in setup.py
         run: sed -i "s/version='0.0.0.fix0'/version='${{ env.VERSION }}'/" setup.py
       - name: Create Wheel Package
-        run: python setup.py bdist_wheel --version=${{ env.VERSION }}
+        run: python setup.py bdist_wheel
       - name: Install Wheel package
         run: ls -1 dist/*.whl | xargs pip install
       - name: Create Release
