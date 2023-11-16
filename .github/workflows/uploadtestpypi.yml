@@ -53,6 +53,8 @@ jobs:
           WS_USER_KEY: ${{ secrets.WS_USER_KEY }}
           WS_ORG_TOKEN: ${{ secrets.WS_ORG_TOKEN }}
         run: python -m unittest
+      - name: Update version in setup.py
+        run: sed -i "s/version='0.0.0.fix0'/version='${{ env.VERSION }}'/" setup.py
       - name: Create Wheel Package
         run: python setup.py bdist_wheel --version=${{ env.VERSION }}
       - name: Install Wheel package
