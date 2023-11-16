@@ -29,7 +29,8 @@ jobs:
       - name: Set package version
         run: |
           sed -E -i  "s/^__version__ = \"[a-z0-9\.]+\"/__version__ = \"$VERSION\"/g"  ${{ env.TOOL_DIR }}/_version.py
-          echo ${VERSION}
+          export VERSION=$(date +'%Y.%m.0')-fix${{ github.run_number }}
+          echo "Version: $VERSION"
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
