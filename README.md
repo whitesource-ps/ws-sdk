@@ -28,9 +28,10 @@ The SDK contains the following modules:
 ## Execution
 
 ```python
+# WS_URL should be the URL for your environment without https:// e.g. saas.whitesourcesoftware.com
 # Unified (can do both WSApp and WSClient)
 from ws_sdk.web import WS
-ws = WS(url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
+ws = WS(url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN", ua_path="/UA/WORKING/DIR")
 
 # Web (Mend Application)
 from ws_sdk.app import WSApp
