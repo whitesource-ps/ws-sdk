@@ -15,7 +15,7 @@ JAVA_BIN = "java"
 retry_strategy = Retry(
     total=3,
     status_forcelist=[429, 500, 502, 503, 504],
-    method_whitelist=["HEAD", "GET", "POST", "OPTIONS"],
+    allowed_methods=["HEAD", "GET", "POST", "OPTIONS"],
     backoff_factor=10
 )
 
@@ -31,7 +31,7 @@ UA_JAR_T = (UA_JAR_F_N, LATEST_UA_JAR_F_U)
 UA_CONF_T = (UA_CONF_F_N, LATEST_UA_CONF_F_U)
 
 LATEST_UA_URL = "https://api.github.com/repos/whitesource/unified-agent-distribution/releases/latest"
-GH_HEADERS = {"Accept": "application / vnd.github.v3 + json"}
+GH_HEADERS = {"Accept": "application/vnd.github.v3+json"}
 MANDATORY_VALS = ['TBD']
 
 
