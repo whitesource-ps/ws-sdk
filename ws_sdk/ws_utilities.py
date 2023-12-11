@@ -180,6 +180,7 @@ def call_gh_api(url: str):
         res = requests.get(url=url, headers=GH_HEADERS)
     except requests.RequestException:
         logger.exception("Error getting last release")
+        res = None
 
     return res
 
@@ -380,8 +381,10 @@ def get_latest_ua_release_version() -> str:
 
 def get_latest_ua_release_url() -> dict:
     res = call_gh_api(url=LATEST_UA_URL)
-
-    return json.loads(res.text)
+    if res:
+        return json.loads(res.text)
+    else:
+        return {}
 
 
 def convert_to_time_obj(time: str):

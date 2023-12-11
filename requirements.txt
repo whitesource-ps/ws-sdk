@@ -1,2 +1,4 @@
-DateTime~=4.5
-requests~=2.27.1            # Do not BUMP
+DateTime~=4.9
+requests~=2.31.0           # Do not BUMP
+#urllib3==1.26.5
+urllib3~=2.1.0
