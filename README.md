@@ -27,10 +27,14 @@ The SDK contains the following modules:
 
 ## Execution
 
+* WS_URL should be the URL for your environment without https:// e.g. saas.whitesourcesoftware.com.
+* USER_KEY needs to be generated on the Mend UI. [Generating a user key](https://upload.wikimedia.org/wikipedia/commons/7/76/Blue_Python_3.7%2B_Shield_Badge.svg)
+* ORG_TOKEN can be found under the 'Integrate' tab of your Mend UI as API Key.
+
 ```python
 # Unified (can do both WSApp and WSClient)
 from ws_sdk.web import WS
-ws = WS(url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
+ws = WS(url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN", ua_path="/UA/WORKING/DIR")
 
 # Web (Mend Application)
 from ws_sdk.app import WSApp
