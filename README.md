@@ -1,3 +1,7 @@
+> [!Warning]  
+**This project utitilizes Mend API 1.4. While 1.4 and this project are still supported, Mend is actively moving toward a RESTful standard for APIs. All new development is encouraged to utilize [Mend API 2.0](https://docs.mend.io/bundle/mend-api-2-0/page/index.html). API 2.0 will transition more easily into API 3.0 when it is released with the Mend Unified Platform**
+
+
 [![Logo](https://resources.mend.io/mend-sig/logo/mend-dark-logo-horizontal.png)](https://www.mend.io/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
 [![CI](https://github.com/whitesource-ps/ws-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/whitesource-ps/ws-sdk/actions/workflows/ci.yml)
