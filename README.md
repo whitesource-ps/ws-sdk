@@ -1,3 +1,7 @@
+> [!Warning]  
+**This project utitilizes Mend API 1.4. While 1.4 and this project are still supported, Mend is actively moving toward a RESTful standard for APIs. All new development is encouraged to utilize [Mend API 2.0](https://docs.mend.io/bundle/mend-api-2-0/page/index.html). API 2.0 will transition more easily into API 3.0 when it is released with the Mend Unified Platform**
+
+
 [![Logo](https://resources.mend.io/mend-sig/logo/mend-dark-logo-horizontal.png)](https://www.mend.io/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
 [![CI](https://github.com/whitesource-ps/ws-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/whitesource-ps/ws-sdk/actions/workflows/ci.yml)
@@ -27,10 +31,14 @@ The SDK contains the following modules:
 
 ## Execution
 
+* WS_URL should be the URL for your environment without https:// e.g. saas.whitesourcesoftware.com.
+* USER_KEY needs to be generated on the Mend UI. [Generating a user key](https://upload.wikimedia.org/wikipedia/commons/7/76/Blue_Python_3.7%2B_Shield_Badge.svg)
+* ORG_TOKEN can be found under the 'Integrate' tab of your Mend UI as API Key.
+
 ```python
 # Unified (can do both WSApp and WSClient)
 from ws_sdk.web import WS
-ws = WS(url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN")
+ws = WS(url="WS_URL", user_key="USER_KEY", token="ORG_TOKEN", ua_path="/UA/WORKING/DIR")
 
 # Web (Mend Application)
 from ws_sdk.app import WSApp
