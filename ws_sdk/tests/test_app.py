@@ -256,6 +256,22 @@ class TestWS(TestCase):
 
         self.assertIsInstance(res, list)
 
+    @patch('ws_sdk.app.WSApp.get_products')
+    def test_get_product_by_name(self, mock_get_products):
+        mock_get_products.return_value = {'name': "PROD_NAME", 'token': "TOKEN"}
+        ret_d = {'name': "PROD_NAME", 'token': "TOKEN"}
+        res = self.ws_app.get_products(name="PROD_NAME")
+
+        self.assertEqual(res, ret_d)
+
+    @patch('ws_sdk.app.WSApp.get_products')
+    def test_get_product_by_token(self, mock_get_products):
+        mock_get_products.return_value = {'name': "PROD_NAME", 'token': "TOKEN"}
+        ret_d = {'name': "PROD_NAME", 'token': "TOKEN"}
+        res = self.ws_app.get_products(token="TOKEN")
+
+        self.assertEqual(res, ret_d)
+
     @patch('ws_sdk.app.WSApp._generic_get')
     def test_get_projects(self, mock_generic_get):
         mock_generic_get.return_value = {'productVitals': []}
@@ -416,6 +432,13 @@ class TestWS(TestCase):
 
     @patch('ws_sdk.app.WSApp.get_scope_by_token')
     def test_get_scope_name_by_token(self, mock_get_scope_by_token):
+        mock_get_scope_by_token.return_value = {'name': "NAME"}
+        res = self.ws_app.get_scope_name_by_token(token="TOKEN")
+
+        self.assertEqual(res, "NAME")
+
+    @patch('ws_sdk.app.WSApp.get_scope_by_token')
+    def test_get_name_from_token(self, mock_get_scope_by_token):
         mock_get_scope_by_token.return_value = {'name': "NAME"}
         res = self.ws_app.get_scope_name_by_token(token="TOKEN")
 
@@ -1066,6 +1089,13 @@ class TestWS(TestCase):
         with self.assertLogs(level='DEBUG') as cm:
             res = self.ws_app.change_origin_of_source_lib(lib_uuid="LIB_UUID", source_files_sha1=["SHA1_1", "SHA1_2"])
             self.assertEqual(cm.output, ["DEBUG:ws_sdk.app:Changing original of source library: 'LIB_UUID'"])
+
+    def test_generate_whitesource_url(self):
+        id = 42
+        type = 'project'
+        ret = self.ws_app.generate_whitesource_url(id, type)
+        ret_d = f"{self.ws_app.url}/Wss/WSS.html/Wss/WSS.html#!{type};id={id}"
+        self.assertEqual(ret, ret_d)
 
 
 if __name__ == '__main__':

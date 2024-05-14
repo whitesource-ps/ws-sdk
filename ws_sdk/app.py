@@ -747,6 +747,17 @@ class WSApp:
 
         return ret
 
+    def get_name_from_token(self, token: str = None) -> str:
+        """
+        Get Name from token
+        :param token: the token
+        :return: the name of token
+        :rtype: str
+        """
+        name = self.get_scope_name_by_token(token)
+
+        return name
+
     @Decorators.check_permission(permissions=[ScopeTypes.GLOBAL])
     def get_organizations(self,
                           name: str = None,
@@ -782,6 +793,24 @@ class WSApp:
                                                token=token,
                                                sort_by=sort_by)
         return products
+
+    def get_product_by_name(self,
+                            name: str) -> dict:
+        products = self.get_products(name=name)
+        for product in products:
+            if product['name'] == name:
+                return product
+        logger.error(f"Product with name: {name} was not found")
+        raise WsSdkServerMissingTokenError(name, ScopeTypes.PRODUCT)
+
+    def get_product_by_token(self,
+                             token: str) -> dict:
+        products = self.get_products(token=token)
+        for product in products:
+            if product['token'] == token:
+                return product
+        logger.error(f"Product with token: {token} was not found")
+        raise WsSdkServerMissingTokenError(token, ScopeTypes.PRODUCT)
 
     def get_projects(self,
                      name: str = None,
@@ -1289,7 +1318,7 @@ class WSApp:
 
         return ret
 
-    def get_user_group_assignments(self,            # TODO MERGE WITH GET_USERS and GET_GROUPS
+    def get_user_group_assignments(self,  # TODO MERGE WITH GET_USERS and GET_GROUPS
                                    token: str = None,
                                    role_type: str = None,
                                    entity_type: str = None) -> list:
@@ -1821,7 +1850,7 @@ class WSApp:
                      include_parent_policy: bool = True) -> list:
         """
         Retrieves policies from scope
-        :param token: Optional to to get policies of another token
+        :param token: Optional to get policies of another token
         :param include_parent_policy: Should inherited policies be presented (default: true)
         :return: list of policies
         :rtype: list
@@ -2125,3 +2154,16 @@ class WSApp:
 
         self.call_ws_api(request_type="changeOriginLibrary", kv_dict=kv_dict)
 
+    def generate_whitesource_url(self,
+                            id: int,
+                            type: str) -> str:
+        """
+        Method to generate url by id and type
+        :param id: ID of the product/project
+        :type id: int
+        :param type: The type product/project
+        :type type: str
+        :return: Returns url built from id and type provided
+        :rtype: str
+        """
+        return f"{self.url}/Wss/WSS.html/Wss/WSS.html#!{type};id={id}"
